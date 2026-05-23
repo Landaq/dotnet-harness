@@ -1,0 +1,36 @@
+# Project-level Codex configuration for .NET / ASP.NET Core repositories.
+# 이 파일은 저장소가 Codex에서 trusted 상태일 때만 로드됩니다.
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "cached"
+
+[features]
+hooks = true
+multi_agent = true
+shell_snapshot = true
+
+# 개발 문서 조회용 MCP. 필요 없으면 enabled = false로 바꾸십시오.
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+default_tools_approval_mode = "prompt"
+enabled = true
+
+# 보안 스캔용 MCP 예시입니다. Snyk 계정과 CLI 정책에 맞게 사용하십시오.
+[mcp_servers.snyk-security]
+command = "npx"
+args = ["-y", "snyk@latest", "mcp", "-t", "stdio"]
+startup_timeout_sec = 30
+tool_timeout_sec = 120
+default_tools_approval_mode = "prompt"
+enabled = false
+
+# 하위 에이전트 동시 실행 수를 제한해 비용과 복잡도를 제어합니다.
+[agents]
+max_threads = 5
+max_depth = 1
+job_max_runtime_seconds = 1800
+

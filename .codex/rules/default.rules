@@ -1,0 +1,87 @@
+# Rev04 Codex 기본 규칙
+
+## 기준 솔루션
+
+이 저장소의 기준 솔루션 파일은 `Rev04.slnx`이다. 사용자의 명시 요청 없이 `.sln` 파일을 새 기준으로 만들거나 문서화하지 않는다.
+
+## 기준 아키텍처
+
+Rev04는 **MSA 전환 가능한 하이브리드 서비스 아키텍처**를 따른다. 순수 모듈형 모놀리스로 고정하지 않고, 그렇다고 초기부터 모든 기능을 완전한 독립 MSA로 분리하지도 않는다. 각 백엔드 업무 경계는 장래 독립 서비스로 분리 가능한 `Services/{ServiceName}` 구조로 작성한다.
+
+```text
+src/
+  Aspire/
+    AppHost/
+    ServiceDefaults/
+  FrontEnd/
+    Web/
+    Web.Client/
+  BackEnd/
+    APIGateway/
+    BuildingBlocks/
+    Services/
+      {ServiceName}/
+test/
+```
+
+## 백엔드 서비스 규칙
+
+새 백엔드 기능은 `src/BackEnd/Services/{ServiceName}` 아래에 둔다. 기존 Module 기반 구조는 폐기되었으며, 신규 작업 기준으로 사용하지 않는다.
+
+서비스 내부는 다음 경계를 따른다.
+
+```text
+{ServiceName}.Domain
+{ServiceName}.Application
+{ServiceName}.Infrastructure
+{ServiceName}.Api
+{ServiceName}.Contracts
+```
+
+| 계층 | 규칙 |
+| --- | --- |
+| Domain | EF Core, ASP.NET Core, HTTP, 외부 SDK, 다른 서비스 내부 구현을 참조하지 않는다. |
+| Application | Domain에 의존하고 유스케이스와 Port 인터페이스를 둔다. Infrastructure 구현을 직접 참조하지 않는다. |
+| Infrastructure | EF Core, Repository 구현, 외부 Adapter를 둔다. 다른 서비스 DB에 직접 접근하지 않는다. |
+| Api | Minimal API endpoint와 mapping을 둔다. 비즈니스 규칙을 직접 구현하지 않는다. |
+| Contracts | 공개 request/response와 integration event를 둔다. Domain 모델을 직접 노출하지 않는다. |
+
+## TDD 규칙
+
+기능 구현 전에는 가능한 한 테스트 계획을 먼저 제시한다. 테스트 구조는 다음을 따른다.
+
+```text
+test/Architecture
+test/Unit/Services/{ServiceName}
+test/Integration/Services/{ServiceName}
+test/Contract/Services/{ServiceName}
+test/Functional/APIGateway
+test/Functional/FrontEnd
+test/EndToEnd
+```
+
+Red-Green-Refactor 순서를 기본으로 하며, Domain/Application 테스트를 가장 먼저 고려한다.
+
+## Gateway, FrontEnd, Aspire 규칙
+
+`APIGateway`는 YARP 기반 외부 진입점이다. 라우팅, transform, 인증 위임, CORS, 공통 헤더, health check, timeout, rate limiting, observability만 담당하고 비즈니스 유스케이스를 구현하지 않는다.
+
+`FrontEnd/Web`은 Blazor Web App 서버 호스트이며, `FrontEnd/Web.Client`는 브라우저에서 실행 가능한 Auto Rendering 대상 UI이다. `Web.Client`에는 비밀 정보, 연결 문자열, 직접 DB 접근, 서버 전용 SDK를 두지 않는다.
+
+`Aspire/AppHost`는 실행 관계와 리소스 연결만 정의한다. `Aspire/ServiceDefaults`는 health check, telemetry, service discovery, resilience 같은 공통 기본값만 제공한다.
+
+## 보안과 파괴적 작업
+
+비밀 정보, 운영 연결 문자열, 토큰, 인증서, 개인 키는 읽거나 출력하지 않는다. 운영 DB 변경, destructive git 명령, 파일 삭제, 마이그레이션 적용은 사용자의 명시 승인 없이는 수행하지 않는다.
+
+## 검증 명령
+
+일반 검증은 다음 순서를 기본으로 한다.
+
+```bash
+dotnet restore ./Rev04.slnx
+dotnet build ./Rev04.slnx --no-restore
+dotnet test ./Rev04.slnx --no-build
+```
+
+필요할 때만 특정 `.csproj` 또는 테스트 프로젝트 대상으로 범위를 좁힌다.
