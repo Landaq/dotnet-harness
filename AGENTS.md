@@ -2,7 +2,7 @@
 
 ## Repository role
 
-이 저장소에서 Codex는 **.NET Aspire 기반 ASP.NET Core 하이브리드 서비스 아키텍처 개발 보조 에이전트**로 동작한다. 주요 기술 범위는 ASP.NET Core, Minimal API, EF Core, MS SQL Server, YARP, Blazor Web App, Blazor WebAssembly, TDD, Clean Architecture, DDD, xUnit/NUnit/MSTest 기반 테스트, Docker 기반 개발 환경을 포함한다.
+이 저장소에서 Codex는 **.NET Aspire 기반 ASP.NET Core 하이브리드 서비스 아키텍처 개발 보조 에이전트**로 동작한다. 주요 기술 범위는 ASP.NET Core, Minimal API, EF Core, MS SQL Server, YARP, Blazor Web App, Blazor WebAssembly, MudBlazor 기반 기본 UI, DevExpress Blazor 23.2 기준 BI UI 대비, TDD, Clean Architecture, DDD, xUnit/NUnit/MSTest 기반 테스트, Docker 기반 개발 환경을 포함한다.
 
 Rev04의 기준 아키텍처는 순수 모듈형 모놀리스도, 처음부터 모든 기능을 독립 배포하는 순수 MSA도 아니다. 이 저장소는 **MSA-ready Hybrid Architecture**를 따른다. 각 백엔드 업무 경계는 장래 독립 서비스로 분리될 수 있는 서비스 후보로 설계하되, 초기 개발 단계에서는 단일 솔루션 안에서 테스트·빌드·실행 복잡도를 낮게 유지한다.
 
@@ -172,6 +172,8 @@ EF Core 변경 시에는 엔티티, `DbContext`, Fluent API 구성, 마이그레
 
 `Web.Client`에는 비밀 정보, 연결 문자열, 서버 파일 시스템 접근, 직접 DB 접근, 서버 전용 SDK를 두지 않는다. `Web`은 서버 호스트, 인증, SSR 경계, 서버 전용 서비스 연결을 담당한다. 클라이언트에서 백엔드 기능을 호출할 때는 원칙적으로 `APIGateway`를 경유한다.
 
+기본 UI 컴포넌트 라이브러리는 **MudBlazor**로 둔다. 일반 업무 화면, 레이아웃, 내비게이션, 폼, 다이얼로그, 테이블, 검증 UI, 공통 상호작용 컴포넌트는 우선 MudBlazor로 설계한다. 대시보드, 피벗·그리드 중심 분석 화면, 리포팅, 차트 중심 분석 페이지, 내보내기 중심 데이터 뷰처럼 **BI 관련 UI 또는 기능**은 **DevExpress Blazor 23.2.x 기준**으로 대비한다. 단순 CRUD나 일반 레이아웃에는 DevExpress를 기본 도입하지 않으며, DevExpress 계열 패키지·라이선스·NuGet feed·계정 정보는 소스, `Web.Client`, `appsettings`, 문서 예시에 직접 기록하지 않는다.
+
 ## YARP conventions
 
 YARP 설정 변경 시에는 라우트, 클러스터, transform, health check, timeout, 인증/인가 위임, 헤더 전달 정책을 함께 검토한다. 프록시 설정은 보안상 민감할 수 있으므로 공개 인터넷으로 열리는 라우트와 내부 서비스 라우트를 명확히 분리한다.
@@ -201,5 +203,6 @@ Codex는 사용자의 명시 승인 없이 커밋, 푸시, rebase, force push, r
 | `CODEX_SETUP.md` | Codex CLI 적용 및 실행 안내 |
 | `docs/architecture/PROJECT_STRUCTURE.md` | 전체 프로젝트 구조와 아키텍처 원칙 |
 | `docs/architecture/SERVICE_TEMPLATE.md` | 새 백엔드 서비스 생성 규칙 |
+| `docs/architecture/FRONTEND_UI_GUIDELINES.md` | MudBlazor 기본 UI와 DevExpress Blazor 23.2 BI 대비 기준 |
 | `docs/testing/TDD_GUIDE.md` | TDD 및 테스트 계층 운영 기준 |
 | `docs/architecture/REFERENCE_COMPARISON.md` | `.slnx`, Aspire, Blazor, YARP, DDD, MSA-ready 구조 외부 레퍼런스 비교 분석 |

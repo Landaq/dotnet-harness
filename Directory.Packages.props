@@ -1,0 +1,24 @@
+<Project>
+  <!--
+    Central package version management for Rev04.
+
+    UI policy:
+    - MudBlazor is the default UI component library for ordinary Blazor UI.
+    - DevExpress Blazor is reserved for BI-related UI/features and must stay on the 23.2.x line unless explicitly approved.
+    - Do not store DevExpress license keys, private feed credentials, or account information in this file.
+
+    Add PackageReference entries to individual project files only after the package purpose,
+    alternatives, license impact, and security implications have been reviewed.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup Label="FrontEnd UI Packages">
+    <!-- Default UI component library for ordinary application UI. Pin a concrete stable version when first used. -->
+    <!-- <PackageVersion Include="MudBlazor" Version="__PIN_CONCRETE_VERSION_WHEN_USED__" /> -->
+
+    <!-- BI-related UI/features only. Keep within 23.2.x unless the user explicitly approves a version change. -->
+    <!-- <PackageVersion Include="DevExpress.Blazor" Version="23.2.__PATCH__" /> -->
+  </ItemGroup>
+</Project>

@@ -1,6 +1,6 @@
 # 프로젝트 구조 설계
 
-이 문서는 Rev04 저장소에서 사용할 **.NET Aspire 기반 하이브리드 서비스 아키텍처**를 정의한다. 목표는 `Aspire AppHost`, `Blazor Web App + Web.Client`, `YARP API Gateway`, `MSA-ready BackEnd Services`, `TDD`, `Clean Architecture`, `DDD`를 하나의 일관된 개발 규칙으로 묶는 것이다.
+이 문서는 Rev04 저장소에서 사용할 **.NET Aspire 기반 하이브리드 서비스 아키텍처**를 정의한다. 목표는 `Aspire AppHost`, `Blazor Web App + Web.Client`, `MudBlazor 기본 UI`, `DevExpress Blazor 23.2 기준 BI UI 대비`, `YARP API Gateway`, `MSA-ready BackEnd Services`, `TDD`, `Clean Architecture`, `DDD`를 하나의 일관된 개발 규칙으로 묶는 것이다.
 
 > 이 저장소의 기본 방향은 **서비스 경계를 먼저 명확히 잡고, 초기에는 단일 솔루션의 개발 편의성을 유지하며, 경계가 안정된 서비스만 단계적으로 MSA로 분리할 수 있게 만드는 구조**다.
 
@@ -60,6 +60,12 @@ Blazor Web App에서 Auto Rendering을 기본 전략으로 사용할 경우, 전
 | API 호출 | 클라이언트는 원칙적으로 `APIGateway`를 통해 백엔드 서비스 API에 접근한다. |
 | 비밀 정보 | `Web.Client`에는 연결 문자열, API Key, 서버 비밀값을 두지 않는다. |
 | 상태 관리 | UI 상태는 컴포넌트 또는 클라이언트 상태 서비스에 두고, 도메인 판단은 백엔드 Application 계층에서 처리한다. |
+| 기본 UI 컴포넌트 | 일반 업무 화면, 레이아웃, 내비게이션, 폼, 다이얼로그, 테이블, 검증 UI는 **MudBlazor**를 우선 사용한다. |
+| BI 관련 UI·기능 | 대시보드, 피벗·그리드 중심 분석 화면, 리포팅, 차트 중심 분석 페이지, 내보내기 중심 데이터 뷰는 **DevExpress Blazor 23.2.x** 기준으로 설계 가능성을 검토한다. |
+
+MudBlazor는 Rev04의 기본 UI 컴포넌트 기준이다. 따라서 FrontEnd Agent는 단순 CRUD, 일반 업무 입력 화면, 공통 레이아웃, 탐색 메뉴, 다이얼로그, 폼 검증, 기본 데이터 표시에 대해 우선 MudBlazor 컴포넌트로 설계해야 한다. BI 성격이 없는 화면에 DevExpress를 기본 도입하지 않으며, 추가 패키지가 필요한 경우 목적, 대안, 라이선스 영향, 버전 고정 전략을 먼저 설명한다.
+
+DevExpress Blazor는 **BI 관련 UI 또는 기능을 대비하기 위한 선택지**로 둔다. BI 관련 작업에는 대시보드, 고급 그리드, 피벗 성격의 분석 화면, 리포팅, 차트 중심 분석 페이지, 내보내기 중심 데이터 탐색 기능이 포함된다. DevExpress 계열 패키지는 사용자가 별도 승인하지 않는 한 23.2.x 버전 라인을 기준으로 검토하며, 라이선스 키, NuGet feed 인증 정보, 계정 정보는 소스 코드와 `Web.Client`, `appsettings`, 문서 예시에 직접 기록하지 않는다.
 
 ## 3. APIGateway 구조
 

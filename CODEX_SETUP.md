@@ -1,6 +1,6 @@
 # Codex CLI 프로젝트 환경 적용 안내
 
-이 문서는 현재 프로젝트 루트에 적용된 **.NET Aspire + ASP.NET Core + Blazor Auto Rendering + YARP + MSA-ready Hybrid Services + Clean Architecture + DDD + TDD** 기준 Codex CLI 구성의 사용 방법을 설명합니다. 현재 구성은 Codex를 단순 코드 생성기가 아니라, 프로젝트 구조·테스트·아키텍처 규칙을 함께 관리하는 코딩 보조 에이전트로 활용하기 위한 기본 뼈대입니다.
+이 문서는 현재 프로젝트 루트에 적용된 **.NET Aspire + ASP.NET Core + Blazor Auto Rendering + MudBlazor 기본 UI + DevExpress Blazor 23.2 BI 대비 + YARP + MSA-ready Hybrid Services + Clean Architecture + DDD + TDD** 기준 Codex CLI 구성의 사용 방법을 설명합니다. 현재 구성은 Codex를 단순 코드 생성기가 아니라, 프로젝트 구조·테스트·아키텍처 규칙을 함께 관리하는 코딩 보조 에이전트로 활용하기 위한 기본 뼈대입니다.
 
 ## 적용된 구성 요약
 
@@ -11,10 +11,11 @@
 | `.codex/hooks.json` | Codex 작업 전후로 실행할 훅 연결 지점을 정의합니다. Windows 사용을 고려해 상대 경로 기반 Python 실행으로 조정했습니다. |
 | `.codex/hooks/` | 위험 명령 감지, 작업 후 리뷰, 종료 요약을 위한 훅 스크립트를 보관합니다. |
 | `.codex/rules/default.rules` | 금지 명령, EF Core 위험 명령, 테스트·빌드 허용 정책, Docker volume 삭제 확인 정책을 정의합니다. |
-| `.codex/agents/` | 아키텍트, EF Core 리뷰어, 보안 리뷰어, 테스트 작성자 등 역할별 서브에이전트 템플릿을 보관합니다. |
+| `.codex/agents/` | 아키텍트, FrontEnd Agent, EF Core 리뷰어, 보안 리뷰어, 테스트 작성자 등 역할별 서브에이전트 템플릿을 보관합니다. |
 | `.agents/skills/` | API 설계, EF Core 마이그레이션 검토, Blazor 검토, 테스트 생성, Aspire 하이브리드 서비스 작업 등 반복 작업용 스킬을 보관합니다. |
 | `docs/architecture/PROJECT_STRUCTURE.md` | 목표 프로젝트 구조와 각 영역의 책임을 설명합니다. |
 | `docs/architecture/SERVICE_TEMPLATE.md` | 새 백엔드 서비스를 만들 때 따를 DDD/Clean Architecture 템플릿입니다. |
+| `docs/architecture/FRONTEND_UI_GUIDELINES.md` | MudBlazor 기본 UI와 DevExpress Blazor 23.2 BI 대비 기준을 설명합니다. |
 | `docs/testing/TDD_GUIDE.md` | TDD 개발 순서와 테스트 계층 기준을 설명합니다. |
 
 ## 목표 프로젝트 구조
@@ -52,7 +53,7 @@ test/
 | `src/Aspire/AppHost` | Aspire 분산 애플리케이션 실행 구성과 리소스 연결을 담당합니다. |
 | `src/Aspire/ServiceDefaults` | 공통 Health Check, OpenTelemetry, Service Discovery, resilience 설정을 담당합니다. |
 | `src/FrontEnd/Web` | Blazor Web App 서버 호스트, 인증, 라우팅, 서버 전용 서비스를 담당합니다. |
-| `src/FrontEnd/Web.Client` | Auto Rendering 기준 클라이언트 실행 가능 컴포넌트를 담당합니다. |
+| `src/FrontEnd/Web.Client` | Auto Rendering 기준 클라이언트 실행 가능 컴포넌트를 담당합니다. 일반 UI는 MudBlazor를 우선 사용하고, BI 관련 UI·기능은 DevExpress Blazor 23.2.x 기준으로 대비합니다. |
 | `src/BackEnd/APIGateway` | YARP 기반 라우팅, transform, 인증 위임, 공통 헤더 처리를 담당합니다. |
 | `src/BackEnd/BuildingBlocks` | 서비스 간 최소 공통 계약·메시징·관측성 추상화를 담당합니다. |
 | `src/BackEnd/Services/{ServiceName}` | MSA 전환 가능한 업무 서비스의 Domain, Application, Infrastructure, Api, Contracts 경계를 담당합니다. |
@@ -72,6 +73,10 @@ aspire-modular-ddd 스킬 기준으로 Orders 서비스를 추가하기 위한 T
 
 ```text
 Orders 서비스의 주문 생성 유스케이스를 Red-Green-Refactor 방식으로 진행해줘. 먼저 Domain/Application 실패 테스트부터 작성해줘.
+```
+
+```text
+frontend-agent 기준으로 고객 현황 화면을 설계해줘. 일반 UI는 MudBlazor를 기본으로 쓰고, BI 성격의 대시보드·차트·고급 그리드는 DevExpress Blazor 23.2.x 기준으로 분리 검토해줘.
 ```
 
 ```text
