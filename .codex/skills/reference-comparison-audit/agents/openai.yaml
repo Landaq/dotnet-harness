@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reference Comparison Audit"
+  short_description: "Map architecture gaps against external references and propose concrete remediation priorities"
+  default_prompt: "Audit current architecture policy versus reference practices, then return a Missing/Partial/Compliant checklist and prioritized remediation items."

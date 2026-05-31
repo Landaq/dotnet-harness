@@ -1,0 +1,4 @@
+interface:
+  display_name: "Service Template Setup"
+  short_description: "Scaffold and validate a new service boundary with DDD layer folders"
+  default_prompt: "Set up a new service folder under src/BackEnd/Services with Domain, Application, Infrastructure, Api, and Contracts boundaries, then validate dependency and test placement rules."

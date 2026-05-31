@@ -1,0 +1,4 @@
+interface:
+  display_name: "TDD Test Workflow"
+  short_description: "Guide implementation in Red-Green-Refactor order with Rev04 test layer conventions"
+  default_prompt: "Define tests first, then implement minimal code in Red-Green-Refactor order across unit, integration, contract, functional, and architecture checks."

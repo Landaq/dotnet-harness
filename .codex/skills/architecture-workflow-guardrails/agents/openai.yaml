@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Workflow Guardrails"
+  short_description: "Run ambiguity checks and workflow-classification rules before coding complex architecture work"
+  default_prompt: "Classify the request, validate ambiguity threshold, ask 1-3 structured Korean clarifications, and only proceed when scope and approval boundaries are clear."

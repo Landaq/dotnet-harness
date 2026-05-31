@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend UI Policy"
+  short_description: "Choose MudBlazor-first or DevExpress-BI policy with rendering-mode and security checks"
+  default_prompt: "Apply MudBlazor first for general UI, switch to DevExpress only for approved BI-heavy scenarios, then validate render-mode and Web.Client safety."
