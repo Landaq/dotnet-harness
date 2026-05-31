@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Structure Setup"
+  short_description: "Scaffold architecture folders with variable project and service names"
+  default_prompt: "Use this skill to scaffold project folders from the architecture rules and support variable project/service names."
