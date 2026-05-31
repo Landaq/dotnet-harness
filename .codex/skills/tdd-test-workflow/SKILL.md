@@ -5,42 +5,42 @@ description: Apply test-first development flow for Rev04 services with Unit, Int
 
 # TDD Test Workflow
 
-Use this skill whenever feature implementation starts and test sequence is not yet fixed.
+Use whenever feature impl starts and test sequence not fixed.
 
 ## Core loop
 
-1. **Red**: write a failing test that encodes the requirement.
-2. **Green**: implement the minimum code to pass.
-3. **Refactor**: enforce boundaries and simplify after green.
+1. **Red**: write failing test encoding requirement.
+2. **Green**: implement minimum code to pass.
+3. **Refactor**: enforce boundaries + simplify after green.
 
 ## Required order for backend services
 
-1. Domain test (Aggregate, value object, state transition, rule edge cases)
-2. Application test (Command/Query and handlers)
-3. Contract test (request/response and integration event contracts)
-4. Infrastructure test (EF mappings, repositories, adapter integration)
-5. Api test (endpoint behavior and status mapping)
-6. Gateway/FrontEnd validation after service contracts stabilize
+1. Domain test: Aggregate, value object, state transition, rule edge cases.
+2. Application test: Command/Query + handlers.
+3. Contract test: request/response + integration event contracts.
+4. Infrastructure test: EF mappings, repositories, adapter integration.
+5. Api test: endpoint behavior + status mapping.
+6. Gateway/FrontEnd validation after service contracts stabilize.
 
 ## Test folder conventions
 
-- `test/Unit/Services/{ServiceName}` for Domain/Application
-- `test/Integration/Services/{ServiceName}` for EF Core and external adapters
-- `test/Contract/Services/{ServiceName}` for public contract changes
-- `test/Functional/APIGateway` for route/auth/header behavior
-- `test/Functional/FrontEnd` for component and client interaction checks
-- `test/Architecture` for dependency and naming rules
-- `test/EndToEnd` for end-user scenarios
+- `test/Unit/Services/{ServiceName}` for Domain/Application.
+- `test/Integration/Services/{ServiceName}` for EF Core + external adapters.
+- `test/Contract/Services/{ServiceName}` for public contract changes.
+- `test/Functional/APIGateway` for route/auth/header behavior.
+- `test/Functional/FrontEnd` for component + client interaction checks.
+- `test/Architecture` for dependency + naming rules.
+- `test/EndToEnd` for end-user scenarios.
 
 ## FrontEnd interaction rules
 
-- For `Web.Client`, use browser-safe dependencies only.
-- Place page/server concerns in `Web` when API proxy, secrets, or server-only features are needed.
+- For `Web.Client`, use browser-safe deps only.
+- Put page/server concerns in `Web` when API proxy, secrets, or server-only features needed.
 - Keep API boundary through `APIGateway`, then typed contract consumption or typed client.
 
 ## Completion checks
 
-- Domain and Application tests exist before Infrastructure/Api completion.
+- Domain + Application tests exist before Infrastructure/Api completion.
 - Contract changes include regression coverage.
-- At least one architecture rule test is added when large structure changes occur.
-- If the request is ambiguous, ask up to 3 follow-up Korean questions to narrow scope before coding.
+- Add at least one architecture rule test for large structure changes.
+- If request ambiguous, ask max 3 Korean follow-up questions before coding.

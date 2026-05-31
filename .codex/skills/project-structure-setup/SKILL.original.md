@@ -5,7 +5,7 @@ description: Scaffold architecture folders for an Aspire-based project with an i
 
 # Project Structure Setup
 
-Use when creating/recreating baseline folders from fixed architecture layout.
+Use this skill when creating/recreating baseline folders for a project based on a fixed architecture layout.
 
 ## What it builds
 
@@ -17,17 +17,17 @@ Use when creating/recreating baseline folders from fixed architecture layout.
 
 ## Service scaffold (optional)
 
-If `{ServiceName}` enabled:
+If enabled for `{ServiceName}`:
 
 - `src/BackEnd/Services/{ServiceName}/{ServiceName}.{Domain,Application,Infrastructure,Api,Contracts}`
 - `test/{Unit,Integration,Contract}/Services/{ServiceName}`
 
 ## Prompts
 
-- Prompts interactive only when `--project-name` or `--service-name` omitted.
+- Prompts are interactive only when `--project-name` or `--service-name` are omitted.
 - User-facing prompt text is Korean.
-- If `ProjectName` empty, request again.
-- If `ServiceName` empty, skip service folders.
+- If `ProjectName` is empty, it is requested again.
+- If `ServiceName` is empty, service folders are skipped.
 
 ## CLI
 
@@ -40,8 +40,8 @@ python scripts/bootstrap_project_structure.py --root . --project-name MyProj --s
 
 ## Rules
 
-- Create only directories + `.gitkeep` files.
-- `.gitkeep` enabled by default; use `--no-gitkeep` to skip.
+- Create directories and `.gitkeep` files only.
+- `.gitkeep` is enabled by default; use `--no-gitkeep` to skip.
 - Never delete existing directories.
 - No code/template generation.
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Task Agents"
+  short_description: "Route work through discovered task agents in workflow order"
+  default_prompt: "Discover project agents and skills, classify the request, then route through workflow guardrails, specialists, tests, and audit gates without hardcoded project names."

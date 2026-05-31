@@ -5,12 +5,12 @@ description: Scaffold and enforce the ServiceName folder and layer structure for
 
 # Service Template Setup
 
-Use whenever new backend service folder introduced under `src/BackEnd/Services/{ServiceName}`.
+Use this skill whenever a new backend service folder is being introduced under `src/BackEnd/Services/{ServiceName}`.
 
 ## Inputs
 
-- Service name (`ServiceName`) from user request.
-- Optional: new service vs existing service expansion.
+- Service name (`ServiceName`) from user request
+- Optional: whether this is a new service or existing service expansion
 
 ## Mandatory structure
 
@@ -31,25 +31,25 @@ Use whenever new backend service folder introduced under `src/BackEnd/Services/{
 
 ## Dependency rules
 
-- `{ServiceName}.Domain` and `{ServiceName}.Application` must not reference outer impl layers.
-- `{ServiceName}.Api` and `{ServiceName}.Infrastructure` may depend on `Application`/`Domain` only where allowed.
-- `{ServiceName}.Contracts` remain transport-oriented types + public models.
+- `{ServiceName}.Domain` and `{ServiceName}.Application` must not reference outer implementation layers.
+- `{ServiceName}.Api` and `{ServiceName}.Infrastructure` may depend on `Application`/`Domain` and only where allowed.
+- `{ServiceName}.Contracts` must remain transport-oriented types and public models.
 
 ## Workflow
 
-1. Confirm service boundary + owner terms first.
-2. Define contract surface before endpoint impl.
-3. Create only structure + test folders needed for requested scope.
-4. Separate API/domain concerns; avoid business rules in Api layer.
-5. Route through gateway/AppHost only after Domain + Application stable.
+1. Confirm service boundary and owner terms first.
+2. Define contract surface before endpoint implementation.
+3. Create only structure and test folders needed for the requested scope.
+4. Keep API and domain concerns separated; avoid placing business rules in Api layer.
+5. Only route through gateway and AppHost after Domain and Application are stable.
 
 ## Completion checks
 
-- Domain + Application have no accidental dependency on Infrastructure/Api concrete types.
+- Domain and Application have no accidental dependency on Infrastructure/Api concrete types.
 - `Contracts` types are not direct domain models.
-- API path + gateway route added in separate steps.
+- API path and gateway route are added in separate steps.
 
 ## Helpful commands
 
 - Review baseline service template in `[references/service-template.md](references/service-template.md)`.
-- Ask Korean for missing service names/boundary decisions, then continue English impl instructions.
+- Ask in Korean for missing service names or boundary decisions, then continue in English for implementation instructions.
