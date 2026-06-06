@@ -14,6 +14,7 @@ Use when creating/recreating baseline folders from fixed architecture layout.
 - `src/BackEnd/APIGateway`
 - `src/BackEnd/BuildingBlocks/{Contracts,Messaging,Observability}`
 - `test/{Architecture,Unit,Integration,Contract,Functional/{APIGateway,FrontEnd},EndToEnd}`
+- `docs/Project/README.md` with the baseline structure summary
 
 ## Service scaffold (optional)
 
@@ -41,8 +42,10 @@ python scripts/bootstrap_project_structure.py --root . --project-name MyProj --s
 ## Rules
 
 - Create only directories + `.gitkeep` files.
+- Create `docs/Project/README.md` if it does not exist.
 - `.gitkeep` enabled by default; use `--no-gitkeep` to skip.
 - Never delete existing directories.
-- No code/template generation.
+- Do not overwrite an existing `docs/Project/README.md`.
+- No code generation.
 
 See [scripts/bootstrap_project_structure.py](scripts/bootstrap_project_structure.py) and [references/project-structure.md](references/project-structure.md).

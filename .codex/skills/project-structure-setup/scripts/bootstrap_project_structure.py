@@ -62,6 +62,35 @@ TEST_SERVICE_DIRS = [
     "test/Contract/Services/{service}",
 ]
 
+PROJECT_README = """# Project Structure
+
+This project structure was created by `project-structure-setup`.
+
+## Baseline Folders
+
+- `src/Aspire/AppHost`
+- `src/Aspire/ServiceDefaults`
+- `src/FrontEnd/Web`
+- `src/FrontEnd/Web.Client`
+- `src/BackEnd/APIGateway`
+- `src/BackEnd/BuildingBlocks/Contracts`
+- `src/BackEnd/BuildingBlocks/Messaging`
+- `src/BackEnd/BuildingBlocks/Observability`
+- `test/Architecture`
+- `test/Unit`
+- `test/Integration`
+- `test/Contract`
+- `test/Functional/APIGateway`
+- `test/Functional/FrontEnd`
+- `test/EndToEnd`
+
+## Workflow
+
+Run `project-structure-setup` before `task-agents`.
+
+After this baseline exists, `task-agents` can route work through workflow guardrails, intake planning, implementation coordination, specialist analysis, serial implementation, review, verification, and explicit git operations.
+"""
+
 
 def _normalize_name(value: str) -> str:
     return value.strip().replace(" ", "")
@@ -107,6 +136,7 @@ def collect_dirs(base_root: Path, project_name: str | None, service_name: str | 
         target_root = base_root / project_name
 
     dirs = [target_root / p for p in BASE_DIRS]
+    dirs.append(target_root / "docs/Project")
     if service_name:
         dirs.extend([target_root / p for p in _service_dirs(service_name)])
     return dirs
@@ -118,7 +148,21 @@ def ensure_gitkeep(path: Path) -> None:
         marker.write_text("")
 
 
+def ensure_project_readme(target_root: Path, preview: bool) -> None:
+    readme = target_root / "docs/Project/README.md"
+    if preview:
+        print(f"[preview] {readme}")
+        return
+    if readme.exists():
+        print(f"[exists] {readme}")
+        return
+    readme.parent.mkdir(parents=True, exist_ok=True)
+    readme.write_text(PROJECT_README, encoding="utf-8")
+    print(f"[create] {readme}")
+
+
 def run(base_root: Path, project_name: str | None, service_name: str | None, preview: bool, no_gitkeep: bool) -> None:
+    target_root = base_root / project_name if project_name else base_root
     for dir_path in collect_dirs(base_root, project_name, service_name):
         if preview:
             print(f"[preview] {dir_path}")
@@ -133,6 +177,8 @@ def run(base_root: Path, project_name: str | None, service_name: str | None, pre
 
         if not no_gitkeep:
             ensure_gitkeep(dir_path)
+
+    ensure_project_readme(target_root, preview)
 
 
 def parse_args() -> argparse.Namespace:

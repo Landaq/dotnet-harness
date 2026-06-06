@@ -9,6 +9,7 @@
 - `src/BackEnd/APIGateway`
 - `src/BackEnd/BuildingBlocks/{Contracts,Messaging,Observability}`
 - `test/{Architecture,Unit,Integration,Contract,Functional/{APIGateway,FrontEnd},EndToEnd}`
+- `docs/Project/README.md`: baseline structure summary created by `project-structure-setup`
 
 ## 서비스 추가 시
 

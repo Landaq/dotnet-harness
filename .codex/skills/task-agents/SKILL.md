@@ -13,10 +13,20 @@ Before routing, inspect current repo:
 
 1. List `.codex/agents/*.toml`; read each `name`, `description`, `developer_instructions` summary.
 2. List `.codex/skills/*/SKILL.md`; read frontmatter `name` + `description`.
-3. Detect solution anchors from `*.slnx`, `*.sln`, `src/`, `test/`, and `docs/`.
+3. Detect project structure anchors from `src/`, `test/`, and `docs/Project/README.md`; also detect solution anchors from `*.slnx` and `*.sln`.
 4. Treat missing agents/skills as routing constraints, not fatal errors. Report missing capability; continue closest available workflow.
 
 Do not hardcode repo identity strings. Refer to discovered solution, folders, agents, skill names.
+
+## Project Structure Gate
+
+Before task routing, confirm the baseline project structure exists:
+
+- `src/`
+- `test/`
+- `docs/Project/README.md`
+
+If any baseline anchor is missing, warn the user that the project baseline is not ready. Route first to `project-structure-setup` and instruct the user to run project setup before Task Agents continue. Do not proceed to implementation routing until the structure gate is satisfied or the user explicitly narrows the task to agent/skill maintenance.
 
 ## Documentation Grounding
 
@@ -28,6 +38,7 @@ Run stages in order unless user narrows task:
 
 1. **Safety gate**
    - Use discovered workflow/guardrails agent or skill first.
+   - Confirm the project structure gate is satisfied before implementation routing.
    - Identify destructive actions, git publishing, branch/worktree changes, merges, resets, cleans, database changes, secret handling, production access, and unclear approval boundaries.
    - Classify the request as complex, backend, frontend, audit, test-only, verification-only, or git-operation work.
    - Use discovered guardrail thresholds when present: complex work 13%, backend work 5%, frontend work 5%.
@@ -68,6 +79,7 @@ Run stages in order unless user narrows task:
    - Use discovered verification-runner when present.
    - Run the smallest command proving the claim: build, test, lint, file inspection, metadata check, or targeted search.
    - Report actual command outcomes. Do not claim completion from intent.
+   - Before final response, write the Task Result HTML artifact.
 
 8. **Explicit git operation**
    - Use discovered git-operator only when the user explicitly asks for commit, push, PR, branch, merge, reset, clean, or worktree actions.
@@ -120,6 +132,27 @@ For orchestration turns, include:
 - `Action`: what happens next.
 
 Keep Korean-first clarification concise; preserve English technical keywords.
+
+## Task Result Artifact
+
+When this skill is triggered and the task is ending, create a visible HTML result file:
+
+- Directory: `docs/TaskResult` (create if missing).
+- Filename: `{yyMMdd}_{summary}_Result.html`.
+- `summary`: short lowercase kebab-case summary from the request/result; keep filesystem-safe.
+- If the same filename exists, append `-2`, `-3`, etc. before `_Result.html`.
+- Keep only the newest 10 `*_Result.html` files; delete the oldest extras.
+- Sections must be:
+  1. `요청사항`
+  2. `작업내용`
+  3. `작업결과`
+  4. `Todo`
+
+Prefer the helper script when available:
+
+```powershell
+python .codex\skills\task-agents\scripts\write_task_result.py --summary "short-summary" --request "..." --work "..." --result "..." --todo "..."
+```
 
 ## Stop Conditions
 
