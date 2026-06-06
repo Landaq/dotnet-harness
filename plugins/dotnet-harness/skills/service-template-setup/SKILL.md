@@ -1,6 +1,6 @@
 ---
 name: service-template-setup
-description: "Create or review a new backend service using Rev04 service-layer template rules, enforce Domain/Application/Infrastructure/Api/Contracts boundaries, and validate test placement."
+description: "Create or review a new backend service using dotnet-harness service-layer template rules, enforce Domain/Application/Infrastructure/Api/Contracts boundaries, and validate test placement."
 ---
 
 # Service Template Setup

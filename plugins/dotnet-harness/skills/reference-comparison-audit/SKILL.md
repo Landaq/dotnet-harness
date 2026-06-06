@@ -9,7 +9,7 @@ Use this skill when reviewing architecture direction or before adopting a new st
 
 ## Baseline checks
 
-- Enforce `Rev04.slnx` as the repository solution standard.
+- Discover the repository solution file dynamically and prefer a single `.slnx` as the active solution standard.
 - Recommend central build and package policy files:
   - `global.json`
   - `Directory.Build.props`

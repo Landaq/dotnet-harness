@@ -1,6 +1,6 @@
 # AGENTS.md
 
-이 repo는 .NET 애플리케이션 repo가 아니라 `dotnet-harness` Codex plugin 개발 repo다. 일반 코딩 원칙은 전역 `C:\Users\cwnv2002\.codex\AGENTS.md`를 따른다.
+이 repo는 .NET 애플리케이션 repo가 아니라 `dotnet-harness` Codex plugin 개발 repo다. 일반 코딩 원칙은 사용자 전역 AGENTS.md를 따른다.
 
 ## 1. Source Of Truth
 
@@ -43,7 +43,7 @@
 Plugin 변경 후:
 
 ```powershell
-pwsh -NoProfile -Command "python C:\Users\cwnv2002\.codex\skills\.system\plugin-creator\scripts\validate_plugin.py plugins\dotnet-harness"
+pwsh -NoProfile -Command "python $env:USERPROFILE\.codex\skills\.system\plugin-creator\scripts\validate_plugin.py plugins\dotnet-harness"
 ```
 
 Harness/agent/script 변경 후:
@@ -55,7 +55,7 @@ pwsh -NoProfile -File plugins/dotnet-harness/assets/harness/.codex/scripts/valid
 Skill 변경 후:
 
 ```powershell
-pwsh -NoProfile -Command "$env:PYTHONUTF8='1'; python C:\Users\cwnv2002\.codex\skills\.system\skill-creator\scripts\quick_validate.py plugins\dotnet-harness\skills\<skill-name>"
+pwsh -NoProfile -Command "$env:PYTHONUTF8='1'; python $env:USERPROFILE\.codex\skills\.system\skill-creator\scripts\quick_validate.py plugins\dotnet-harness\skills\<skill-name>"
 ```
 
 ## 5. Release 규칙

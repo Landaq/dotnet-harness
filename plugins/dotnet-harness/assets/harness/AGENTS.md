@@ -1,6 +1,6 @@
 # AGENTS.md
 
-현재 repo 전용 agent/skill 라우팅 규칙. 일반 코딩 원칙은 전역 `C:\Users\cwnv2002\.codex\AGENTS.md` 따른다.
+현재 repo 전용 agent/skill 라우팅 규칙. 전역 AGENTS.md가 존재하면 함께 따르되, 이 파일의 repo-local 규칙을 우선 적용한다.
 
 상세 routing 원본 = `.codex/skills/task-agents/SKILL.md`. Agent/skill 원본 = `.codex/agents`, `.codex/skills`.
 

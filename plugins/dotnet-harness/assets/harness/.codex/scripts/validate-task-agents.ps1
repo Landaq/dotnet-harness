@@ -154,12 +154,7 @@ foreach ($scope in $hardcodeScopes) {
         foreach ($pattern in $hardcodePatterns) {
             $matches = $searchFiles | Select-String -Pattern $pattern -ErrorAction SilentlyContinue
             foreach ($match in $matches) {
-                $relativePath = Resolve-Path -LiteralPath $match.Path -Relative
-                $line = $match.Line.Trim()
-                $allowedGlobalPointer = $relativePath -eq ".\AGENTS.md" -and $line -like "*C:\Users\cwnv2002\.codex\AGENTS.md*"
-                if (-not $allowedGlobalPointer) {
-                    Add-Failure "Hardcode pattern '$pattern' found: $($match.Path):$($match.LineNumber)"
-                }
+                Add-Failure "Hardcode pattern '$pattern' found: $($match.Path):$($match.LineNumber)"
             }
         }
     }

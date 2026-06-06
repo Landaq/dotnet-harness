@@ -9,7 +9,7 @@ Use this skill when architecture or process needs alignment checks against estab
 
 ## Audit scope
 
-- Validate solution baseline (`Rev04.slnx`) is the active anchor.
+- Validate the discovered `.slnx` solution baseline is the active anchor.
 - Verify root build governance:
   - `global.json`
   - `Directory.Build.props`

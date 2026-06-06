@@ -29,20 +29,22 @@
 기존 프로젝트에 harness만 설치:
 
 ```powershell
-python plugins\dotnet-harness\skills\project-structure-setup\scripts\bootstrap_project_structure.py --root "C:\path\to\project" --project-name ExistingProject --harness-only
+pwsh -NoProfile -File plugins\dotnet-harness\install.ps1 -Root "C:\path\to\project" -ProjectName ExistingProject -HarnessOnly
 ```
 
 새 .NET 프로젝트 기본 구조까지 설치:
 
 ```powershell
-python plugins\dotnet-harness\skills\project-structure-setup\scripts\bootstrap_project_structure.py --root "C:\path\to\project" --project-name NewProject
+pwsh -NoProfile -File plugins\dotnet-harness\install.ps1 -Root "C:\path\to\project" -ProjectName NewProject
 ```
 
 서비스 scaffold 포함:
 
 ```powershell
-python plugins\dotnet-harness\skills\project-structure-setup\scripts\bootstrap_project_structure.py --root "C:\path\to\project" --project-name NewProject --service-name Orders
+pwsh -NoProfile -File plugins\dotnet-harness\install.ps1 -Root "C:\path\to\project" -ProjectName NewProject -ServiceName Orders
 ```
+
+Windows Codex sandbox에서는 Python 스크립트 직접 실행보다 위 PowerShell wrapper를 기본 사용합니다.
 
 기존 harness 업그레이드 preview:
 
@@ -63,7 +65,7 @@ pwsh -NoProfile -File plugins\dotnet-harness\assets\harness\.codex\scripts\upgra
 Plugin manifest 검증:
 
 ```powershell
-pwsh -NoProfile -Command "python C:\Users\cwnv2002\.codex\skills\.system\plugin-creator\scripts\validate_plugin.py plugins\dotnet-harness"
+pwsh -NoProfile -Command "python $env:USERPROFILE\.codex\skills\.system\plugin-creator\scripts\validate_plugin.py plugins\dotnet-harness"
 ```
 
 Task agents/harness 검증:
@@ -75,7 +77,7 @@ pwsh -NoProfile -File plugins\dotnet-harness\assets\harness\.codex\scripts\valid
 Skill 검증:
 
 ```powershell
-pwsh -NoProfile -Command "$env:PYTHONUTF8='1'; python C:\Users\cwnv2002\.codex\skills\.system\skill-creator\scripts\quick_validate.py plugins\dotnet-harness\skills\<skill-name>"
+pwsh -NoProfile -Command "$env:PYTHONUTF8='1'; python $env:USERPROFILE\.codex\skills\.system\skill-creator\scripts\quick_validate.py plugins\dotnet-harness\skills\<skill-name>"
 ```
 
 ## 관리 원칙

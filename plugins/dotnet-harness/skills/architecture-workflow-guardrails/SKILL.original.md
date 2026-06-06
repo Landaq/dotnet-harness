@@ -41,7 +41,7 @@ When ambiguity exceeds target, run clarification before implementation.
 
 - If a plan is requested, follow `docs/wkTask/Specs/{yyMMdd}_{Summary}_plan.md`.
 - Create results as `docs/wkTask/Results/{yyMMdd}_{Summary}_result.html`.
-- For this repo, prioritize `Rev04.slnx` in all validation references.
+- Discover the active `.slnx` dynamically and use it in validation references.
 
 ## Approval boundaries
 

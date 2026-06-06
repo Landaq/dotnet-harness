@@ -23,7 +23,13 @@ MudBlazor, Scalar, SQL Server, and Redis skeleton files.
 Harness-only install:
 
 ```powershell
-python skills\project-structure-setup\scripts\bootstrap_project_structure.py --root "C:\path\to\project" --project-name ExistingProject --harness-only
+pwsh -NoProfile -File install.ps1 -Root "C:\path\to\project" -ProjectName ExistingProject -HarnessOnly
+```
+
+Default .NET project setup:
+
+```powershell
+pwsh -NoProfile -File install.ps1 -Root "C:\path\to\project" -ProjectName NewProject
 ```
 
 Upgrade existing harness with backup:
@@ -31,6 +37,9 @@ Upgrade existing harness with backup:
 ```powershell
 pwsh -NoProfile -File assets\harness\.codex\scripts\upgrade-harness.ps1 -TargetRoot "C:\path\to\project" -Apply
 ```
+
+Use the PowerShell wrappers instead of calling Python scripts directly. The
+wrappers set UTF-8 mode and avoid Windows sandbox runner process-creation issues.
 
 ## Validation
 

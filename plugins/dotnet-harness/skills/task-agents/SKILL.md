@@ -30,7 +30,16 @@ If any baseline anchor is missing, warn the user that the project baseline is no
 
 ## Documentation Grounding
 
-Use Context7 MCP when implementation, review, audit, or verification depends on current external library/framework/API documentation. Prefer it before making claims about package APIs, setup, configuration, or version-specific behavior.
+Use Context7 MCP only when implementation, review, audit, or verification depends on current external library/framework/API documentation.
+
+Before querying:
+
+1. Inspect local files first to discover package names, target framework, versions, and affected APIs.
+2. Name the exact library/framework and one focused question the docs must answer.
+3. Query the smallest relevant topic; avoid broad best-practice searches.
+4. Tie the documentation result back to a local decision, file, command, or risk.
+
+Do not use Context7 for repo-local routing, approval gates, generic architecture opinions, style preferences, or decisions already defined by local skills/agents.
 
 ## Routing Order
 

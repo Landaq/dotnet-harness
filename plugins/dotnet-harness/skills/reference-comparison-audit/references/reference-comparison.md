@@ -1,6 +1,6 @@
 # Architecture Reference Comparison
 
-Checklist for aligning Rev04 decisions with common references:
+Checklist for aligning current project decisions with common references:
 
 - Use `.slnx` as source-of-truth solution file.
 - Keep root `global.json`, `Directory.Build.props`, `Directory.Packages.props`.

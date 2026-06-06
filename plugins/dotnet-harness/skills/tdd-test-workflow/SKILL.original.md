@@ -1,6 +1,6 @@
 ---
 name: tdd-test-workflow
-description: Apply test-first development flow for Rev04 services with Unit, Integration, Contract, Functional, Architecture, and EndToEnd test responsibilities.
+description: Apply test-first development flow for .NET services with Unit, Integration, Contract, Functional, Architecture, and EndToEnd test responsibilities.
 ---
 
 # TDD Test Workflow

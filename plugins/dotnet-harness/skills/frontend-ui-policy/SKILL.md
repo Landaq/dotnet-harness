@@ -5,7 +5,7 @@ description: "Apply MudBlazor-first UI policy, BI option rules for DevExpress 23
 
 # Frontend UI Policy
 
-Use this skill when editing or creating Blazor UI for Rev04.
+Use this skill when editing or creating Blazor UI in the current project.
 
 ## UI Library Policy
 
