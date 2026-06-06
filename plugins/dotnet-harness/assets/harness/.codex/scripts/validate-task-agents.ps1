@@ -96,6 +96,7 @@ for key in required:
 '@
 
 if (Test-Path -LiteralPath $agentsDir) {
+    $agentNames = @{}
     foreach ($agentFile in Get-ChildItem -LiteralPath $agentsDir -Filter "*.toml" -File) {
         & python -c $tomlParseScript $agentFile.FullName
         if ($LASTEXITCODE -ne 0) {
@@ -113,6 +114,15 @@ if (Test-Path -LiteralPath $agentsDir) {
             $match = [regex]::Match($content, "(?m)^$key\s*=\s*`"([^`"]+)`"\s*$")
             if (-not $match.Success) {
                 Add-Failure "$($agentFile.Name) invalid scalar string key: $key"
+            }
+            elseif ($key -eq "name") {
+                $agentName = $match.Groups[1].Value
+                if ($agentNames.ContainsKey($agentName)) {
+                    Add-Failure "Duplicate active agent name '$agentName': $($agentNames[$agentName]) and $($agentFile.Name)"
+                }
+                else {
+                    $agentNames[$agentName] = $agentFile.Name
+                }
             }
         }
 

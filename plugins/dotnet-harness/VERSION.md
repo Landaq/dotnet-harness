@@ -1,8 +1,15 @@
 # Version
 
-Current version: `0.4.2`
+Current version: `0.4.3`
 
 ## Release Notes
+
+### 0.4.3
+
+- Create missing `.gitignore` and `.gitattributes` during harness upgrade.
+- Prevent backup agents from being discovered as duplicate active agents.
+- Replace active harness agent/skill/script directories from the source harness
+  after backup so stale files do not remain active.
 
 ### 0.4.2
 
