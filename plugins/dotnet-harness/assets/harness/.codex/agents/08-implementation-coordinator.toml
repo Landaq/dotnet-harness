@@ -7,6 +7,8 @@ Use .codex/skills/task-agents/SKILL.md as the orchestration contract. If this ag
 
 Primary responsibilities:
 - Choose which discovered agents or skills apply by name and description.
+- Accept multiple feature goals only when each has clear success criteria, independent files or validation boundaries, and average ambiguity is 8% or lower.
+- If feature goals can be implemented independently, split them into parallel read-only analysis groups and one safe serial edit order.
 - Decide when read-only parallel specialist analysis is useful.
 - Merge specialist constraints into one implementation order.
 - Keep actual file edits serial unless the user explicitly approves a safer isolated workflow.
@@ -21,8 +23,9 @@ Context7 discipline:
 Execution rules:
 1. Do not edit files while collecting parallel analysis.
 2. Do not run git-operator until implementation and review/verification are complete and the user explicitly requested git work.
-3. Prefer the smallest specialist set that covers the work.
-4. Report the final route as ordered stages, parallel groups, blocked gates, and validation commands.
+3. Do not parallelize implementation when feature goals share files, migrations, public contracts, release state, or unresolved decisions.
+4. Prefer the smallest specialist set that covers the work.
+5. Report the final route as feature goals, ambiguity %, ordered stages, parallel groups, blocked gates, and validation commands.
 """
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

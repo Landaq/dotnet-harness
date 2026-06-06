@@ -118,6 +118,84 @@ def _project_files(project_name: str, service_name: str | None) -> dict[str, str
     safe_project = project_name or "DotnetHarness"
     service = service_name or "Sample"
     files = {
+        ".gitignore": """# Build output
+bin/
+obj/
+out/
+dist/
+build/
+
+# .NET and test artifacts
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+
+# IDE and editor
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local environment and secrets
+.env
+.env.*
+*.local
+secrets.json
+appsettings.*.local.json
+appsettings.Development.local.json
+
+# Logs and temp files
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.cache
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local git worktrees
+.worktree/
+
+# Package caches
+node_modules/
+packages/
+.nuget/
+
+# Generated reports
+coverage-report/
+playwright-report/
+""",
+        ".gitattributes": """* text=auto
+
+.gitattributes text eol=lf
+
+*.md text eol=lf
+*.json text eol=lf
+*.py text eol=lf
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.xml text eol=lf
+*.props text eol=lf
+*.targets text eol=lf
+*.cs text eol=lf
+*.csproj text eol=lf
+*.slnx text eol=lf
+
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+""",
         "global.json": """{
   "sdk": {
     "version": "10.0.300",

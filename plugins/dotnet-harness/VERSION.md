@@ -1,8 +1,15 @@
 # Version
 
-Current version: `0.4.1`
+Current version: `0.4.2`
 
 ## Release Notes
+
+### 0.4.2
+
+- Add Context7 MCP companion configuration to the plugin.
+- Generate `.gitignore` and `.gitattributes` during project setup.
+- Strengthen Socratic requirement clarification with feature goals, ambiguity
+  scoring, an 8% average ambiguity gate, and safe parallelization criteria.
 
 ### 0.4.1
 

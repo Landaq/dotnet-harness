@@ -56,10 +56,20 @@ Run stages in order unless user narrows task:
 
 2. **Goal boundary**
    - Use discovered goal-boundary agent when present.
-   - Define one explicit goal statement before planning.
+   - Split broad requests into feature-sized goals when each feature has independent success criteria and validation.
+   - Define one explicit goal statement per active feature before planning.
+   - Estimate ambiguity percentage for each active feature goal.
+   - Continue Socratic clarification until the average ambiguity across active feature goals is 8% or lower.
+   - If the request is too broad or the active goals cannot reach the 8% average ambiguity gate, narrow the active target to one feature goal and move the rest to Out Of Scope or Todo.
    - Separate In Scope, Out Of Scope, Assumptions, Success Criteria, Deliverables, and Stop Conditions.
    - Detect mixed objectives, such as plugin behavior vs current repo policy, setup vs upgrade, implementation vs git publishing, or docs vs runtime behavior.
-   - If goal boundary is unclear, ask max three Korean clarification questions; pause planning.
+   - If goal boundary is unclear, run a short Socratic clarification interview before planning:
+     - State the current best assumption first.
+     - Ask max three Korean questions.
+     - Each question must expose a priority, tradeoff, non-goal, validation standard, output location, git/release expectation, or stop condition.
+     - Prefer contrastive questions that let the user choose what to include and what to exclude.
+     - Continue in follow-up turns until active feature goals average 8% ambiguity or lower.
+   - Pause planning until the user answer makes the boundary actionable.
 
 3. **Intake planning**
    - Use discovered intake/planner agent when present.
@@ -69,7 +79,8 @@ Run stages in order unless user narrows task:
 4. **Implementation coordination**
    - Use discovered implementation/coordinator agent when present.
    - Select applicable domain, test, audit, review, verification, and git agents by discovered `name` + `description`.
-   - Decide whether read-only parallel specialist analysis is useful.
+   - Decide whether read-only parallel specialist analysis is useful for each feature goal.
+   - Allow multiple feature goals to proceed together only when each has independent success criteria, independent validation, and no shared write conflicts.
    - Merge specialist outputs into one serial implementation order.
 
 5. **Read-only parallel specialist analysis**
