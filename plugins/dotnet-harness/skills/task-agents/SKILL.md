@@ -54,43 +54,50 @@ Run stages in order unless user narrows task:
    - If ambiguity exceeds the matching threshold, ask max three Korean clarification questions; pause implementation.
    - If no threshold is discoverable, state the ambiguity and ask max three Korean clarification questions before implementation.
 
-2. **Intake planning**
+2. **Goal boundary**
+   - Use discovered goal-boundary agent when present.
+   - Define one explicit goal statement before planning.
+   - Separate In Scope, Out Of Scope, Assumptions, Success Criteria, Deliverables, and Stop Conditions.
+   - Detect mixed objectives, such as plugin behavior vs current repo policy, setup vs upgrade, implementation vs git publishing, or docs vs runtime behavior.
+   - If goal boundary is unclear, ask max three Korean clarification questions; pause planning.
+
+3. **Intake planning**
    - Use discovered intake/planner agent when present.
    - Convert the request into work units, affected paths, success criteria, expected outputs, and validation candidates.
    - Keep safety approvals owned by the workflow/guardrails stage.
 
-3. **Implementation coordination**
+4. **Implementation coordination**
    - Use discovered implementation/coordinator agent when present.
    - Select applicable domain, test, audit, review, verification, and git agents by discovered `name` + `description`.
    - Decide whether read-only parallel specialist analysis is useful.
    - Merge specialist outputs into one serial implementation order.
 
-4. **Read-only parallel specialist analysis**
+5. **Read-only parallel specialist analysis**
    - Backend work can analyze with service-template + TDD/test in parallel.
    - UI/API work can analyze with frontend/UI + service-template + TDD/test in parallel.
    - Structure/governance work can analyze with reference/audit + TDD/test in parallel.
    - Parallel analysis must produce constraints, risks, test requirements, and recommended order; it must not edit files.
 
-5. **Serial implementation**
+6. **Serial implementation**
    - Implement only after safety constraints, work units, specialist constraints, and test strategy are clear.
    - Backend service structure/boundary work routes through discovered service-template agent/skill.
    - Frontend/UI component work routes through discovered frontend-ui agent/skill.
    - Behavior-changing work routes through discovered TDD/test agent/skill before implementation.
    - Keep edits surgical and tied to the user request.
 
-6. **Post-implementation review**
+7. **Post-implementation review**
    - Use discovered code-reviewer when present.
    - Run relevant specialist review again for touched domains.
    - For broad/architecture changes, run reference-auditor before completion.
    - Findings come first, followed by residual risk and test gaps.
 
-7. **Verification**
+8. **Verification**
    - Use discovered verification-runner when present.
    - Run the smallest command proving the claim: build, test, lint, file inspection, metadata check, or targeted search.
    - Report actual command outcomes. Do not claim completion from intent.
    - Before final response, write the Task Result HTML artifact.
 
-8. **Explicit git operation**
+9. **Explicit git operation**
    - Use discovered git-operator only when the user explicitly asks for commit, push, PR, branch, merge, reset, clean, or worktree actions.
    - Inspect dirty tree, stage narrowly, and leave unrelated changes unstaged.
 
@@ -99,6 +106,7 @@ Run stages in order unless user narrows task:
 Match agents by discovered `name` + `description`, not filename. Prefer capabilities when present:
 
 - workflow or guardrails: safety, approvals, ambiguity, destructive-action gates.
+- goal or boundary: explicit goal, non-goals, scope limits, deliverables, success criteria, stop conditions.
 - intake or planner: work units, affected paths, success criteria, expected outputs.
 - implementation or coordinator: specialist selection, parallel analysis decision, serial implementation order.
 - service or backend template: service folders, DDD/Clean Architecture layers, contracts.

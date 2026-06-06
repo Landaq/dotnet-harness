@@ -44,15 +44,16 @@ Require-Path $rootAgents
 
 $requiredAgents = @(
     "01-workflow-guardrails.toml",
-    "02-service-template.toml",
-    "03-frontend-ui.toml",
-    "04-tdd-test.toml",
-    "05-reference-auditor.toml",
-    "06-intake-planner.toml",
-    "07-implementation-coordinator.toml",
-    "08-code-reviewer.toml",
-    "09-verification-runner.toml",
-    "10-git-operator.toml"
+    "02-goal-boundary.toml",
+    "03-service-template.toml",
+    "04-frontend-ui.toml",
+    "05-tdd-test.toml",
+    "06-reference-auditor.toml",
+    "07-intake-planner.toml",
+    "08-implementation-coordinator.toml",
+    "09-code-reviewer.toml",
+    "10-verification-runner.toml",
+    "11-git-operator.toml"
 )
 
 foreach ($agent in $requiredAgents) {

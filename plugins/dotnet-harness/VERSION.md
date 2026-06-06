@@ -1,8 +1,16 @@
 # Version
 
-Current version: `0.3.0`
+Current version: `0.4.0`
 
 ## Release Notes
+
+### 0.4.0
+
+- Add `goal-boundary` agent to separate goal, scope, non-goals, success criteria,
+  deliverables, and stop conditions before intake planning.
+- Reorder harness agents so goal-boundary runs after workflow guardrails and
+  before planning/implementation coordination.
+- Tighten Task Agents routing and validation around the expanded agent set.
 
 ### 0.3.0
 
