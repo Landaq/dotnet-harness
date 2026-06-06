@@ -19,28 +19,15 @@ function Require-Path {
 }
 
 $agentsDir = Join-Path $RepoRoot ".codex\agents"
+$skillsDir = Join-Path $RepoRoot ".codex\skills"
 $rootAgents = Join-Path $RepoRoot "AGENTS.md"
 
-function Get-SkillsRoot {
-    $localSkills = Join-Path $RepoRoot ".codex\skills"
-    if (Test-Path -LiteralPath $localSkills) {
-        return $localSkills
-    }
-
-    $pluginSkills = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\..\..\..\skills"))
-    if (Test-Path -LiteralPath $pluginSkills) {
-        return $pluginSkills
-    }
-
-    return $localSkills
-}
-
-$skillsRoot = Get-SkillsRoot
-$taskAgentsSkill = Join-Path $skillsRoot "task-agents\SKILL.md"
-
 Require-Path $agentsDir
-Require-Path $taskAgentsSkill
 Require-Path $rootAgents
+
+if (Test-Path -LiteralPath $skillsDir) {
+    Add-Failure "Repo-local .codex\skills should not exist. Use dotnet-harness:* plugin skills instead: $skillsDir"
+}
 
 $requiredAgents = @(
     "01-workflow-guardrails.toml",
@@ -141,7 +128,6 @@ $repoName = Split-Path -Path $RepoRoot -Leaf
 $repoPath = (Resolve-Path -LiteralPath $RepoRoot).Path
 $repoPathEscaped = [regex]::Escape($repoPath)
 $hardcodePatterns = @(
-    [regex]::Escape($repoName),
     $repoPathEscaped,
     "Test\\$([regex]::Escape($repoName))",
     "workflow-agent-orchestration",
@@ -149,7 +135,6 @@ $hardcodePatterns = @(
 )
 $hardcodeScopes = @(
     $agentsDir,
-    $taskAgentsSkill,
     $rootAgents
 )
 
@@ -171,24 +156,26 @@ foreach ($scope in $hardcodeScopes) {
     }
 }
 
-$quickValidate = Join-Path $env:USERPROFILE ".codex\skills\.system\skill-creator\scripts\quick_validate.py"
-if ((Test-Path -LiteralPath $quickValidate) -and (Test-Path -LiteralPath $taskAgentsSkill)) {
-    & python $quickValidate (Join-Path $skillsRoot "task-agents")
-    if ($LASTEXITCODE -ne 0) {
-        Add-Failure "quick_validate.py failed for task-agents"
+foreach ($scope in @($agentsDir, $rootAgents)) {
+    if (Test-Path -LiteralPath $scope) {
+        if ((Get-Item -LiteralPath $scope).PSIsContainer) {
+            $searchFiles = Get-ChildItem -LiteralPath $scope -File -Recurse
+        }
+        else {
+            $searchFiles = @(Get-Item -LiteralPath $scope)
+        }
+
+        $localSkillRefs = $searchFiles | Select-String -Pattern "\.codex[/\\]skills" -ErrorAction SilentlyContinue
+        foreach ($match in $localSkillRefs) {
+            Add-Failure "Repo-local skill reference found: $($match.Path):$($match.LineNumber)"
+        }
     }
-}
-elseif (-not (Test-Path -LiteralPath $quickValidate)) {
-    Add-Failure "quick_validate.py not found: $quickValidate"
-}
-else {
-    Add-Failure "task-agents skill folder not found: $(Join-Path $RepoRoot ".codex\skills\task-agents")"
 }
 
 & git -C $RepoRoot rev-parse --show-toplevel *> $null
 $gitRoot = if ($LASTEXITCODE -eq 0) { (& git -C $RepoRoot rev-parse --show-toplevel).Trim() } else { $null }
-if ($gitRoot -and (Test-Path -LiteralPath (Join-Path $RepoRoot ".codex\skills"))) {
-    & git -C $RepoRoot diff --check -- ".codex\agents" ".codex\skills\task-agents" "AGENTS.md"
+if ($gitRoot) {
+    & git -C $RepoRoot diff --check -- ".codex\agents" "AGENTS.md"
     if ($LASTEXITCODE -ne 0) {
         Add-Failure "git diff --check failed"
     }

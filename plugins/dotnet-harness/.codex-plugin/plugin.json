@@ -1,6 +1,6 @@
 {
   "name": "dotnet-harness",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": ".NET 10 Aspire, Clean Architecture, DDD, Blazor, and Codex workflow harness.",
   "author": {
     "name": "Landaq"
@@ -28,8 +28,7 @@
     ],
     "defaultPrompt": [
       "Set up this project with Dotnet Harness.",
-      "Run Task Agents for this change.",
-      "Create a TaskResult report."
+      "Run Task Agents for this change."
     ]
   }
 }

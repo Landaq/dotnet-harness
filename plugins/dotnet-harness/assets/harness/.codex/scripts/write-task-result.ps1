@@ -19,7 +19,7 @@ $ErrorActionPreference = "Stop"
 $env:PYTHONUTF8 = "1"
 
 $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")
-$script = Join-Path $repoRoot ".codex\skills\task-agents\scripts\write_task_result.py"
+$script = Join-Path $PSScriptRoot "write_task_result.py"
 
 if (-not (Test-Path -LiteralPath $script)) {
     $pluginScript = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\..\..\..\skills\task-agents\scripts\write_task_result.py"))

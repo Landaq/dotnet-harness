@@ -1,15 +1,15 @@
 # AGENTS.md
 
-현재 repo 전용 agent/skill 라우팅 규칙. 전역 AGENTS.md가 존재하면 함께 따르되, 이 파일의 repo-local 규칙을 우선 적용한다.
+현재 repo 전용 agent 라우팅 규칙. 전역 AGENTS.md가 존재하면 함께 따르되, 이 파일의 repo-local 규칙을 우선 적용한다.
 
-상세 routing 원본 = `.codex/skills/task-agents/SKILL.md`. Agent/skill 원본 = `.codex/agents`, `.codex/skills`.
+상세 routing 원본 = `dotnet-harness:task-agents`. Agent 원본 = `.codex/agents`. Skill 원본 = dotnet-harness plugin skills.
 
 ## 1. Bootstrap
 
-- 비단순 작업은 먼저 `.codex/skills/task-agents/SKILL.md`를 따른다.
-- `.codex/agents/*.toml`과 `.codex/skills/*/SKILL.md`를 현재 repo에서 발견해 사용한다.
+- 비단순 작업은 먼저 `dotnet-harness:task-agents`를 따른다.
+- `.codex/agents/*.toml`을 현재 repo에서 발견하고, 필요한 skill은 `dotnet-harness:*` plugin skill을 사용한다.
 - project/solution/agent/skill 이름 하드코딩 금지.
-- 상세 routing, 병렬 규칙, stop condition은 `task-agents`를 원본으로 삼는다.
+- 상세 routing, 병렬 규칙, stop condition은 `dotnet-harness:task-agents`를 원본으로 삼는다.
 
 ## 2. Context7
 

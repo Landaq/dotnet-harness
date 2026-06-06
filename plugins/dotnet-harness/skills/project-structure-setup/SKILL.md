@@ -15,7 +15,8 @@ Use when creating/recreating the default .NET 10 project baseline.
 - `src/BackEnd/BuildingBlocks/{Application,Contracts,Messaging,Observability,Persistence}`
 - `test/{Architecture,Unit,Integration,Contract,Functional/{APIGateway,FrontEnd},EndToEnd}`
 - `docs/Project/README.md` with the baseline structure summary
-- repo-local Codex harness files (`AGENTS.md`, `.codex/agents`, `.codex/skills`, `.codex/scripts`) when available
+- repo-local Codex harness files (`AGENTS.md`, `.codex/agents`, `.codex/scripts`) when available
+- no repo-local `.codex/skills`; skills are provided by the `dotnet-harness:*` plugin
 - .NET 10 skeleton files for Aspire, Minimal API, YARP, Scalar, EF Core, Redis, Blazor Auto, MudBlazor, and mediator-like dispatch
 
 ## Service scaffold (optional)

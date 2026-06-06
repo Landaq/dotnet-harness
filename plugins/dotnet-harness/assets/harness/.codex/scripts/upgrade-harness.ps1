@@ -21,21 +21,6 @@ function Get-DefaultSourceRoot {
     return (Resolve-Path -LiteralPath (Join-Path $scriptRoot "..\..")).Path
 }
 
-function Get-SourceSkillsRoot {
-    param([string]$Root)
-    $localSkills = Join-Path $Root ".codex\skills"
-    if (Test-Path -LiteralPath $localSkills) {
-        return $localSkills
-    }
-
-    $pluginSkills = Resolve-FullPath (Join-Path $PSScriptRoot "..\..\..\..\skills")
-    if (Test-Path -LiteralPath $pluginSkills) {
-        return $pluginSkills
-    }
-
-    throw "Invalid harness source. Missing skills source under $Root or plugin skills."
-}
-
 function Assert-HarnessSource {
     param([string]$Root)
     foreach ($required in @("AGENTS.md", ".codex\agents", ".codex\scripts")) {
@@ -44,7 +29,6 @@ function Assert-HarnessSource {
             throw "Invalid harness source. Missing: $path"
         }
     }
-    Get-SourceSkillsRoot -Root $Root | Out-Null
 }
 
 function Copy-ExistingToBackup {
@@ -64,6 +48,59 @@ function Copy-ExistingToBackup {
             New-Item -ItemType Directory -Force -Path (Split-Path -Parent $backup) | Out-Null
             Copy-Item -LiteralPath $source -Destination $backup -Recurse -Force
             Write-Host "[backup] $source -> $backup"
+        }
+    }
+}
+
+function Move-ToBackupFile {
+    param([string]$Path)
+
+    $destination = "$Path.bak"
+    if (Test-Path -LiteralPath $destination) {
+        $destination = "$Path.$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()).bak"
+    }
+
+    Move-Item -LiteralPath $Path -Destination $destination -Force
+    Write-Host "[protect] $Path -> $destination"
+}
+
+function Protect-BackupFromDiscovery {
+    param([string]$BackupsRoot)
+
+    if (-not (Test-Path -LiteralPath $BackupsRoot)) {
+        return
+    }
+
+    $backupFiles = Get-ChildItem -LiteralPath $BackupsRoot -Recurse -File
+    foreach ($agentFile in $backupFiles | Where-Object {
+        $_.Name -like "*.toml" -and (
+            $_.FullName -match "\\agents-backup\\" -or
+            $_.FullName -match "\\\.codex\\agents\\"
+        )
+    }) {
+        Move-ToBackupFile -Path $agentFile.FullName
+    }
+
+    foreach ($skillFile in $backupFiles | Where-Object {
+        $_.Name -eq "SKILL.md" -and (
+            $_.FullName -match "\\skills-backup\\" -or
+            $_.FullName -match "\\\.codex\\skills\\"
+        )
+    }) {
+        Move-ToBackupFile -Path $skillFile.FullName
+    }
+
+    $agentsBackupRoot = Join-Path $BackupsRoot "agents-backup"
+    if (Test-Path -LiteralPath $agentsBackupRoot) {
+        foreach ($agentFile in Get-ChildItem -LiteralPath $agentsBackupRoot -Recurse -File -Filter "*.toml") {
+            Move-ToBackupFile -Path $agentFile.FullName
+        }
+    }
+
+    $skillsBackupRoot = Join-Path $BackupsRoot "skills-backup"
+    if (Test-Path -LiteralPath $skillsBackupRoot) {
+        foreach ($skillFile in Get-ChildItem -LiteralPath $skillsBackupRoot -Recurse -File -Filter "SKILL.md") {
+            Move-ToBackupFile -Path $skillFile.FullName
         }
     }
 }
@@ -103,14 +140,11 @@ function Copy-HarnessToTarget {
         Write-Host "[replace] $targetPath"
     }
 
-    $skillsSource = Get-SourceSkillsRoot -Root $Source
     $skillsTarget = Join-Path $Target ".codex\skills"
     if (Test-Path -LiteralPath $skillsTarget) {
         Remove-Item -LiteralPath $skillsTarget -Recurse -Force
+        Write-Host "[remove] $skillsTarget"
     }
-    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $skillsTarget) | Out-Null
-    Copy-Item -LiteralPath $skillsSource -Destination $skillsTarget -Recurse -Force
-    Write-Host "[replace] $skillsTarget"
 }
 
 function Write-Preview {
@@ -130,9 +164,9 @@ function Write-Preview {
 
     Write-Host "[preview] backup AGENTS.md, .codex\agents, .codex\skills, .codex\scripts"
     Write-Host "[preview] replace active .codex\agents with source harness agents"
-    Write-Host "[preview] replace active .codex\skills with source harness skills"
+    Write-Host "[preview] remove active .codex\skills after backup; plugin skills remain the source"
     Write-Host "[preview] replace active .codex\scripts with source harness scripts"
-    Write-Host "[preview] backup agents are stored outside active .codex\agents discovery paths"
+    Write-Host "[preview] backup agent .toml files and skill SKILL.md files are renamed to .bak to avoid active discovery"
 }
 
 $target = Resolve-FullPath $TargetRoot
@@ -154,6 +188,8 @@ $backupRoot = Join-Path $target ".codex\backups\harness-upgrade-$stamp"
 New-Item -ItemType Directory -Force -Path $backupRoot | Out-Null
 
 Copy-ExistingToBackup -Target $target -BackupRoot $backupRoot
+$backupsRoot = Join-Path $target ".codex\backups"
+Protect-BackupFromDiscovery -BackupsRoot $backupsRoot
 Copy-HarnessToTarget -Source $source -Target $target
 
 if (-not $SkipValidation) {

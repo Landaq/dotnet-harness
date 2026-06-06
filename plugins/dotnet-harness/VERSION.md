@@ -1,8 +1,30 @@
 # Version
 
-Current version: `0.4.3`
+Current version: `0.4.4`
 
 ## Release Notes
+
+### 0.4.4
+
+- Stop copying plugin skills into target repo-local `.codex/skills`.
+- Back up and remove existing target `.codex/skills` during setup and upgrade to
+  avoid duplicate Codex skill discovery.
+- Point repo-local agents and `AGENTS.md` at `dotnet-harness:*` plugin skills.
+- Move the Task Result Python helper into `.codex/scripts` so it no longer
+  depends on repo-local skill folders.
+- Update task agent validation and release validation for plugin-skill-only
+  harness installs.
+- Require Task Agents to use actual subagent delegation when tooling is
+  available, with explicit fallback reporting when it is not.
+- Make Task Result HTML generation opt-in instead of a default Task Agents
+  completion step.
+- Remove legacy `SKILL.original.md` files from the packaged plugin skills.
+- Prevent backup skills from being discovered as duplicate active skills during
+  harness upgrade.
+- Rename backup agent `.toml` files and backup skill `SKILL.md` files to `.bak`
+  only inside harness backup discovery paths before validation.
+- Add `scripts/validate-release.ps1` as the release validation entrypoint.
+- Document why each plugin feature exists and when to use it.
 
 ### 0.4.3
 

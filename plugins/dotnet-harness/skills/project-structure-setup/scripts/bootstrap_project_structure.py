@@ -109,9 +109,9 @@ This project structure was created by `project-structure-setup`.
 
 ## Workflow
 
-Run `project-structure-setup` before `task-agents`.
+Run `dotnet-harness:project-structure-setup` before `dotnet-harness:task-agents`.
 
-After this baseline exists, `task-agents` can route work through workflow guardrails, intake planning, implementation coordination, specialist analysis, serial implementation, review, verification, and explicit git operations.
+After this baseline exists, `dotnet-harness:task-agents` can route work through workflow guardrails, intake planning, implementation coordination, specialist analysis, serial implementation, review, verification, and explicit git operations.
 """
 
 def _project_files(project_name: str, service_name: str | None) -> dict[str, str]:
@@ -661,18 +661,6 @@ def source_harness_root() -> Path:
     return candidates[0]
 
 
-def source_skills_root() -> Path:
-    script = Path(__file__).resolve()
-    candidates = [
-        source_harness_root() / ".codex/skills",
-        script.parents[3] / "skills",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
-
-
 def should_skip_copy(path: Path) -> bool:
     return "__pycache__" in path.parts or path.suffix == ".pyc"
 
@@ -703,13 +691,38 @@ def copy_dir_if_missing(source: Path, target: Path, preview: bool) -> None:
         copy_file_if_missing(source_file, target / relative, preview)
 
 
+def remove_repo_local_skills(target_root: Path, preview: bool) -> None:
+    skills_dir = target_root / ".codex/skills"
+    if not skills_dir.exists():
+        return
+
+    backup_root = target_root / ".codex/backups/harness-install"
+    backup_dir = backup_root / "skills-backup"
+    if preview:
+        print(f"[preview] backup {skills_dir} -> {backup_dir}")
+        print(f"[preview] remove {skills_dir}")
+        return
+
+    if backup_dir.exists():
+        suffix = 2
+        while (backup_root / f"skills-backup-{suffix}").exists():
+            suffix += 1
+        backup_dir = backup_root / f"skills-backup-{suffix}"
+
+    backup_dir.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(skills_dir, backup_dir)
+    shutil.rmtree(skills_dir)
+    print(f"[backup] {skills_dir} -> {backup_dir}")
+    print(f"[remove] {skills_dir}")
+
+
 def install_codex_harness(target_root: Path, preview: bool) -> None:
     source_root = source_harness_root()
     for source_rel in HARNESS_FILES:
         copy_file_if_missing(source_root / source_rel, target_root / source_rel, preview)
     for source_rel in HARNESS_DIRS:
         copy_dir_if_missing(source_root / source_rel, target_root / source_rel, preview)
-    copy_dir_if_missing(source_skills_root(), target_root / ".codex/skills", preview)
+    remove_repo_local_skills(target_root, preview)
 
 
 def run(

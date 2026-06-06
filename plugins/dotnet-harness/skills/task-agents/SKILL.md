@@ -1,6 +1,6 @@
 ---
 name: task-agents
-description: Route project work through discovered repo-local task agents and skills in workflow order. Use when a request needs staged specialist handling, such as architecture planning, backend service boundaries, frontend UI policy, TDD sequencing, reference audits, or any multi-step implementation/review workflow. This skill is project-local but must discover project names, solution files, agents, and skills from the current repository instead of hardcoding them.
+description: Route project work through discovered repo-local task agents and dotnet-harness plugin skills in workflow order. Use when a request needs staged specialist handling, such as architecture planning, backend service boundaries, frontend UI policy, TDD sequencing, reference audits, or any multi-step implementation/review workflow. This skill must discover project names, solution files, agents, and plugin skills instead of hardcoding them.
 ---
 
 # Task Agents
@@ -12,11 +12,32 @@ Use to coordinate repo-local specialist agents without hardcoding project names,
 Before routing, inspect current repo:
 
 1. List `.codex/agents/*.toml`; read each `name`, `description`, `developer_instructions` summary.
-2. List `.codex/skills/*/SKILL.md`; read frontmatter `name` + `description`.
+2. Use `dotnet-harness:*` plugin skills as the skill source. Do not require or create repo-local `.codex/skills`.
 3. Detect project structure anchors from `src/`, `test/`, and `docs/Project/README.md`; also detect solution anchors from `*.slnx` and `*.sln`.
 4. Treat missing agents/skills as routing constraints, not fatal errors. Report missing capability; continue closest available workflow.
 
 Do not hardcode repo identity strings. Refer to discovered solution, folders, agents, skill names.
+
+## Agent Execution Contract
+
+Task Agents must use actual subagents when subagent tooling is available and the task is non-trivial.
+
+- Treat `.codex/agents/*.toml` as executable role contracts, not just reference documents.
+- For each selected role, pass the discovered agent `name`, `description`, and relevant `developer_instructions` summary into the delegated subagent task.
+- Use `dotnet-harness:*` plugin skills as the skill contract inside the delegated prompt.
+- Keep the main thread responsible for scope, approvals, final integration, file ownership, and final answer.
+- Use subagents for read-only analysis, bounded implementation with disjoint write sets, post-implementation review, and verification.
+- Do not spawn subagents for trivial one-file edits, direct user questions, or work whose next step is fully blocked on one local decision.
+- If subagent tooling is unavailable, explicitly report `Agent execution fallback: unavailable` and continue with the same staged role order in the main thread.
+
+Delegated prompts must include:
+
+1. selected role name;
+2. active goal and non-goals;
+3. allowed paths and forbidden paths;
+4. expected output or changed file list;
+5. validation command or evidence requirement;
+6. instruction to avoid git operations unless the role is `git-operator` and the user explicitly requested git work.
 
 ## Project Structure Gate
 
@@ -83,32 +104,41 @@ Run stages in order unless user narrows task:
    - Allow multiple feature goals to proceed together only when each has independent success criteria, independent validation, and no shared write conflicts.
    - Merge specialist outputs into one serial implementation order.
 
-5. **Read-only parallel specialist analysis**
+5. **Subagent delegation**
+   - Spawn selected specialist subagents when the Agent Execution Contract allows it.
+   - Prefer parallel read-only analysis groups before implementation when specialists can inspect independently.
+   - Prefer delegated bounded implementation only when write sets are disjoint and the task can be described without unresolved decisions.
+   - Keep the immediate blocking task in the main thread when waiting would slow the critical path.
+   - After each subagent returns, review its output before using it as implementation or verification evidence.
+
+6. **Read-only parallel specialist analysis**
    - Backend work can analyze with service-template + TDD/test in parallel.
    - UI/API work can analyze with frontend/UI + service-template + TDD/test in parallel.
    - Structure/governance work can analyze with reference/audit + TDD/test in parallel.
    - Parallel analysis must produce constraints, risks, test requirements, and recommended order; it must not edit files.
 
-6. **Serial implementation**
+7. **Serial implementation**
    - Implement only after safety constraints, work units, specialist constraints, and test strategy are clear.
    - Backend service structure/boundary work routes through discovered service-template agent/skill.
    - Frontend/UI component work routes through discovered frontend-ui agent/skill.
    - Behavior-changing work routes through discovered TDD/test agent/skill before implementation.
    - Keep edits surgical and tied to the user request.
 
-7. **Post-implementation review**
+8. **Post-implementation review**
    - Use discovered code-reviewer when present.
+   - Spawn code-reviewer as a subagent when subagent tooling is available and a meaningful diff exists.
    - Run relevant specialist review again for touched domains.
    - For broad/architecture changes, run reference-auditor before completion.
    - Findings come first, followed by residual risk and test gaps.
 
-8. **Verification**
+9. **Verification**
    - Use discovered verification-runner when present.
+   - Spawn verification-runner as a subagent only when it can inspect or run commands independently of ongoing edits.
    - Run the smallest command proving the claim: build, test, lint, file inspection, metadata check, or targeted search.
    - Report actual command outcomes. Do not claim completion from intent.
-   - Before final response, write the Task Result HTML artifact.
+   - Write a Task Result HTML artifact only when the user explicitly requests a result report.
 
-9. **Explicit git operation**
+10. **Explicit git operation**
    - Use discovered git-operator only when the user explicitly asks for commit, push, PR, branch, merge, reset, clean, or worktree actions.
    - Inspect dirty tree, stage narrowly, and leave unrelated changes unstaged.
 
@@ -128,7 +158,7 @@ Match agents by discovered `name` + `description`, not filename. Prefer capabili
 - verification or runner: command selection, actual result interpretation, completion evidence.
 - git operator: explicit user-approved staging, commit, push, and PR preparation.
 
-If capability has no matching agent but matching skill exists, use skill directly. If neither exists, continue with general engineering judgment; call out gap.
+If capability has no matching agent but matching `dotnet-harness:*` plugin skill exists, use the plugin skill directly. If neither exists, continue with general engineering judgment; call out gap.
 
 ## Parallelization Rules
 
@@ -156,14 +186,15 @@ For orchestration turns, include:
 - `Stage`: current workflow stage.
 - `Discovered`: relevant agents/skills found.
 - `Route`: ordered stages, including any safe parallel read-only groups.
+- `Delegation`: spawned subagents, skipped subagents with reasons, or fallback status.
 - `Gate`: clarification, approval, test, verification, or git requirement.
 - `Action`: what happens next.
 
 Keep Korean-first clarification concise; preserve English technical keywords.
 
-## Task Result Artifact
+## Optional Task Result Artifact
 
-When this skill is triggered and the task is ending, create a visible HTML result file:
+Create a visible HTML result file only when the user explicitly asks for a Task Result report or a result artifact:
 
 - Directory: `docs/TaskResult` (create if missing).
 - Filename: `{yyMMdd}_{summary}_Result.html`.
@@ -204,5 +235,6 @@ If the script is unavailable, verify manually:
 1. `.codex/agents` contains expected workflow agents.
 2. Agent files expose `name`, `description`, `developer_instructions`, `model_reasoning_effort`, `sandbox_mode`.
 3. No repo identity hardcoding remains in `.codex/agents`, `task-agents`, or root `AGENTS.md`.
-4. `quick_validate.py .codex\skills\task-agents` passes with `PYTHONUTF8=1`.
-5. `git diff --check -- .codex\agents .codex\skills\task-agents AGENTS.md` has no whitespace errors when the folder is a git repo; skip this check outside git.
+4. Repo-local `.codex\skills` is absent; skills come from `dotnet-harness:*`.
+5. Plugin skill validation passes for `dotnet-harness:task-agents`.
+6. `git diff --check -- .codex\agents AGENTS.md` has no whitespace errors when the folder is a git repo; skip this check outside git.
