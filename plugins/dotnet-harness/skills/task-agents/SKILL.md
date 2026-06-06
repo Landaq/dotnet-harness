@@ -151,7 +151,7 @@ When this skill is triggered and the task is ending, create a visible HTML resul
 Prefer the helper script when available:
 
 ```powershell
-python .codex\skills\task-agents\scripts\write_task_result.py --summary "short-summary" --request "..." --work "..." --result "..." --todo "..."
+pwsh -NoProfile -File .codex\scripts\write-task-result.ps1 -Summary "short-summary" -Request "..." -Work "..." -Result "..." -Todo "..."
 ```
 
 ## Stop Conditions
@@ -176,5 +176,5 @@ If the script is unavailable, verify manually:
 1. `.codex/agents` contains expected workflow agents.
 2. Agent files expose `name`, `description`, `developer_instructions`, `model_reasoning_effort`, `sandbox_mode`.
 3. No repo identity hardcoding remains in `.codex/agents`, `task-agents`, or root `AGENTS.md`.
-4. `quick_validate.py .codex\skills\task-agents` passes.
-5. `git diff --check -- .codex\agents .codex\skills\task-agents AGENTS.md` has no whitespace errors.
+4. `quick_validate.py .codex\skills\task-agents` passes with `PYTHONUTF8=1`.
+5. `git diff --check -- .codex\agents .codex\skills\task-agents AGENTS.md` has no whitespace errors when the folder is a git repo; skip this check outside git.

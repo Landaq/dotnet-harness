@@ -1,0 +1,34 @@
+{
+  "name": "dotnet-harness",
+  "version": "0.3.0",
+  "description": ".NET 10 Aspire, Clean Architecture, DDD, Blazor, and Codex workflow harness.",
+  "author": {
+    "name": "Landaq"
+  },
+  "skills": "./skills/",
+  "repository": "https://github.com/Landaq/dotnet-harness",
+  "license": "MIT",
+  "keywords": [
+    "dotnet",
+    "aspire",
+    "clean-architecture",
+    "ddd",
+    "blazor"
+  ],
+  "interface": {
+    "displayName": "Dotnet Harness",
+    "shortDescription": ".NET 10 Aspire project setup and Codex workflow harness.",
+    "longDescription": "Dotnet Harness packages .NET 10 Aspire, Clean Architecture, DDD, Blazor, MudBlazor, YARP, Scalar, SQL Server, Redis, and repo-local Codex workflow rules.",
+    "developerName": "Landaq",
+    "category": "Productivity",
+    "capabilities": [
+      "Write",
+      "Automation"
+    ],
+    "defaultPrompt": [
+      "Set up this project with Dotnet Harness.",
+      "Run Task Agents for this change.",
+      "Create a TaskResult report."
+    ]
+  }
+}

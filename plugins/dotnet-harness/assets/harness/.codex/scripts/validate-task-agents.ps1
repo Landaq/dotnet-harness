@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$env:PYTHONUTF8 = "1"
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure {
@@ -18,8 +19,24 @@ function Require-Path {
 }
 
 $agentsDir = Join-Path $RepoRoot ".codex\agents"
-$taskAgentsSkill = Join-Path $RepoRoot ".codex\skills\task-agents\SKILL.md"
 $rootAgents = Join-Path $RepoRoot "AGENTS.md"
+
+function Get-SkillsRoot {
+    $localSkills = Join-Path $RepoRoot ".codex\skills"
+    if (Test-Path -LiteralPath $localSkills) {
+        return $localSkills
+    }
+
+    $pluginSkills = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\..\..\..\skills"))
+    if (Test-Path -LiteralPath $pluginSkills) {
+        return $pluginSkills
+    }
+
+    return $localSkills
+}
+
+$skillsRoot = Get-SkillsRoot
+$taskAgentsSkill = Join-Path $skillsRoot "task-agents\SKILL.md"
 
 Require-Path $agentsDir
 Require-Path $taskAgentsSkill
@@ -77,33 +94,35 @@ for key in required:
         raise SystemExit(f"{path.name} invalid non-empty string key: {key}")
 '@
 
-foreach ($agentFile in Get-ChildItem -LiteralPath $agentsDir -Filter "*.toml" -File) {
-    & python -c $tomlParseScript $agentFile.FullName
-    if ($LASTEXITCODE -ne 0) {
-        Add-Failure "$($agentFile.Name) failed Python tomllib parse"
-    }
-
-    $content = Get-Content -LiteralPath $agentFile.FullName -Raw
-    foreach ($key in $requiredKeys) {
-        if ($content -notmatch "(?m)^$key\s*=\s*.+") {
-            Add-Failure "$($agentFile.Name) missing key: $key"
+if (Test-Path -LiteralPath $agentsDir) {
+    foreach ($agentFile in Get-ChildItem -LiteralPath $agentsDir -Filter "*.toml" -File) {
+        & python -c $tomlParseScript $agentFile.FullName
+        if ($LASTEXITCODE -ne 0) {
+            Add-Failure "$($agentFile.Name) failed Python tomllib parse"
         }
-    }
 
-    foreach ($key in @("name", "description", "model_reasoning_effort", "sandbox_mode")) {
-        $match = [regex]::Match($content, "(?m)^$key\s*=\s*`"([^`"]+)`"\s*$")
-        if (-not $match.Success) {
-            Add-Failure "$($agentFile.Name) invalid scalar string key: $key"
+        $content = Get-Content -LiteralPath $agentFile.FullName -Raw
+        foreach ($key in $requiredKeys) {
+            if ($content -notmatch "(?m)^$key\s*=\s*.+") {
+                Add-Failure "$($agentFile.Name) missing key: $key"
+            }
         }
-    }
 
-    if ($content -notmatch '(?ms)^developer_instructions\s*=\s*""".+?"""') {
-        Add-Failure "$($agentFile.Name) invalid developer_instructions multiline block"
-    }
+        foreach ($key in @("name", "description", "model_reasoning_effort", "sandbox_mode")) {
+            $match = [regex]::Match($content, "(?m)^$key\s*=\s*`"([^`"]+)`"\s*$")
+            if (-not $match.Success) {
+                Add-Failure "$($agentFile.Name) invalid scalar string key: $key"
+            }
+        }
 
-    $tripleQuoteCount = ([regex]::Matches($content, '"""')).Count
-    if (($tripleQuoteCount % 2) -ne 0) {
-        Add-Failure "$($agentFile.Name) unbalanced triple quotes"
+        if ($content -notmatch '(?ms)^developer_instructions\s*=\s*""".+?"""') {
+            Add-Failure "$($agentFile.Name) invalid developer_instructions multiline block"
+        }
+
+        $tripleQuoteCount = ([regex]::Matches($content, '"""')).Count
+        if (($tripleQuoteCount % 2) -ne 0) {
+            Add-Failure "$($agentFile.Name) unbalanced triple quotes"
+        }
     }
 }
 
@@ -147,19 +166,29 @@ foreach ($scope in $hardcodeScopes) {
 }
 
 $quickValidate = Join-Path $env:USERPROFILE ".codex\skills\.system\skill-creator\scripts\quick_validate.py"
-if (Test-Path -LiteralPath $quickValidate) {
-    & python $quickValidate ".codex\skills\task-agents"
+if ((Test-Path -LiteralPath $quickValidate) -and (Test-Path -LiteralPath $taskAgentsSkill)) {
+    & python $quickValidate (Join-Path $skillsRoot "task-agents")
     if ($LASTEXITCODE -ne 0) {
         Add-Failure "quick_validate.py failed for task-agents"
     }
 }
-else {
+elseif (-not (Test-Path -LiteralPath $quickValidate)) {
     Add-Failure "quick_validate.py not found: $quickValidate"
 }
+else {
+    Add-Failure "task-agents skill folder not found: $(Join-Path $RepoRoot ".codex\skills\task-agents")"
+}
 
-& git diff --check -- ".codex\agents" ".codex\skills\task-agents" "AGENTS.md"
-if ($LASTEXITCODE -ne 0) {
-    Add-Failure "git diff --check failed"
+& git -C $RepoRoot rev-parse --show-toplevel *> $null
+$gitRoot = if ($LASTEXITCODE -eq 0) { (& git -C $RepoRoot rev-parse --show-toplevel).Trim() } else { $null }
+if ($gitRoot -and (Test-Path -LiteralPath (Join-Path $RepoRoot ".codex\skills"))) {
+    & git -C $RepoRoot diff --check -- ".codex\agents" ".codex\skills\task-agents" "AGENTS.md"
+    if ($LASTEXITCODE -ne 0) {
+        Add-Failure "git diff --check failed"
+    }
+}
+else {
+    Write-Host "Skipping git diff --check: not a git repository."
 }
 
 if ($failures.Count -gt 0) {
