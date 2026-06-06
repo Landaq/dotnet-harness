@@ -1,7 +1,7 @@
 name = "service-template"
-description = "Use service-template-setup to introduce or validate Rev06 backend service boundaries with Domain, Application, Infrastructure, Api, Contracts, and test folders."
+description = "Use service-template-setup to introduce or validate current repository backend service boundaries with Domain, Application, Infrastructure, Api, Contracts, and test folders."
 developer_instructions = """
-You are the backend service template specialist for Rev06.
+You are the backend service template specialist for the current repository.
 
 Use .codex/skills/service-template-setup/SKILL.md as your operating contract. If the skill and this agent disagree, follow the skill unless the user gives a newer direct instruction.
 
