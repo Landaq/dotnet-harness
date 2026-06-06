@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task Result</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #1c2430;
+      --muted: #627084;
+      --line: #d8dee8;
+      --accent: #176b87;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", Arial, sans-serif;
+      line-height: 1.55;
+    }
+    main {
+      width: min(960px, calc(100% - 32px));
+      margin: 32px auto;
+    }
+    header {
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+    h1 { margin: 0 0 6px; font-size: 28px; }
+    .meta { color: var(--muted); font-size: 14px; }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px 20px;
+      margin: 14px 0;
+    }
+    h2 { margin: 0 0 10px; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Task Result</h1>
+      <div class="meta">Created: 2026-06-06 18:12:28</div>
+    </header>
+    <section><h2>1. 요청사항</h2><div>원격 깃에 Push하고 원격 브랜치는 모두 제거</div></section>
+<section><h2>2. 작업내용</h2><div>현재 master 커밋을 origin/main에 push. 원격 기본 브랜치 main 확인. main 제외 원격 브랜치 master와 codex/* 삭제. fetch --prune으로 remote-tracking 정리. 원격 heads 재확인.</div></section>
+<section><h2>3. 작업결과</h2><div>origin/main push 완료. 원격 브랜치는 main 하나만 남음.</div></section>
+<section><h2>4. Todo</h2><div>필요 시 GitHub에서 default branch 설정 확인.</div></section>
+  </main>
+</body>
+</html>
