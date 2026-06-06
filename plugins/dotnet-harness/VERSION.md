@@ -1,8 +1,15 @@
 # Version
 
-Current version: `0.4.0`
+Current version: `0.4.1`
 
 ## Release Notes
+
+### 0.4.1
+
+- Fix generated scaffold build references.
+- Align Aspire AppHost SDK and hosting package versions with restoreable packages.
+- Add missing ASP.NET Core, OpenAPI, WebAssembly, and DI abstraction references
+  needed for scaffold-first `dotnet build {ProjectName}.slnx`.
 
 ### 0.4.0
 

@@ -139,10 +139,14 @@ def _project_files(project_name: str, service_name: str | None) -> dict[str, str
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="10.0.0" />
-    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="10.0.0" />
-    <PackageVersion Include="Aspire.Hosting.Redis" Version="10.0.0" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.0.0" />
+    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.0" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
     <PackageVersion Include="MudBlazor" Version="8.0.0" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.0.0" />
     <PackageVersion Include="StackExchange.Redis" Version="2.8.0" />
@@ -151,7 +155,10 @@ def _project_files(project_name: str, service_name: str | None) -> dict[str, str
 </Project>
 """,
         "src/Aspire/AppHost/AppHost.csproj": """<Project Sdk="Microsoft.NET.Sdk">
-  <Sdk Name="Aspire.AppHost.Sdk" Version="10.0.0" />
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.0.0" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" />
     <PackageReference Include="Aspire.Hosting.SqlServer" />
@@ -179,6 +186,10 @@ builder.Build().Run();
   <PropertyGroup>
     <IsAspireSharedProject>true</IsAspireSharedProject>
   </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  </ItemGroup>
 </Project>
 """,
         "src/Aspire/ServiceDefaults/Extensions.cs": """using Microsoft.AspNetCore.Builder;
@@ -205,6 +216,7 @@ public static class Extensions
 """,
         "src/BackEnd/APIGateway/APIGateway.csproj": """<Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Scalar.AspNetCore" />
     <PackageReference Include="Yarp.ReverseProxy" />
   </ItemGroup>
@@ -236,7 +248,11 @@ app.Run();
 """,
         "src/BackEnd/BuildingBlocks/Contracts/Contracts.csproj": """<Project Sdk="Microsoft.NET.Sdk" />
 """,
-        "src/BackEnd/BuildingBlocks/Application/Application.csproj": """<Project Sdk="Microsoft.NET.Sdk" />
+        "src/BackEnd/BuildingBlocks/Application/Application.csproj": """<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+</Project>
 """,
         "src/BackEnd/BuildingBlocks/Application/Mediator/IRequest.cs": """namespace BuildingBlocks.Application.Mediator;
 
@@ -286,11 +302,14 @@ public sealed class RequestDispatcher(IServiceProvider serviceProvider) : IReque
 """,
         "src/FrontEnd/Web/Web.csproj": """<Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
     <PackageReference Include="MudBlazor" />
+    <ProjectReference Include="..\\Web.Client\\Web.Client.csproj" />
   </ItemGroup>
 </Project>
 """,
         "src/FrontEnd/Web/Program.cs": """using MudBlazor.Services;
+using Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -342,6 +361,7 @@ app.Run();
 """,
         "src/FrontEnd/Web.Client/Web.Client.csproj": """<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
     <PackageReference Include="MudBlazor" />
   </ItemGroup>
 </Project>
@@ -376,6 +396,7 @@ await builder.Build().RunAsync();
 """,
         f"src/BackEnd/Services/{service}/{service}.Api/{service}.Api.csproj": f"""<Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Scalar.AspNetCore" />
     <ProjectReference Include="..\\{service}.Application\\{service}.Application.csproj" />
     <ProjectReference Include="..\\{service}.Infrastructure\\{service}.Infrastructure.csproj" />
