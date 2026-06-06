@@ -1,4 +1,4 @@
 interface:
   display_name: "TDD Test Workflow"
-  short_description: "Guide implementation in Red-Green-Refactor order with Rev04 test layer conventions"
-  default_prompt: "Define tests first, then implement minimal code in Red-Green-Refactor order across unit, integration, contract, functional, and architecture checks."
+  short_description: "Drive Red -> Green -> Refactor implementation with Rev04 test pyramid"
+  default_prompt: "Use this skill to plan and execute TDD with Unit/Integration/Contract/Functional/Architecture testing order for service and UI changes."

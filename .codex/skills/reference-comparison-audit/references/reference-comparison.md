@@ -1,10 +1,9 @@
-# Reference Comparison Reference
+# Architecture Reference Comparison
 
-- Baseline solution target should be `Rev04.slnx`.
-- Prefer central build/version governance:
-  - `global.json`
-  - `Directory.Build.props`
-  - `Directory.Packages.props`
-- Verify ServiceDefaults stays runtime-concern-focused.
-- Encourage `.slnx` + project boundaries for future architecture tests.
-- Audit for compliance by returning Missing/Partial/Compliant by topic.
+Checklist for aligning Rev04 decisions with common references:
+
+- Use `.slnx` as source-of-truth solution file.
+- Keep root `global.json`, `Directory.Build.props`, `Directory.Packages.props`.
+- Preserve Aspire/AppHost, ServiceDefaults, Gateway, FrontEnd split.
+- Move services toward explicit project boundaries when possible while maintaining compatibility.
+- Add architecture tests for forbidden internal dependencies and contract coupling.

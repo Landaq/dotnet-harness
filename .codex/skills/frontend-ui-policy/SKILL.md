@@ -1,34 +1,48 @@
 ---
 name: frontend-ui-policy
-description: "Enforce Blazor FrontEnd UI policy: MudBlazor-first implementation and DevExpress-only for BI-related scopes with clear rendering-mode decisions."
+description: "Apply MudBlazor-first UI policy, BI option rules for DevExpress 23.2.x, and render-mode/boundary checks for Blazor Web and Web.Client."
 ---
 
 # Frontend UI Policy
 
-Use before choosing frontend components or implementing Blazor UI changes.
+Use this skill when editing or creating Blazor UI for Rev04.
 
-## Default selection policy
+## UI Library Policy
 
-- Use `MudBlazor` first for general CRUD, layout, forms, dialogs, validation-heavy pages.
-- Consider `DevExpress Blazor 23.2.x` only when explicit BI requirements exist: dashboard, pivot/grid analytics, advanced export/reporting workflows.
-- Never default to DevExpress for simple CRUD pages.
+- Use MudBlazor by default for business and CRUD screens.
+- Use DevExpress Blazor only for BI-focused use cases (dashboard, advanced grid, pivot-like analysis, reporting, data export-heavy screens).
+- Do not default to DevExpress for simple CRUD.
+- DevExpress package lines are evaluated at `23.2.x` unless explicitly approved otherwise.
 
-## Rendering boundaries
+## Render and Boundary Rules
 
-- Target `InteractiveAuto` first, adjust page-by-page.
-- `Web.Client` holds client-safe components.
-- `Web` holds server-only pages + server-side service setup when needed.
-- Never place secrets, server SDKs, or DB access in `Web.Client`.
+- Prefer `InteractiveAuto` as a starting strategy.
+- Place global interactive/page-level UI in `src/FrontEnd/Web.Client` unless server-only functionality requires `src/FrontEnd/Web`.
+- Never keep secrets, server SDKs, or DB access in `Web.Client`.
+- API calls should pass through `APIGateway`.
 
-## DevExpress usage guardrails
+## Frontend Checklist
 
-- Use only when approved.
-- Keep version line 23.2.x unless explicitly changed.
-- Do not commit license keys, feed credentials, or private account data.
+- Specify target project (`Web` or `Web.Client`).
+- Document component library decision and rationale.
+- Confirm render mode impact (Static SSR / Interactive Server / Interactive WebAssembly / Auto).
+- Confirm NuGet impact and version policy.
+- Confirm API boundary and `test/Functional/FrontEnd` coverage.
 
-## Implementation checklist
+## Forbidden Actions
 
-- Confirm `ProjectName`, target project (`Web` vs `Web.Client`), render mode, and API path strategy.
-- Verify component choice rationale (`MudBlazor` vs `DevExpress`) documented.
-- Suggest `Functional/FrontEnd` checks for render behavior, validation, and API interaction.
-- Ask Korean clarification when library/BI intent unclear.
+- Do not introduce DevExpress in simple screens without explicit reason.
+- Do not store license keys, feed credentials, or account data in source or docs.
+- Do not place server-only dependencies in `Web.Client`.
+- Do not access DB directly from client-side code.
+
+## Output Template
+
+When applying UI changes, report:
+- project choice,
+- component choice with reason,
+- render mode and safety checks,
+- API path and contract impact,
+- functional test updates.
+
+See [frontend-ui-guidelines.md](references/frontend-ui-guidelines.md).

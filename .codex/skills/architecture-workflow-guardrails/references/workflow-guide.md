@@ -1,10 +1,12 @@
-# Workflow Guardrails Reference
+# Workflow Guardrail Reference
 
-- Classify tasks by impact:
-  - Complex: cross-layer / architecture changes (target ambiguity <= 13%)
-  - Backend: DB, API, Gateway, Aspire changes (target ambiguity <= 5%)
-  - Frontend: UI/UX Blazor changes (target ambiguity <= 5%)
-- Ask up to 3 questions when ambiguous.
-- Keep recommendation labels with `(Recommended)`.
-- Require explicit approval for branch/worktree creation, commits, pushes, merges, resets, or destructive cleanup.
-- Use `docs/wkTask/Specs/{yyMMdd}_{Summary}_plan.md` and `docs/wkTask/Results/{yyMMdd}_{Summary}_result.html` when plan-driven flow is requested.
+- Classify requests by work type and ambiguity threshold:
+  - Complex work: 13%
+  - Backend work: 5%
+  - Frontend work: 5%
+- Ask at most 3 clarifying items when above threshold.
+- Recommended option must be shown with `(Recommended)`.
+- Keep destructive Git actions outside scope unless explicitly approved.
+- For plan-file mode, implementation can begin after user plan approval.
+- Prefer explicit spec naming under `docs/wkTask/Specs/{yyMMdd}_{Summary}_plan.md`.
+- Include verification commands and risk list before execution.

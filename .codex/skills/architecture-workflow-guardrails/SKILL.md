@@ -1,50 +1,58 @@
 ---
 name: architecture-workflow-guardrails
-description: "Apply Codex workflow guardrails: ambiguity handling, workflow classification, 3-question pre-implementation checks, and approval-safe execution sequence."
+description: "Guide request clarification, ambiguity checks, plan flow, and approval rules for backend, frontend, and complex full-stack changes before coding."
 ---
 
 # Architecture Workflow Guardrails
 
-Use when request broad, cross-layer, or ambiguous.
+Use this skill before implementation when user requirements include:
+- new feature
+- refactor across layers
+- service boundary changes
+- API/Gateway/FrontEnd/Aspire workflow changes
 
-## Work classification
+## Request Classification
 
-- **Complex task**: multi-layer or architecture changes; ambiguity target <= 13%.
-- **Backend task**: `src/BackEnd`, `Aspire`, API/db/auth/Gateway changes; ambiguity target <= 5%.
-- **Frontend task**: `src/FrontEnd` changes; ambiguity target <= 5%.
+- Complex work: threshold 13%
+- Backend work: threshold 5%
+- Frontend work: threshold 5%
 
-If ambiguity > target, clarify before impl.
+When current ambiguity is above the threshold, ask exactly up to 3 clarifying questions before coding.
 
-## Socratic question format
+## Clarification Rule
 
-- Ask max 3 items per turn.
-- Number as `1.`, `2.`, `3.`.
+- Questions are numbered.
 - Mark recommended option with `(Recommended)`.
-- Recompute ambiguity before proceed.
+- State current ambiguity and target threshold before asking questions.
+- Recalculate ambiguity after each user answer.
+- Do not implement if ambiguity is not reduced below threshold.
 
-## Workflow steps
+## Common Decision Sets
 
-1. Clarify scope + acceptance criteria.
-2. Confirm project/service boundaries + impacted layers.
-3. Create/validate plan before code.
-4. Define test scope before impl.
-5. Implement sequentially with review gates.
-6. Report remaining risks before commit/push.
+- Service scope: new service vs extend existing service.
+- Contract impact: internal-only API or external contract included.
+- UI scope: minimum screens vs full CRUD.
 
-## Mandatory constraints
+## Common Workflow
 
-- Never do destructive action without explicit user approval.
-- Do not commit, push, merge, branch, worktree, reset, or clean without approval.
-- Keep sensitive info out of notes and outputs (tokens, credentials, connection strings, personal keys).
+1. Confirm scope and ambiguity.
+- 2. Ask up to 3 questions if needed.
+- 3. Produce implementation plan with affected layers and test strategy.
+- 4. Create or update `docs/wkTask/Specs/{yyMMdd}_{Summary}_plan.md` when required.
+- 5. Request user approval for work to proceed.
+- 6. Execute with TDD and tests in ordered layers.
 
-## Plan and result naming
+## Safety Rules
 
-- If plan requested, follow `docs/wkTask/Specs/{yyMMdd}_{Summary}_plan.md`.
-- Create result at `docs/wkTask/Results/{yyMMdd}_{Summary}_result.html`.
-- For this repo, prioritize `Rev04.slnx` in validation refs.
+- Do not execute destructive Git commands without explicit user request.
+- Keep branch and worktree actions approval-first.
+- Keep migration, secret handling, destructive file cleanup, commit, push, and merge actions behind explicit consent.
 
-## Approval boundaries
+## Required Outputs
 
-- If ambiguous:
-  - ask Korean clarification for missing decisions.
-  - pause impl until user confirms.
+- Architecture plan
+- Test plan by layer
+- Risk/approval list
+- Result summary with validation notes
+
+See [workflow-guide.md](references/workflow-guide.md).

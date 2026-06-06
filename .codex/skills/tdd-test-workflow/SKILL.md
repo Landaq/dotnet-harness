@@ -1,46 +1,68 @@
 ---
 name: tdd-test-workflow
-description: Apply test-first development flow for Rev04 services with Unit, Integration, Contract, Functional, Architecture, and EndToEnd test responsibilities.
+description: "Apply Red-Green-Refactor for all feature work, assign tests by layer, and keep dependency checks before implementation."
 ---
 
 # TDD Test Workflow
 
-Use whenever feature impl starts and test sequence not fixed.
+Use this skill when implementing functionality for backend, infrastructure integration, API, or frontend flow changes.
 
-## Core loop
+## Core Rule
 
-1. **Red**: write failing test encoding requirement.
-2. **Green**: implement minimum code to pass.
-3. **Refactor**: enforce boundaries + simplify after green.
+Always start with `Red`, then implement `Green`, then perform `Refactor` before moving to next layer.
 
-## Required order for backend services
+## Layer Order
 
-1. Domain test: Aggregate, value object, state transition, rule edge cases.
-2. Application test: Command/Query + handlers.
-3. Contract test: request/response + integration event contracts.
-4. Infrastructure test: EF mappings, repositories, adapter integration.
-5. Api test: endpoint behavior + status mapping.
-6. Gateway/FrontEnd validation after service contracts stabilize.
+1. Unit tests: Domain/Application business rules and handlers.
+2. Contract tests: service contracts and integration events.
+3. Integration tests: EF Core mappings, persistence adapters, and external collaborators.
+4. Functional tests: API Gateway, API endpoints, and frontend flow behavior.
+5. Architecture tests: dependency direction and naming constraints.
+6. End-to-end checks for release-level scenarios.
 
-## Test folder conventions
+## Required Test Folders
 
-- `test/Unit/Services/{ServiceName}` for Domain/Application.
-- `test/Integration/Services/{ServiceName}` for EF Core + external adapters.
-- `test/Contract/Services/{ServiceName}` for public contract changes.
-- `test/Functional/APIGateway` for route/auth/header behavior.
-- `test/Functional/FrontEnd` for component + client interaction checks.
-- `test/Architecture` for dependency + naming rules.
-- `test/EndToEnd` for end-user scenarios.
+```text
+test/Unit/Services/{ServiceName}
+test/Integration/Services/{ServiceName}
+test/Contract/Services/{ServiceName}
+test/Functional/APIGateway
+test/Functional/FrontEnd
+test/Architecture
+test/EndToEnd
+```
 
-## FrontEnd interaction rules
+## Backend Feature Sequence
 
-- For `Web.Client`, use browser-safe deps only.
-- Put page/server concerns in `Web` when API proxy, secrets, or server-only features needed.
-- Keep API boundary through `APIGateway`, then typed contract consumption or typed client.
+1. Domain aggregate and rule tests.
+2. Application use-case tests.
+3. Contract and DTO/event tests.
+4. Infrastructure integration checks.
+5. Api boundary tests.
+6. Gateway and Aspire wiring tests.
+7. Frontend/API client wiring verification.
 
-## Completion checks
+## Working Rules
 
-- Domain + Application tests exist before Infrastructure/Api completion.
-- Contract changes include regression coverage.
-- Add at least one architecture rule test for large structure changes.
-- If request ambiguous, ask max 3 Korean follow-up questions before coding.
+- Domain/Application must not depend on Infrastructure/Api concrete implementations.
+- Unit tests should be fast and deterministic.
+- Contract tests protect interface stability even when services stay in monolith mode.
+- Never mix multiple layer changes in a single untested step.
+
+## Frontend Test Checks
+
+- `Web.Client` only uses browser-safe dependencies.
+- `Web` handles server-only concerns.
+- API calls should go through `APIGateway` contract-based path.
+
+## Request Template
+
+When a user requests coding, confirm:
+
+- target service (`ServiceName`)
+- test levels to verify (unit, integration, contract, functional, architecture)
+- API contract and route change scope
+
+Then proceed with test-first implementation.
+
+See [tdd-guide.md](references/tdd-guide.md).

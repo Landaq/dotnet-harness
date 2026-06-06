@@ -1,35 +1,42 @@
 ---
 name: reference-comparison-audit
-description: Compare current architecture decisions against external reference practices and produce concrete action items for missing standards.
+description: "Run an architecture audit against external references and lock baseline decisions such as .slnx usage, centralized build props, service boundaries, and contract-first design."
 ---
 
 # Reference Comparison Audit
 
-Use when architecture/process need alignment check against established guidance.
+Use this skill when reviewing architecture direction or before adopting a new structural change.
 
-## Audit scope
+## Baseline checks
 
-- Validate solution baseline (`Rev04.slnx`) active anchor.
-- Verify root build governance:
+- Enforce `Rev04.slnx` as the repository solution standard.
+- Recommend central build and package policy files:
   - `global.json`
   - `Directory.Build.props`
   - `Directory.Packages.props`
-- Verify service boundary strategy (`Domain/Application/Infrastructure/Api/Contracts`) + future MSA readiness.
-- Verify ServiceDefaults runtime-only: no domain models/infra business logic.
-- Verify architecture-level dependency tests planned/present.
+- Validate service structure aligns with bounded context boundaries.
+- Keep `ServiceDefaults` limited to observability/discovery/resilience defaults.
+- Keep Gateway focused on routing/security/transform/telemetry and not business logic.
+- Validate contract/public model isolation from Domain models.
 
-## Output format
+## Service Boundary Audit
 
-1. Gap list: Missing / Partial / Compliant.
-2. Concrete fix list: file-level or process-level changes.
-3. Priority: High/Medium/Low + acceptance note.
+- Confirm test/projects map to service boundaries.
+- Confirm dependency direction checks (Domain -> Application -> Infrastructure/Api -> Gateway/Web/Aspire).
+- Confirm no cross-service internal type usage.
+- Confirm API routes and contracts are explicit and version-aware.
 
-## Decision guidance
+## Output Structure
 
-- If gap affects solution stability, mark High + convert to explicit follow-up tasks.
-- If only impl detail missing but direction stable, mark Medium.
-- If aligned, mark Compliant with proof location.
+1. List of missing baseline files/rules.
+2. Recommended changes with impact.
+3. Suggested order to apply in smallest safe slices.
+4. Validation list (build/test/lint + architecture checks).
 
-## Reference anchors
+## Delivery Template
 
-- Keep read-only for planning. Apply file changes via project-structure/service/TDD/UI/workflow skills as follow-ups.
+- "Comparison result: pass/fail by rule"
+- "Required corrections"
+- "Apply now or defer" decisions with rationale
+
+See [reference-comparison.md](references/reference-comparison.md).

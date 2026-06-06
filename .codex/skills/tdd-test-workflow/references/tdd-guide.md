@@ -1,18 +1,26 @@
-# TDD Guide Reference
+# TDD and Testing Strategy
 
-- Use Red-Green-Refactor as the default flow for new behavior.
-- Test-first: `test/Unit` first, then `test/Integration`, then `test/Contract`.
-- Functional validation path:
-  - `test/Functional/APIGateway`
-  - `test/Functional/FrontEnd`
-  - `test/Architecture`
-  - `test/EndToEnd`
+- Use `Red -> Green -> Refactor` for every feature.
+- Unit tests prioritize Domain and Application first.
+- Integration tests validate Infrastructure (EF Core, adapter, external systems).
+- Contract tests guard request/response models and integration events.
+- Functional tests verify API Gateway and UI flows.
+- Architecture tests verify dependency rules and naming boundaries.
+- End-to-end tests run for release-grade scenarios.
 
-Recommended sequence:
+## Test Folder Mapping
 
-1. Unit tests for Domain/Application
-2. Integration tests for Infrastructure/adapters
-3. Contract tests for public API messages
-4. Functional tests for API gateway or UI surface changes
+- Unit: `test/Unit/Services/{ServiceName}`
+- Integration: `test/Integration/Services/{ServiceName}`
+- Contract: `test/Contract/Services/{ServiceName}`
+- Functional/APIGateway: `test/Functional/APIGateway`
+- Functional/FrontEnd: `test/Functional/FrontEnd`
+- Architecture: `test/Architecture`
+- EndToEnd: `test/EndToEnd`
 
-For Blazor client changes, verify server-client boundary first (`Web.Client` constraints, `APIGateway` route).
+## Development Discipline
+
+- Avoid implementing before failing tests are proposed.
+- Keep implementation minimal to satisfy current test.
+- Refactor only after each layer is green.
+- Protect architecture rules while refactoring.

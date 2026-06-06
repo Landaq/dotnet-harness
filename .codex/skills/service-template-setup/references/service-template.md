@@ -1,20 +1,42 @@
 # Service Template Reference
 
-Base template path: `src/BackEnd/Services/{ServiceName}` with:
+## Purpose
 
-- `{ServiceName}.Domain`: Aggregates, Entities, ValueObjects, Events, Repositories
-- `{ServiceName}.Application`: Abstractions, UseCases/Commands, UseCases/Queries, DTOs, Validators
-- `{ServiceName}.Infrastructure`: Persistence configurations/migrations, Repositories, Integrations
-- `{ServiceName}.Api`: Endpoints, Mapping
-- `{ServiceName}.Contracts`: Requests, Responses, IntegrationEvents
+`src/BackEnd/Services/{ServiceName}` represents one bounded-context unit and is structured for a future MSA split.
 
-Service creation flow:
+## Required Modules
 
-- Define boundary and contract scope first.
-- Write unit tests before infrastructure and Api implementations.
-- Keep Gateway and AppHost linkage as a separate step after core logic stabilizes.
+- `{ServiceName}.Domain`
+- `{ServiceName}.Application`
+- `{ServiceName}.Infrastructure`
+- `{ServiceName}.Api`
+- `{ServiceName}.Contracts`
 
-Dependency guard:
+## Responsibility Rules
 
-- Domain/Application should not depend on Infrastructure/Api concrete implementations.
-- Contracts should not depend on Domain internals.
+- Domain: only business model and rules.
+- Application: use cases, handlers, DTOs, validators.
+- Infrastructure: persistence and external adapters.
+- Api: boundary adapters (Minimal API endpoints and mapping).
+- Contracts: public request/response and integration event models.
+
+## Dependency Direction
+
+- Inward dependency only.
+- `Application` should never depend on `Infrastructure`/`Api` concrete implementations.
+- `Contracts` is for public types only, never internal implementations.
+
+## Service Creation Steps
+
+- Define service boundary and `{ServiceName}` first.
+- Create domain-level tests for core rules.
+- Build Domain and Application before Infrastructure/Api.
+- Add contract tests for request/response/integration event.
+- Add Gateway route and Aspire registration at the integration stage.
+
+## MSA Readiness Gate
+
+- Public contracts isolated.
+- Data ownership per service and migration boundary.
+- No direct reference to internal implementations across services.
+- External calls enter through Gateway and AppHost wiring.
