@@ -87,14 +87,43 @@ Invoke-ValidationStep "packaging hygiene" {
         throw "TaskResult artifact must be opt-in, not mandatory."
     }
 
+    $currentDocs = @(
+        Join-Path $pluginRootPath "README.md"
+        Join-Path $skillsRoot "architecture-workflow-guardrails\SKILL.md"
+        Join-Path $skillsRoot "architecture-workflow-guardrails\references\workflow-guide.md"
+        Join-Path $skillsRoot "project-structure-setup\SKILL.md"
+    )
+    $staleDocRefs = $currentDocs |
+        Where-Object { Test-Path -LiteralPath $_ } |
+        Select-String -Pattern "repo-local skills|docs/wkTask|python scripts/bootstrap_project_structure.py" -ErrorAction SilentlyContinue
+    if ($staleDocRefs) {
+        throw "Current plugin docs contain stale repo-local skill, default plan artifact, or direct Python CLI guidance."
+    }
+
     foreach ($requiredText in @(
-        "Agent Execution Contract",
-        "Subagent delegation",
-        "Delegation",
-        "must use actual subagents",
-        "Agent execution fallback: unavailable",
-        "allowed paths and forbidden paths",
-        "instruction to avoid git operations"
+        'Agent Execution Contract',
+        'Mandatory Socratic Checkpoint',
+        'Subagent Utilization Floor',
+        'Subagent delegation',
+        'Delegation',
+        'default is delegation, not local-only execution',
+        'For complex or multi-step work, spawn at least one read-only specialist subagent before implementation unless fallback or an explicit skip condition applies.',
+        'Spawn at least one pre-implementation specialist subagent',
+        'spawn at least one post-implementation subagent',
+        'Only an actual delegated subagent task counts',
+        'Delegation: skipped',
+        'No-spawn decisions must include the exact reason.',
+        'Limit pre-implementation read-only subagents to three unless the user explicitly approves more.',
+        'Delegate implementation only when write sets are disjoint and requirements are settled.',
+        'utilization floor satisfied',
+        'Socratic',
+        'Ask at least one Korean Socratic question',
+        'Print `Socratic: skipped`',
+        'target average ambiguity `<= 8%`',
+        'must use actual subagents',
+        'Agent execution fallback: unavailable',
+        'allowed paths and forbidden paths',
+        'instruction to avoid git operations'
     )) {
         if ($taskAgents -notmatch [regex]::Escape($requiredText)) {
             throw "Task Agents must define actual subagent delegation behavior: missing '$requiredText'."

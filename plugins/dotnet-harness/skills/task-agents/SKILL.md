@@ -18,6 +18,30 @@ Before routing, inspect current repo:
 
 Do not hardcode repo identity strings. Refer to discovered solution, folders, agents, skill names.
 
+## Mandatory Socratic Checkpoint
+
+For non-trivial Task Agents work, run a Socratic clarification checkpoint before intake planning, subagent delegation, implementation, or verification.
+
+Ask at least one Korean Socratic question unless one of these skip conditions is true:
+
+- The task is a direct answer, status check, or trivial one-file mechanical edit.
+- The user already provided all of: explicit goal, in-scope work, out-of-scope work or non-goal, success criteria, validation command/evidence, and git/release expectation.
+- The newest user message explicitly says not to ask questions, or explicitly approves proceeding with the current assumptions.
+
+When asking:
+
+1. State the current best assumption first.
+2. State current ambiguity percentage and target average ambiguity `<= 8%`.
+3. Ask 1-3 Korean questions that expose priority, tradeoff, non-goal, affected surface, output location, validation standard, git/release expectation, or stop condition.
+4. Prefer contrastive questions that let the user include one thing and exclude another.
+5. Stop all planning and implementation until the user answers.
+
+When skipping:
+
+- Print `Socratic: skipped` with the exact skip condition.
+- List the assumed goal, scope, success criteria, validation, and git/release expectation.
+- Continue only if the assumptions are actionable.
+
 ## Agent Execution Contract
 
 Task Agents must use actual subagents when subagent tooling is available and the task is non-trivial.
@@ -29,6 +53,7 @@ Task Agents must use actual subagents when subagent tooling is available and the
 - Use subagents for read-only analysis, bounded implementation with disjoint write sets, post-implementation review, and verification.
 - Do not spawn subagents for trivial one-file edits, direct user questions, or work whose next step is fully blocked on one local decision.
 - If subagent tooling is unavailable, explicitly report `Agent execution fallback: unavailable` and continue with the same staged role order in the main thread.
+- Keeping an immediate blocking task in the main thread does not remove the requirement to spawn at least one independent read-only specialist for complex or multi-step work when one exists.
 
 Delegated prompts must include:
 
@@ -38,6 +63,38 @@ Delegated prompts must include:
 4. expected output or changed file list;
 5. validation command or evidence requirement;
 6. instruction to avoid git operations unless the role is `git-operator` and the user explicitly requested git work.
+
+## Subagent Utilization Floor
+
+For non-trivial Task Agents work, the default is delegation, not local-only execution.
+
+When subagent tooling is available:
+
+- For complex or multi-step work, spawn at least one read-only specialist subagent before implementation unless fallback or an explicit skip condition applies.
+- Spawn at least one pre-implementation specialist subagent before editing files, unless the task is a direct answer, status check, trivial one-file mechanical edit, or fully blocked on a user decision.
+- For implementation tasks that create a meaningful diff, spawn at least one post-implementation subagent: `code-reviewer`, `verification-runner`, or `reference-auditor`.
+- For architecture, workflow, plugin, harness, or multi-file changes, prefer two independent read-only specialist subagents when their questions do not overlap.
+- For backend behavior changes, prefer `service-template` and `tdd-test` as parallel read-only specialists before implementation.
+- For frontend behavior changes, prefer `frontend-ui` and `tdd-test` as parallel read-only specialists before implementation.
+- For plugin/harness governance changes, prefer `reference-auditor` and `code-reviewer` as independent review specialists.
+- Do not count reading an agent TOML file as subagent usage. Only an actual delegated subagent task counts.
+
+If an eligible role is not spawned, output `Delegation: skipped` with the concrete reason:
+
+- `trivial`: direct answer, status check, or trivial one-file mechanical edit.
+- `blocked`: Socratic checkpoint, approval, or missing target information blocks delegation.
+- `coupled`: no disjoint read-only question or write set exists.
+- `unavailable`: subagent tooling is unavailable.
+- `unsafe`: delegation would touch secrets, production state, destructive actions, or git operations without explicit approval.
+
+No-spawn decisions must include the exact reason.
+
+Default spawn caps:
+
+- Limit pre-implementation read-only subagents to three unless the user explicitly approves more.
+- Delegate implementation only when write sets are disjoint and requirements are settled.
+- Limit delegated implementation subagents to one unless the user explicitly approves multiple isolated write scopes.
+- Limit post-implementation review and verification subagents to two unless the changed surface spans independent domains.
 
 ## Project Structure Gate
 
@@ -77,6 +134,7 @@ Run stages in order unless user narrows task:
 
 2. **Goal boundary**
    - Use discovered goal-boundary agent when present.
+   - Run the Mandatory Socratic Checkpoint before planning unless a skip condition applies.
    - Split broad requests into feature-sized goals when each feature has independent success criteria and validation.
    - Define one explicit goal statement per active feature before planning.
    - Estimate ambiguity percentage for each active feature goal.
@@ -106,6 +164,7 @@ Run stages in order unless user narrows task:
 
 5. **Subagent delegation**
    - Spawn selected specialist subagents when the Agent Execution Contract allows it.
+   - Enforce the Subagent Utilization Floor for every non-trivial task.
    - Prefer parallel read-only analysis groups before implementation when specialists can inspect independently.
    - Prefer delegated bounded implementation only when write sets are disjoint and the task can be described without unresolved decisions.
    - Keep the immediate blocking task in the main thread when waiting would slow the critical path.
@@ -186,7 +245,8 @@ For orchestration turns, include:
 - `Stage`: current workflow stage.
 - `Discovered`: relevant agents/skills found.
 - `Route`: ordered stages, including any safe parallel read-only groups.
-- `Delegation`: spawned subagents, skipped subagents with reasons, or fallback status.
+- `Socratic`: questions asked, skipped with reason, or blocked waiting for user answer.
+- `Delegation`: spawned subagents, skipped eligible roles with concrete reasons, utilization floor satisfied or not, and fallback status.
 - `Gate`: clarification, approval, test, verification, or git requirement.
 - `Action`: what happens next.
 

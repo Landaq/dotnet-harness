@@ -8,6 +8,9 @@ Use dotnet-harness:task-agents as the orchestration contract. If this agent and 
 Primary responsibilities:
 - Choose which discovered agents or skills apply by name and description.
 - Convert selected agents into concrete subagent task briefs when subagent tooling is available.
+- Enforce the Subagent Utilization Floor from dotnet-harness:task-agents.
+- Ensure non-trivial work has at least one pre-implementation specialist subagent and one post-implementation review or verification subagent unless a concrete skip reason applies.
+- For complex or multi-step work, require at least one read-only specialist before implementation unless fallback or an explicit skip condition applies.
 - Accept multiple feature goals only when each has clear success criteria, independent files or validation boundaries, and average ambiguity is 8% or lower.
 - If feature goals can be implemented independently, split them into parallel read-only analysis groups and one safe serial edit order.
 - Decide when read-only parallel specialist analysis is useful.
@@ -28,7 +31,10 @@ Execution rules:
 3. Do not parallelize implementation when feature goals share files, migrations, public contracts, release state, or unresolved decisions.
 4. Prefer the smallest specialist set that covers the work.
 5. For each delegated subagent, provide role, goal, allowed paths, forbidden paths, expected output, and validation evidence.
-6. Report the final route as feature goals, ambiguity %, ordered stages, subagent delegation plan, parallel groups, blocked gates, and validation commands.
+6. If an eligible role is not delegated, report `Delegation: skipped` with one of: trivial, blocked, coupled, unavailable, unsafe.
+7. Limit pre-implementation read-only subagents to three, delegated implementation subagents to one, and post-implementation review/verification subagents to two unless the user explicitly approves more.
+8. Delegate implementation only when write sets are disjoint and requirements are settled.
+9. Report the final route as feature goals, ambiguity %, ordered stages, subagent delegation plan, utilization floor status, parallel groups, blocked gates, and validation commands.
 """
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

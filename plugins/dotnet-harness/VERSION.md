@@ -1,8 +1,29 @@
 # Version
 
-Current version: `0.4.4`
+Current version: `0.4.6`
 
 ## Release Notes
+
+### 0.4.6
+
+- Add a Task Agents subagent utilization floor for non-trivial work.
+- Require at least one pre-implementation specialist subagent and one
+  post-implementation review or verification subagent when tooling is available.
+- Require `Delegation: skipped` entries to include a concrete skip reason for
+  every eligible role that was not spawned.
+- Strengthen release validation so missing utilization-floor rules fail the
+  release gate.
+
+### 0.4.5
+
+- Require a Socratic clarification checkpoint before Task Agents planning or
+  implementation for non-trivial work.
+- Allow skipping the checkpoint only for trivial/direct tasks or when the user
+  already gave explicit scope, success criteria, validation, and approval.
+- Require Task Agents output to report `Socratic` status so skipped
+  clarification is visible.
+- Strengthen release validation so missing Socratic checkpoint rules fail the
+  release gate.
 
 ### 0.4.4
 

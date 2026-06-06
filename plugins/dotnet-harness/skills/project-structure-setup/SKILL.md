@@ -37,12 +37,14 @@ If `{ServiceName}` enabled:
 
 ## CLI
 
-```bash
-python scripts/bootstrap_project_structure.py --root .
-python scripts/bootstrap_project_structure.py --root . --service-name Orders
-python scripts/bootstrap_project_structure.py --root . --project-name MyProj
-python scripts/bootstrap_project_structure.py --root . --project-name MyProj --service-name Orders --preview
-python scripts/bootstrap_project_structure.py --root . --project-name MyProj --harness-only
+Prefer the PowerShell wrapper so UTF-8 mode and Windows process launch behavior stay predictable:
+
+```powershell
+pwsh -NoProfile -File install.ps1 -Root .
+pwsh -NoProfile -File install.ps1 -Root . -ServiceName Orders
+pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj
+pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -ServiceName Orders -Preview
+pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -HarnessOnly
 ```
 
 ## Rules

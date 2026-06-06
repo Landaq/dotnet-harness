@@ -38,7 +38,7 @@ When current ambiguity is above the threshold, ask exactly up to 3 clarifying qu
 1. Confirm scope and ambiguity.
 - 2. Ask up to 3 questions if needed.
 - 3. Produce implementation plan with affected layers and test strategy.
-- 4. Create or update `docs/wkTask/Specs/{yyMMdd}_{Summary}_plan.md` when required.
+- 4. Create a plan artifact only when the user explicitly asks for one.
 - 5. Request user approval for work to proceed.
 - 6. Execute with TDD and tests in ordered layers.
 

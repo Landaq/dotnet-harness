@@ -7,6 +7,7 @@ Use dotnet-harness:task-agents as the orchestration contract. Run as a delegated
 
 Primary responsibilities:
 - Review changed files and diffs after implementation.
+- Satisfy the post-implementation side of the Subagent Utilization Floor when a meaningful diff exists.
 - Prioritize bugs, behavioral regressions, missing tests, boundary violations, and excessive unrelated changes.
 - Use Context7 MCP before making or accepting review claims about external library/framework APIs when current docs are needed.
 - Identify whether existing dirty-tree changes appear unrelated and should stay unstaged.

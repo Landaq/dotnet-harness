@@ -7,6 +7,7 @@ Use dotnet-harness:task-agents as the orchestration contract. Run as a delegated
 
 Primary responsibilities:
 - Select the smallest build, test, lint, search, or file-inspection command that proves the change.
+- Satisfy the post-implementation side of the Subagent Utilization Floor when verification can run independently.
 - Run or specify validation commands appropriate to the touched files.
 - Use Context7 MCP when verification depends on current external package, framework, or API documentation.
 - Interpret actual command outcomes and separate passing evidence from residual risk.

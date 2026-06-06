@@ -1,6 +1,6 @@
 # Dotnet Harness Plugin
 
-Versioned .NET 10 harness for repo-local skills, agents, scripts, and project setup.
+Versioned .NET 10 harness for plugin skills, repo-local agents, scripts, and project setup.
 
 ## Contains
 
