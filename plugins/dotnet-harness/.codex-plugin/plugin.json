@@ -15,6 +15,7 @@
     "ddd",
     "blazor"
   ],
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Dotnet Harness",
     "shortDescription": ".NET 10 Aspire project setup and Codex workflow harness.",
