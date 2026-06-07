@@ -24,6 +24,7 @@ $rootAgents = Join-Path $RepoRoot "AGENTS.md"
 
 Require-Path $agentsDir
 Require-Path $rootAgents
+Require-Path (Join-Path $RepoRoot ".codex\scripts\ensure-caveman-skill.ps1")
 
 if (Test-Path -LiteralPath $skillsDir) {
     Add-Failure "Repo-local .codex\skills should not exist. Use dotnet-harness:* plugin skills instead: $skillsDir"
@@ -120,6 +121,23 @@ if (Test-Path -LiteralPath $agentsDir) {
         $tripleQuoteCount = ([regex]::Matches($content, '"""')).Count
         if (($tripleQuoteCount % 2) -ne 0) {
             Add-Failure "$($agentFile.Name) unbalanced triple quotes"
+        }
+
+        foreach ($requiredAgentConfig in @(
+            '[mcp_servers.context7]',
+            'command = "npx"',
+            'args = ["-y", "@upstash/context7-mcp"]',
+            '[mcp_servers.openaiDeveloperDocs]',
+            'url = "https://developers.openai.com/mcp"',
+            '[[skills.config]]',
+            'path = "~/.agents/skills/caveman/SKILL.md"',
+            'enabled = true',
+            'mode = "full"',
+            'usage = "internal-subagent-handoff"'
+        )) {
+            if ($content -notmatch [regex]::Escape($requiredAgentConfig)) {
+                Add-Failure "$($agentFile.Name) missing fixed agent config: $requiredAgentConfig"
+            }
         }
     }
 }

@@ -35,6 +35,11 @@ $harnessRoot = Join-Path $pluginRootPath "assets\harness"
 $skillsRoot = Join-Path $pluginRootPath "skills"
 $taskAgentsSkill = Join-Path $skillsRoot "task-agents\SKILL.md"
 $manifestPath = Join-Path $pluginRootPath ".codex-plugin\plugin.json"
+$optionalCavemanSkill = Join-Path $pluginRootPath "assets\optional-skills\caveman\SKILL.md"
+$ensureCavemanScript = Join-Path $harnessRoot ".codex\scripts\ensure-caveman-skill.ps1"
+$installScript = Join-Path $pluginRootPath "install.ps1"
+$bootstrapScript = Join-Path $skillsRoot "project-structure-setup\scripts\bootstrap_project_structure.py"
+$upgradeScript = Join-Path $harnessRoot ".codex\scripts\upgrade-harness.ps1"
 
 Invoke-ValidationStep "plugin manifest" {
     if (-not (Test-Path -LiteralPath $pluginValidator)) {
@@ -102,6 +107,7 @@ Invoke-ValidationStep "packaging hygiene" {
 
     foreach ($requiredText in @(
         'Agent Execution Contract',
+        'Compressed Agent Handoff',
         'Mandatory Socratic Checkpoint',
         'Subagent Utilization Floor',
         'Subagent delegation',
@@ -123,15 +129,71 @@ Invoke-ValidationStep "packaging hygiene" {
         'must use actual subagents',
         'Agent execution fallback: unavailable',
         'allowed paths and forbidden paths',
-        'instruction to avoid git operations'
+        'instruction to avoid git operations',
+        'Use `caveman full` only for internal subagent handoff prompts and subagent return summaries.',
+        'Do not use `caveman full` for user-facing Socratic questions',
+        'Compressed handoffs must preserve exact file paths, commands, errors, API names',
+        'Mode: caveman full',
+        'Findings:',
+        'Changes:',
+        'Risks:',
+        'Verify:',
+        'Next:'
     )) {
         if ($taskAgents -notmatch [regex]::Escape($requiredText)) {
             throw "Task Agents must define actual subagent delegation behavior: missing '$requiredText'."
         }
     }
 
+    $agentFiles = @(
+        Join-Path $harnessRoot ".codex\agents\08-implementation-coordinator.toml"
+        Join-Path $harnessRoot ".codex\agents\09-code-reviewer.toml"
+        Join-Path $harnessRoot ".codex\agents\10-verification-runner.toml"
+    )
+    foreach ($agentFile in $agentFiles) {
+        $agentText = Get-Content -LiteralPath $agentFile -Raw
+        foreach ($requiredText in @(
+            'caveman full',
+            'Findings',
+            'Changes',
+            'Risks',
+            'Verify',
+            'Next',
+            'Preserve exact file paths, commands, errors, API names'
+        )) {
+            if ($agentText -notmatch [regex]::Escape($requiredText)) {
+                throw "Agent must define compressed handoff behavior: $agentFile missing '$requiredText'."
+            }
+        }
+    }
+
     if (Test-Path -LiteralPath (Join-Path $harnessRoot ".codex\skills")) {
         throw "Harness assets must not package repo-local .codex\skills."
+    }
+
+    foreach ($requiredPath in @($optionalCavemanSkill, $ensureCavemanScript)) {
+        if (-not (Test-Path -LiteralPath $requiredPath)) {
+            throw "Missing optional caveman skill support file: $requiredPath"
+        }
+    }
+
+    $ensureCaveman = Get-Content -LiteralPath $ensureCavemanScript -Raw
+    foreach ($requiredText in @(
+        'SkillRoot = (Join-Path $HOME ".agents\skills\caveman")',
+        '[preview] caveman skill missing',
+        'Refusing to overwrite existing skill directory',
+        '-SkillSource <path-to-caveman-skill>'
+    )) {
+        if ($ensureCaveman -notmatch [regex]::Escape($requiredText)) {
+            throw "Caveman optional skill helper missing required behavior: '$requiredText'."
+        }
+    }
+
+    foreach ($scriptPath in @($installScript, $bootstrapScript, $upgradeScript)) {
+        $scriptText = Get-Content -LiteralPath $scriptPath -Raw
+        if ($scriptText -notmatch "InstallOptionalSkills|install-optional-skills") {
+            throw "Setup/upgrade path must expose optional skill installation: $scriptPath"
+        }
     }
 
     $harnessPolicyFiles = @(

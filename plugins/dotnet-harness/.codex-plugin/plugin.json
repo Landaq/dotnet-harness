@@ -1,6 +1,6 @@
 {
   "name": "dotnet-harness",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "description": ".NET 10 Aspire, Clean Architecture, DDD, Blazor, and Codex workflow harness.",
   "author": {
     "name": "Landaq"

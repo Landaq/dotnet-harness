@@ -1,8 +1,22 @@
 # Version
 
-Current version: `0.4.6`
+Current version: `0.4.7`
 
 ## Release Notes
+
+### 0.4.7
+
+- Add compressed internal subagent handoff rules using `caveman full` while
+  keeping user-facing Socratic questions, approvals, risk warnings, and final
+  responses clear.
+- Pin Context7, OpenAI developer MCP, and caveman skill configuration blocks in
+  harness agent TOML files.
+- Add an optional bundled caveman skill payload and `ensure-caveman-skill.ps1`
+  helper for opt-in installation when the user does not already have caveman.
+- Add `--install-optional-skills` / `-InstallOptionalSkills` setup and upgrade
+  paths without making optional skills a hard requirement.
+- Strengthen validation so missing MCP, caveman, and optional skill helper
+  wiring fails release checks.
 
 ### 0.4.6
 

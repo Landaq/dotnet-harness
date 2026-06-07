@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import subprocess
 from pathlib import Path
 
 BASE_DIRS = [
@@ -716,13 +717,48 @@ def remove_repo_local_skills(target_root: Path, preview: bool) -> None:
     print(f"[remove] {skills_dir}")
 
 
-def install_codex_harness(target_root: Path, preview: bool) -> None:
+def optional_skill_source(source_root: Path, skill_name: str) -> Path | None:
+    candidates = [
+        source_root.parent / "optional-skills" / skill_name,
+        source_root.parent.parent / "optional-skills" / skill_name,
+    ]
+    for candidate in candidates:
+        if (candidate / "SKILL.md").exists():
+            return candidate
+    return None
+
+
+def ensure_optional_caveman_skill(target_root: Path, source_root: Path, preview: bool, install_optional_skills: bool) -> None:
+    script = (
+        source_root / ".codex/scripts/ensure-caveman-skill.ps1"
+        if preview
+        else target_root / ".codex/scripts/ensure-caveman-skill.ps1"
+    )
+    if not script.exists():
+        print(f"[skip] missing optional skill helper: {script}")
+        return
+
+    command = ["pwsh", "-NoProfile", "-File", str(script)]
+    source = optional_skill_source(source_root, "caveman")
+    if source:
+        command.extend(["-SkillSource", str(source)])
+    if install_optional_skills:
+        command.append("-Apply")
+
+    try:
+        subprocess.run(command, check=False)
+    except OSError as exc:
+        print(f"[warn] caveman optional skill check failed: {exc}")
+
+
+def install_codex_harness(target_root: Path, preview: bool, install_optional_skills: bool) -> None:
     source_root = source_harness_root()
     for source_rel in HARNESS_FILES:
         copy_file_if_missing(source_root / source_rel, target_root / source_rel, preview)
     for source_rel in HARNESS_DIRS:
         copy_dir_if_missing(source_root / source_rel, target_root / source_rel, preview)
     remove_repo_local_skills(target_root, preview)
+    ensure_optional_caveman_skill(target_root, source_root, preview, install_optional_skills)
 
 
 def run(
@@ -732,6 +768,7 @@ def run(
     preview: bool,
     no_gitkeep: bool,
     harness_only: bool,
+    install_optional_skills: bool,
 ) -> None:
     target_root = base_root
     if preview:
@@ -754,7 +791,7 @@ def run(
 
         ensure_project_readme(target_root, preview)
         ensure_dotnet_skeleton(target_root, project_name, service_name, preview)
-    install_codex_harness(target_root, preview)
+    install_codex_harness(target_root, preview, install_optional_skills)
 
 
 def parse_args() -> argparse.Namespace:
@@ -765,6 +802,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--preview", action="store_true", help="Print target directories only")
     parser.add_argument("--no-gitkeep", action="store_true", help="Do not create .gitkeep files")
     parser.add_argument("--harness-only", action="store_true", help="Install Codex harness files only")
+    parser.add_argument("--install-optional-skills", action="store_true", help="Install optional user skills such as caveman when missing")
     return parser.parse_args()
 
 
@@ -794,6 +832,7 @@ def main() -> int:
         preview=args.preview,
         no_gitkeep=args.no_gitkeep,
         harness_only=args.harness_only,
+        install_optional_skills=args.install_optional_skills,
     )
     return 0
 

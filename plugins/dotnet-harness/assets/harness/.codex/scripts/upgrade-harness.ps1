@@ -2,7 +2,8 @@ param(
     [string]$TargetRoot = (Get-Location).Path,
     [string]$SourceRoot,
     [switch]$Apply,
-    [switch]$SkipValidation
+    [switch]$SkipValidation,
+    [switch]$InstallOptionalSkills
 )
 
 $ErrorActionPreference = "Stop"
@@ -169,6 +170,36 @@ function Write-Preview {
     Write-Host "[preview] backup agent .toml files and skill SKILL.md files are renamed to .bak to avoid active discovery"
 }
 
+function Invoke-CavemanSkillCheck {
+    param(
+        [string]$ScriptRoot,
+        [string]$HarnessSource,
+        [switch]$ApplyInstall
+    )
+
+    $script = Join-Path $ScriptRoot ".codex\scripts\ensure-caveman-skill.ps1"
+    if (-not (Test-Path -LiteralPath $script)) {
+        Write-Host "[skip] missing optional skill helper: $script"
+        return
+    }
+
+    $optionalSource = Join-Path (Split-Path -Parent $HarnessSource) "optional-skills\caveman"
+    $arguments = @("-NoProfile", "-File", $script)
+    if (Test-Path -LiteralPath (Join-Path $optionalSource "SKILL.md")) {
+        $arguments += @("-SkillSource", $optionalSource)
+    }
+    if ($ApplyInstall) {
+        $arguments += "-Apply"
+    }
+
+    try {
+        & pwsh @arguments
+    }
+    catch {
+        Write-Host "[warn] caveman optional skill check failed: $($_.Exception.Message)"
+    }
+}
+
 $target = Resolve-FullPath $TargetRoot
 $source = if ($SourceRoot) { Resolve-FullPath $SourceRoot } else { Get-DefaultSourceRoot }
 
@@ -179,6 +210,7 @@ Write-Host "Target project: $target"
 
 if (-not $Apply) {
     Write-Preview -Source $source -Target $target
+    Invoke-CavemanSkillCheck -ScriptRoot $source -HarnessSource $source
     exit 0
 }
 
@@ -191,6 +223,7 @@ Copy-ExistingToBackup -Target $target -BackupRoot $backupRoot
 $backupsRoot = Join-Path $target ".codex\backups"
 Protect-BackupFromDiscovery -BackupsRoot $backupsRoot
 Copy-HarnessToTarget -Source $source -Target $target
+Invoke-CavemanSkillCheck -ScriptRoot $target -HarnessSource $source -ApplyInstall:$InstallOptionalSkills
 
 if (-not $SkipValidation) {
     $validator = Join-Path $target ".codex\scripts\validate-task-agents.ps1"

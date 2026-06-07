@@ -64,6 +64,46 @@ Delegated prompts must include:
 5. validation command or evidence requirement;
 6. instruction to avoid git operations unless the role is `git-operator` and the user explicitly requested git work.
 
+## Compressed Agent Handoff
+
+Use `caveman full` only for internal subagent handoff prompts and subagent return summaries. This reduces orchestration token cost while keeping the main thread responsible for clear user-facing communication.
+
+Do not use `caveman full` for user-facing Socratic questions, approval requests, destructive-risk warnings, release/git confirmations, or final user responses.
+
+Compressed handoffs must preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references.
+
+Internal handoff prompt format:
+
+```text
+Mode: caveman full
+Role:
+Goal:
+Non-goals:
+Allow:
+Deny:
+Need:
+Verify:
+No git unless explicit.
+Return:
+Findings:
+Changes:
+Risks:
+Verify:
+Next:
+```
+
+Internal subagent return format:
+
+```text
+Findings:
+Changes:
+Risks:
+Verify:
+Next:
+```
+
+Keep compressed agent messages free of greetings, repeated background, broad explanations, and implementation trivia that does not affect the next decision. Expand or clarify the result in the main thread before showing it to the user.
+
 ## Subagent Utilization Floor
 
 For non-trivial Task Agents work, the default is delegation, not local-only execution.

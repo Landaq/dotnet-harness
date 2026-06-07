@@ -4,7 +4,8 @@ param(
     [string]$ServiceName,
     [switch]$HarnessOnly,
     [switch]$Preview,
-    [switch]$NoGitkeep
+    [switch]$NoGitkeep,
+    [switch]$InstallOptionalSkills
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,6 +36,10 @@ if ($Preview) {
 
 if ($NoGitkeep) {
     $arguments += "--no-gitkeep"
+}
+
+if ($InstallOptionalSkills) {
+    $arguments += "--install-optional-skills"
 }
 
 & python @arguments
