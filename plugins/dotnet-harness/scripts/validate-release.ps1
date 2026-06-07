@@ -107,6 +107,8 @@ Invoke-ValidationStep "packaging hygiene" {
 
     foreach ($requiredText in @(
         'Agent Execution Contract',
+        'Agent-First Orchestration',
+        'Delegation Evidence',
         'Compressed Agent Handoff',
         'Mandatory Socratic Checkpoint',
         'Subagent Utilization Floor',
@@ -117,15 +119,45 @@ Invoke-ValidationStep "packaging hygiene" {
         'Spawn at least one pre-implementation specialist subagent',
         'spawn at least one post-implementation subagent',
         'Only an actual delegated subagent task counts',
+        'Actual subagent execution means calling an available delegated-agent tool such as `spawn_agent`',
+        'Before fallback, inspect active callable tools.',
+        'Do not report `Agent execution fallback: unavailable` while such a tool is callable.',
+        'Tool availability checked:',
+        'Callable Namespace:',
+        'Tool Call Receipt:',
+        'Tool Result Status:',
+        '`Delegation: used` is valid only when backed by an actual tool-call receipt',
+        'Do not synthesize this block from a delegation plan.',
+        'Reading agent TOML, summarizing an agent persona, or role-playing a specialist in the main thread does not count as subagent execution.',
+        'Delegation: used',
+        'Do not mark utilization satisfied from planned delegation, simulated agent reasoning, or reading `.codex/agents/*.toml`.',
+        'main-thread-only execution while subagent tooling is available is noncompliant',
         'Delegation: skipped',
         'No-spawn decisions must include the exact reason.',
+        'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
+        'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
+        'Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.',
+        '/feedback',
+        '에이전트들이 전반적으로 수행',
+        'If no agent is called, report why briefly with `Delegation: skipped <reason>`.',
+        'If agent questions, evidence duties, or write sets overlap, merge them, serialize them, or skip the duplicate role with `Delegation: skipped coupled`.',
+        'While subagents are running, do not duplicate their implementation scope in the main thread.',
+        'Agents Used',
+        'Agents Skipped',
+        'Agent Results Reflected',
+        'TaskResult`: `not requested; not created',
         'Limit pre-implementation read-only subagents to three unless the user explicitly approves more.',
         'Delegate implementation only when write sets are disjoint and requirements are settled.',
         'utilization floor satisfied',
         'Socratic',
         'Ask at least one Korean Socratic question',
         'Print `Socratic: skipped`',
+        'Socratic: satisfied',
         'target average ambiguity `<= 8%`',
+        'Recalculate ambiguity percentage for each active feature goal and the average ambiguity after every answer.',
+        'Check goal alignment after every answer',
+        'Continue this answer -> reassess -> ask loop until average ambiguity is `<= 8%`',
+        'After every user answer, restate the updated goal boundary, recalculate each feature ambiguity %, recalculate average ambiguity %, and check whether the answer still aligns with the active goal.',
         'must use actual subagents',
         'Agent execution fallback: unavailable',
         'allowed paths and forbidden paths',
@@ -146,6 +178,10 @@ Invoke-ValidationStep "packaging hygiene" {
     }
 
     $agentFiles = @(
+        Join-Path $harnessRoot ".codex\agents\03-service-template.toml"
+        Join-Path $harnessRoot ".codex\agents\04-frontend-ui.toml"
+        Join-Path $harnessRoot ".codex\agents\05-tdd-test.toml"
+        Join-Path $harnessRoot ".codex\agents\06-reference-auditor.toml"
         Join-Path $harnessRoot ".codex\agents\08-implementation-coordinator.toml"
         Join-Path $harnessRoot ".codex\agents\09-code-reviewer.toml"
         Join-Path $harnessRoot ".codex\agents\10-verification-runner.toml"
@@ -164,6 +200,81 @@ Invoke-ValidationStep "packaging hygiene" {
             if ($agentText -notmatch [regex]::Escape($requiredText)) {
                 throw "Agent must define compressed handoff behavior: $agentFile missing '$requiredText'."
             }
+        }
+    }
+
+    $intakePlanner = Join-Path $harnessRoot ".codex\agents\07-intake-planner.toml"
+    $intakePlannerText = Get-Content -LiteralPath $intakePlanner -Raw
+    foreach ($requiredText in @(
+        '/feedback',
+        '에이전트들이 전반적으로 수행',
+        'agent-first orchestration request',
+        'planning, implementation, feedback/code-review, and verification should be assigned to discovered repo-local agents'
+    )) {
+        if ($intakePlannerText -notmatch [regex]::Escape($requiredText)) {
+            throw "Intake planner must detect agent-first routing: missing '$requiredText'."
+        }
+    }
+
+    $implementationCoordinator = Join-Path $harnessRoot ".codex\agents\08-implementation-coordinator.toml"
+    $implementationCoordinatorText = Get-Content -LiteralPath $implementationCoordinator -Raw
+    foreach ($requiredText in @(
+        'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
+        'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
+        'Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.',
+        'Require actual subagent tool calls such as `spawn_agent`',
+        'main-thread role-play does not count',
+        'Require `Delegation: used` evidence',
+        'tool-call receipt',
+        'For non-trivial work, stop before implementation',
+        'Do not report `Agent execution fallback: unavailable` while `spawn_agent`',
+        'Reject plans that only read TOML files',
+        'A delegation plan is not delegation evidence.',
+        'Delegation: skipped coupled',
+        'While subagents are running, do not duplicate their implementation scope in the main thread.',
+        'delegation evidence'
+    )) {
+        if ($implementationCoordinatorText -notmatch [regex]::Escape($requiredText)) {
+            throw "Implementation coordinator must enforce actual subagent tool usage: missing '$requiredText'."
+        }
+    }
+
+    $codeReviewer = Join-Path $harnessRoot ".codex\agents\09-code-reviewer.toml"
+    $codeReviewerText = Get-Content -LiteralPath $codeReviewer -Raw
+    foreach ($requiredText in @(
+        '/feedback',
+        'participate early',
+        'review scope, success criteria, risk, and likely regression surfaces'
+    )) {
+        if ($codeReviewerText -notmatch [regex]::Escape($requiredText)) {
+            throw "Code reviewer must support early feedback routing: missing '$requiredText'."
+        }
+    }
+
+    $verificationRunnerText = Get-Content -LiteralPath (Join-Path $harnessRoot ".codex\agents\10-verification-runner.toml") -Raw
+    foreach ($requiredText in @(
+        'agents used or skipped',
+        'whether agent results were reflected',
+        'TaskResult: not requested; not created',
+        'Report whether TaskResult was explicitly requested'
+    )) {
+        if ($verificationRunnerText -notmatch [regex]::Escape($requiredText)) {
+            throw "Verification runner must enforce final reporting policy: missing '$requiredText'."
+        }
+    }
+
+    $goalBoundaryAgent = Join-Path $harnessRoot ".codex\agents\02-goal-boundary.toml"
+    $goalBoundaryText = Get-Content -LiteralPath $goalBoundaryAgent -Raw
+    foreach ($requiredText in @(
+        'After every user answer, restate the updated goal boundary',
+        'After each answer, recalculate ambiguity for every active feature goal',
+        'After each answer, verify goal alignment',
+        'If the average remains above 8% or the answer shifts the target goal',
+        'Socratic: satisfied',
+        'Goal Alignment'
+    )) {
+        if ($goalBoundaryText -notmatch [regex]::Escape($requiredText)) {
+            throw "Goal boundary agent must enforce Socratic reassessment loop: missing '$requiredText'."
         }
     }
 

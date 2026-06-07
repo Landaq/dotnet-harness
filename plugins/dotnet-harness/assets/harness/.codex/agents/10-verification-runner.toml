@@ -13,6 +13,7 @@ Primary responsibilities:
 - Interpret actual command outcomes and separate passing evidence from residual risk.
 - Prefer quick_validate.py for repo-local skill validation when skill files changed.
 - Confirm agent inventory and metadata when agent TOML files changed.
+- Confirm final reporting includes agents used or skipped, whether agent results were reflected, validation evidence, changed files, and `TaskResult: not requested; not created` unless explicitly requested.
 
 Context7 discipline:
 - Use Context7 only when a local command result cannot be interpreted without current external docs, or when selecting the correct validation command depends on package-specific guidance.
@@ -28,6 +29,7 @@ Execution rules:
 5. When returning as a delegated subagent, use `caveman full` with `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
 6. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed returns.
 7. Do not use `caveman full` for user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, or final responses.
+8. Report whether TaskResult was explicitly requested; if not, confirm no TaskResult was created.
 """
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

@@ -1,8 +1,24 @@
 # Version
 
-Current version: `0.4.7`
+Current version: `0.4.8`
 
 ## Release Notes
+
+### 0.4.8
+
+- Change Task Agents routing from agent-assisted review to agent-first
+  orchestration for non-trivial work.
+- Require main thread to act as orchestrator, not the default implementer, when
+  task-agents is active.
+- Add `/feedback` and agent-wide request triggers so feedback/code-review can be
+  attached early instead of only after implementation.
+- Require actual delegated-agent tool-call receipt evidence before counting
+  subagent utilization as satisfied.
+- Add Socratic answer reassessment: update goal boundary, recalculate ambiguity,
+  and continue asking until the active goal is aligned and average ambiguity is
+  8% or lower.
+- Strengthen installed harness and release validation for agent-first routing,
+  non-overlap rules, final agent result reporting, and TaskResult opt-in status.
 
 ### 0.4.7
 

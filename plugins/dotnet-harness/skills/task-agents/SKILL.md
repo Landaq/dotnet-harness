@@ -18,6 +18,26 @@ Before routing, inspect current repo:
 
 Do not hardcode repo identity strings. Refer to discovered solution, folders, agents, skill names.
 
+## Agent-First Orchestration
+
+Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.
+
+Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.
+
+Run task-agent routing before non-trivial implementation starts. If the user explicitly says `/feedback`, `task-agents`, `에이전트를 활용`, `에이전트들이 전반적으로 수행`, `agents overall`, `run agents`, or similar wording, treat the request as agent-first orchestration instead of agent-assisted review.
+
+Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work. Non-overlapping verification or cleanup is allowed when it does not duplicate a running subagent's scope. When a delegated subagent is running, the main thread must not implement overlapping work; it may only perform non-overlapping verification, documentation lookup, diff inspection, or integration planning.
+
+Default stage ownership:
+
+- intake/planning: discovered intake/planner agent defines work units, success criteria, affected paths, expected outputs, and validation candidates.
+- implementation: discovered implementation/coordinator assigns bounded implementation to the best matching specialist or implementation subagent when write scope is settled.
+- feedback/code-review: discovered feedback or code-review agent identifies risks, regressions, scope creep, missing tests, and boundary violations; when useful, attach it early as a parallel reviewer instead of waiting only until implementation is complete.
+- verification: discovered verification-runner selects and runs or specifies the smallest proof.
+- git operator: discovered git-operator acts only when the user explicitly asks for commit, push, PR, branch, merge, reset, clean, or worktree actions.
+
+If no agent is called, report why briefly with `Delegation: skipped <reason>`.
+
 ## Mandatory Socratic Checkpoint
 
 For non-trivial Task Agents work, run a Socratic clarification checkpoint before intake planning, subagent delegation, implementation, or verification.
@@ -36,6 +56,16 @@ When asking:
 4. Prefer contrastive questions that let the user include one thing and exclude another.
 5. Stop all planning and implementation until the user answers.
 
+When the user answers a Socratic question:
+
+1. Interpret the answer into updated Goal, In Scope, Out Of Scope, Success Criteria, Deliverables, Stop Conditions, and Todo.
+2. Recalculate ambiguity percentage for each active feature goal and the average ambiguity after every answer.
+3. Check goal alignment after every answer: the clarified answer must support the active goal, scope boundary, validation standard, and stop condition.
+4. If average ambiguity remains above `8%`, or the clarified answer does not align with the active goal, ask another 1-3 Korean Socratic questions and pause again.
+5. Continue this answer -> reassess -> ask loop until average ambiguity is `<= 8%` and the active goal is aligned enough to plan.
+6. If repeated answers keep broadening scope, narrow to one active feature goal and move the rest to Out Of Scope or Todo before asking the next question.
+7. Before proceeding past the checkpoint, print `Socratic: satisfied` with the final average ambiguity, aligned goal, remaining assumptions, and next stage.
+
 When skipping:
 
 - Print `Socratic: skipped` with the exact skip condition.
@@ -46,14 +76,20 @@ When skipping:
 
 Task Agents must use actual subagents when subagent tooling is available and the task is non-trivial.
 
+- Actual subagent execution means calling an available delegated-agent tool such as `spawn_agent` or the environment's equivalent subagent runner.
 - Treat `.codex/agents/*.toml` as executable role contracts, not just reference documents.
+- Reading agent TOML, summarizing an agent persona, or role-playing a specialist in the main thread does not count as subagent execution.
 - For each selected role, pass the discovered agent `name`, `description`, and relevant `developer_instructions` summary into the delegated subagent task.
 - Use `dotnet-harness:*` plugin skills as the skill contract inside the delegated prompt.
 - Keep the main thread responsible for scope, approvals, final integration, file ownership, and final answer.
 - Use subagents for read-only analysis, bounded implementation with disjoint write sets, post-implementation review, and verification.
 - Do not spawn subagents for trivial one-file edits, direct user questions, or work whose next step is fully blocked on one local decision.
-- If subagent tooling is unavailable, explicitly report `Agent execution fallback: unavailable` and continue with the same staged role order in the main thread.
+- Before fallback, inspect active callable tools. If any delegated-agent runner is callable, including `spawn_agent`, `delegate_task`, `run_agent`, or the environment equivalent, call it.
+- Do not report `Agent execution fallback: unavailable` while such a tool is callable.
+- If subagent tooling is unavailable after checking callable tools, explicitly report `Agent execution fallback: unavailable` and continue with the same staged role order in the main thread.
+- Fallback requires `Tool availability checked:` with callable delegated-agent tool names or `none`, plus the exact tool error if a delegated call was attempted.
 - Keeping an immediate blocking task in the main thread does not remove the requirement to spawn at least one independent read-only specialist for complex or multi-step work when one exists.
+- For non-trivial work, proceeding with main-thread-only execution while subagent tooling is available is noncompliant unless the decision is reported as `Delegation: skipped` with `trivial`, `blocked`, `coupled`, or `unsafe`.
 
 Delegated prompts must include:
 
@@ -63,6 +99,36 @@ Delegated prompts must include:
 4. expected output or changed file list;
 5. validation command or evidence requirement;
 6. instruction to avoid git operations unless the role is `git-operator` and the user explicitly requested git work.
+
+## Delegation Evidence
+
+When subagent tooling is available and used, Task Agents output must include `Delegation: used` before or during implementation:
+
+```text
+Delegation: used
+Callable Namespace:
+Tool:
+Tool availability checked:
+Tool Call Receipt:
+Tool Result Status:
+Agent:
+Role:
+Purpose:
+Status:
+Result Used:
+```
+
+If the environment has no usable subagent tool, output both:
+
+```text
+Agent execution fallback: unavailable
+Tool availability checked:
+Delegation: skipped unavailable
+```
+
+`Delegation: used` is valid only when backed by an actual tool-call receipt visible in the transcript. Do not synthesize this block from a delegation plan.
+
+Do not mark utilization satisfied from planned delegation, simulated agent reasoning, or reading `.codex/agents/*.toml`. Utilization is satisfied only by an actual subagent tool call with receipt evidence, or by an explicit fallback/skip record with the concrete reason.
 
 ## Compressed Agent Handoff
 
@@ -118,6 +184,7 @@ When subagent tooling is available:
 - For frontend behavior changes, prefer `frontend-ui` and `tdd-test` as parallel read-only specialists before implementation.
 - For plugin/harness governance changes, prefer `reference-auditor` and `code-reviewer` as independent review specialists.
 - Do not count reading an agent TOML file as subagent usage. Only an actual delegated subagent task counts.
+- Do not count main-thread role-play as subagent usage. A selected role must have a tool-call receipt or an explicit skip/fallback reason.
 
 If an eligible role is not spawned, output `Delegation: skipped` with the concrete reason:
 
@@ -178,7 +245,8 @@ Run stages in order unless user narrows task:
    - Split broad requests into feature-sized goals when each feature has independent success criteria and validation.
    - Define one explicit goal statement per active feature before planning.
    - Estimate ambiguity percentage for each active feature goal.
-   - Continue Socratic clarification until the average ambiguity across active feature goals is 8% or lower.
+   - After every user answer, restate the updated goal boundary, recalculate each feature ambiguity %, recalculate average ambiguity %, and check whether the answer still aligns with the active goal.
+   - Continue Socratic clarification until the average ambiguity across active feature goals is 8% or lower and the active goal is aligned with scope, validation, and stop conditions.
    - If the request is too broad or the active goals cannot reach the 8% average ambiguity gate, narrow the active target to one feature goal and move the rest to Out Of Scope or Todo.
    - Separate In Scope, Out Of Scope, Assumptions, Success Criteria, Deliverables, and Stop Conditions.
    - Detect mixed objectives, such as plugin behavior vs current repo policy, setup vs upgrade, implementation vs git publishing, or docs vs runtime behavior.
@@ -187,19 +255,22 @@ Run stages in order unless user narrows task:
      - Ask max three Korean questions.
      - Each question must expose a priority, tradeoff, non-goal, validation standard, output location, git/release expectation, or stop condition.
      - Prefer contrastive questions that let the user choose what to include and what to exclude.
-     - Continue in follow-up turns until active feature goals average 8% ambiguity or lower.
+     - After each answer, update the boundary, recalculate ambiguity, check goal alignment, and ask the next question if the average remains above 8% or the answer shifts the target goal.
+     - Continue in follow-up turns until active feature goals average 8% ambiguity or lower and the target goal is aligned.
    - Pause planning until the user answer makes the boundary actionable.
 
 3. **Intake planning**
    - Use discovered intake/planner agent when present.
    - Convert the request into work units, affected paths, success criteria, expected outputs, and validation candidates.
    - Keep safety approvals owned by the workflow/guardrails stage.
+   - If the user requested `/feedback` or agent-wide execution, mark the route as agent-first orchestration and include feedback/code-review in the initial route.
 
 4. **Implementation coordination**
    - Use discovered implementation/coordinator agent when present.
    - Select applicable domain, test, audit, review, verification, and git agents by discovered `name` + `description`.
    - Decide whether read-only parallel specialist analysis is useful for each feature goal.
    - Allow multiple feature goals to proceed together only when each has independent success criteria, independent validation, and no shared write conflicts.
+   - If agent questions, evidence duties, or write sets overlap, merge them, serialize them, or skip the duplicate role with `Delegation: skipped coupled`.
    - Merge specialist outputs into one serial implementation order.
 
 5. **Subagent delegation**
@@ -208,6 +279,7 @@ Run stages in order unless user narrows task:
    - Prefer parallel read-only analysis groups before implementation when specialists can inspect independently.
    - Prefer delegated bounded implementation only when write sets are disjoint and the task can be described without unresolved decisions.
    - Keep the immediate blocking task in the main thread when waiting would slow the critical path.
+   - While subagents are running, do not duplicate their implementation scope in the main thread.
    - After each subagent returns, review its output before using it as implementation or verification evidence.
 
 6. **Read-only parallel specialist analysis**
@@ -221,11 +293,13 @@ Run stages in order unless user narrows task:
    - Backend service structure/boundary work routes through discovered service-template agent/skill.
    - Frontend/UI component work routes through discovered frontend-ui agent/skill.
    - Behavior-changing work routes through discovered TDD/test agent/skill before implementation.
+   - Main-thread implementation is limited to small fixes, integration of agent output, non-overlapping unblock work, or changes that no eligible agent can safely perform.
    - Keep edits surgical and tied to the user request.
 
 8. **Post-implementation review**
    - Use discovered code-reviewer when present.
    - Spawn code-reviewer as a subagent when subagent tooling is available and a meaningful diff exists.
+   - If `/feedback` is requested, route to feedback/code-review early and again after meaningful changes when possible.
    - Run relevant specialist review again for touched domains.
    - For broad/architecture changes, run reference-auditor before completion.
    - Findings come first, followed by residual risk and test gaps.
@@ -291,6 +365,16 @@ For orchestration turns, include:
 - `Action`: what happens next.
 
 Keep Korean-first clarification concise; preserve English technical keywords.
+
+Before the final user response, report:
+
+- `Agents Used`: agents called, role, purpose, and whether each result was reflected.
+- `Agents Skipped`: skipped eligible agents and short reason, or `none`.
+- `Agent Results Reflected`: yes/no; if no, state why.
+- `Main Thread Work`: integration, non-overlapping verification, cleanup, or unblock work performed directly.
+- `Review/Verification Evidence`: reviewer findings and validation command outcomes.
+- `Files Changed`: changed paths.
+- `TaskResult`: `not requested; not created` unless the user explicitly requested it.
 
 ## Optional Task Result Artifact
 

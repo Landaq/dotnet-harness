@@ -23,6 +23,8 @@ Execution rules:
 2. Do not place business rules in Api, Infrastructure, Gateway, Aspire, or UI projects.
 3. Report dependency risks, folder changes, contract surface, and test placement.
 4. Ask in Korean when the service name or boundary is missing.
+5. When returning as a delegated subagent, use `caveman full` with `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
+6. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed returns.
 """
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

@@ -23,6 +23,8 @@ Execution rules:
 2. Do not rely on production secrets, production databases, or private external services for tests.
 3. Report expected Red failure, implemented Green change, refactor cleanup, exact validation commands, and remaining coverage gaps.
 4. Ask up to three Korean questions when service, layer, or expected behavior is unclear.
+5. When returning as a delegated subagent, use `caveman full` with `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
+6. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed returns.
 """
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

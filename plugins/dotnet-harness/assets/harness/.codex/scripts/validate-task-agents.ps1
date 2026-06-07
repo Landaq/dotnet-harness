@@ -140,6 +140,123 @@ if (Test-Path -LiteralPath $agentsDir) {
             }
         }
     }
+
+    $goalBoundaryAgent = Join-Path $agentsDir "02-goal-boundary.toml"
+    $implementationCoordinator = Join-Path $agentsDir "08-implementation-coordinator.toml"
+    $intakePlanner = Join-Path $agentsDir "07-intake-planner.toml"
+    $codeReviewer = Join-Path $agentsDir "09-code-reviewer.toml"
+    $verificationRunner = Join-Path $agentsDir "10-verification-runner.toml"
+
+    if (Test-Path -LiteralPath $goalBoundaryAgent) {
+        $goalBoundaryText = Get-Content -LiteralPath $goalBoundaryAgent -Raw
+        foreach ($requiredText in @(
+            "After every user answer, restate the updated goal boundary",
+            "After each answer, recalculate ambiguity for every active feature goal",
+            "After each answer, verify goal alignment",
+            "If the average remains above 8% or the answer shifts the target goal",
+            "Socratic: satisfied",
+            "Goal Alignment"
+        )) {
+            if ($goalBoundaryText -notmatch [regex]::Escape($requiredText)) {
+                Add-Failure "goal-boundary missing Socratic reassessment policy: $requiredText"
+            }
+        }
+    }
+
+    if (Test-Path -LiteralPath $implementationCoordinator) {
+        $implementationText = Get-Content -LiteralPath $implementationCoordinator -Raw
+        foreach ($requiredText in @(
+            'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
+            'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
+            'Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.',
+            'Require actual subagent tool calls such as `spawn_agent`',
+            'main-thread role-play does not count',
+            'Require `Delegation: used` evidence',
+            'tool-call receipt',
+            'For non-trivial work, stop before implementation',
+            'Do not report `Agent execution fallback: unavailable` while `spawn_agent`',
+            'Reject plans that only read TOML files',
+            'A delegation plan is not delegation evidence.',
+            'Delegation: skipped coupled',
+            'While subagents are running, do not duplicate their implementation scope in the main thread.',
+            'delegation evidence'
+        )) {
+            if ($implementationText -notmatch [regex]::Escape($requiredText)) {
+                Add-Failure "implementation-coordinator missing agent-first policy: $requiredText"
+            }
+        }
+    }
+
+    if (Test-Path -LiteralPath $intakePlanner) {
+        $intakeText = Get-Content -LiteralPath $intakePlanner -Raw
+        foreach ($requiredText in @(
+            '/feedback',
+            '에이전트들이 전반적으로 수행',
+            'agent-first orchestration request',
+            'planning, implementation, feedback/code-review, and verification should be assigned to discovered repo-local agents'
+        )) {
+            if ($intakeText -notmatch [regex]::Escape($requiredText)) {
+                Add-Failure "intake-planner missing agent-first intake policy: $requiredText"
+            }
+        }
+    }
+
+    if (Test-Path -LiteralPath $codeReviewer) {
+        $reviewText = Get-Content -LiteralPath $codeReviewer -Raw
+        foreach ($requiredText in @(
+            '/feedback',
+            'participate early',
+            'review scope, success criteria, risk, and likely regression surfaces'
+        )) {
+            if ($reviewText -notmatch [regex]::Escape($requiredText)) {
+                Add-Failure "code-reviewer missing feedback routing policy: $requiredText"
+            }
+        }
+    }
+
+    if (Test-Path -LiteralPath $verificationRunner) {
+        $verificationText = Get-Content -LiteralPath $verificationRunner -Raw
+        foreach ($requiredText in @(
+            'agents used or skipped',
+            'whether agent results were reflected',
+            'TaskResult: not requested; not created',
+            'Report whether TaskResult was explicitly requested'
+        )) {
+            if ($verificationText -notmatch [regex]::Escape($requiredText)) {
+                Add-Failure "verification-runner missing final reporting policy: $requiredText"
+            }
+        }
+    }
+
+    $compressedReturnAgents = @(
+        "03-service-template.toml",
+        "04-frontend-ui.toml",
+        "05-tdd-test.toml",
+        "06-reference-auditor.toml",
+        "08-implementation-coordinator.toml",
+        "09-code-reviewer.toml",
+        "10-verification-runner.toml"
+    )
+    foreach ($agentName in $compressedReturnAgents) {
+        $agentPath = Join-Path $agentsDir $agentName
+        if (-not (Test-Path -LiteralPath $agentPath)) {
+            continue
+        }
+        $agentText = Get-Content -LiteralPath $agentPath -Raw
+        foreach ($requiredText in @(
+            "caveman full",
+            "Findings",
+            "Changes",
+            "Risks",
+            "Verify",
+            "Next",
+            "Preserve exact file paths, commands, errors, API names"
+        )) {
+            if ($agentText -notmatch [regex]::Escape($requiredText)) {
+                Add-Failure "$agentName missing compressed return policy: $requiredText"
+            }
+        }
+    }
 }
 
 $repoName = Split-Path -Path $RepoRoot -Leaf
