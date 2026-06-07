@@ -22,11 +22,30 @@ Do not hardcode repo identity strings. Refer to discovered solution, folders, ag
 
 Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.
 
+Agent-first handoff is the default for non-trivial dotnet-harness work. The user does not need to explicitly request subagent handoff.
+
 Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.
+
+When task-agents is active, the main thread is a coordinator/reporter, not the default implementer.
+
+Subagents own staged analysis, implementation, review, and verification. Main thread edits are exceptions and must be reported.
+
+Each subagent output must be treated as the input contract for the next stage.
 
 Run task-agent routing before non-trivial implementation starts. If the user explicitly says `/feedback`, `task-agents`, `에이전트를 활용`, `에이전트들이 전반적으로 수행`, `agents overall`, `run agents`, or similar wording, treat the request as agent-first orchestration instead of agent-assisted review.
 
 Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work. Non-overlapping verification or cleanup is allowed when it does not duplicate a running subagent's scope. When a delegated subagent is running, the main thread must not implement overlapping work; it may only perform non-overlapping verification, documentation lookup, diff inspection, or integration planning.
+
+Automatic agent-first trigger:
+
+- If the user explicitly invokes `@dotnet-harness` for non-trivial work, treat the request as task-agents active and agent-first unless the user explicitly opts out of agents.
+- Treat the request as agent-first when the newest user message mentions `@dotnet-harness`, `$dotnet-harness`, `dotnet-harness`, `task-agents`, `/feedback`, `에이전트`, `agents overall`, `run agents`, or asks for non-trivial work.
+- Non-trivial work means multi-step, multi-file, architecture/workflow/plugin/harness change, backend/frontend behavior change, test strategy, review, verification, CI, release-sensitive, or unclear approval-boundary work.
+- Direct-main opt-out applies only when the newest user message explicitly says: `direct main`, `main thread only`, `no agents`, `skip agents`, `don't delegate`, `no subagents`, `직접 처리`, `메인에서만`, `에이전트 쓰지마`, `에이전트 사용하지 마`, or `위임하지 마`.
+- If agent-first trigger and direct-main opt-out both appear, the newest explicit instruction wins for delegation only. Safety, goal boundary, validation, TaskResult, and git gates still apply.
+- If the user says `에이전트 쓰지마`, `no agents`, or equivalent explicit opt-out, do not spawn subagents; report `Delegation: skipped user-opt-out` and continue main-thread direct.
+
+Main-thread direct work is allowed for a direct answer, status check, trivial one-file fix, or explicit agent opt-out.
 
 Default stage ownership:
 
@@ -37,6 +56,20 @@ Default stage ownership:
 - git operator: discovered git-operator acts only when the user explicitly asks for commit, push, PR, branch, merge, reset, clean, or worktree actions.
 
 If no agent is called, report why briefly with `Delegation: skipped <reason>`.
+
+Strict staged handoff order:
+
+1. `workflow-guardrails`
+2. `goal-boundary`
+3. `intake-planner`
+4. `implementation-coordinator`
+5. pre-implementation read-only specialists
+6. bounded implementation
+7. `code-reviewer`
+8. `verification-runner`
+9. `git-operator` only when the user explicitly requested git work
+
+Each stage consumes the prior stage output as input. No later stage may widen scope, loosen non-goals, or change validation without returning to `goal-boundary`.
 
 ## Mandatory Socratic Checkpoint
 
@@ -168,6 +201,12 @@ Verify:
 Next:
 ```
 
+Subagent output as next input:
+
+- Main thread must treat `Findings`, `Changes`, `Risks`, `Verify`, and `Next` as the next stage input, not as final truth.
+- Every later subagent prompt must include relevant prior `Findings`, accepted constraints, unresolved `Risks`, required `Verify`, and `Next`.
+- If prior outputs conflict, lack evidence, or exceed scope, main thread resolves the conflict or sends a bounded follow-up before implementation or completion.
+
 Keep compressed agent messages free of greetings, repeated background, broad explanations, and implementation trivia that does not affect the next decision. Expand or clarify the result in the main thread before showing it to the user.
 
 ## Subagent Utilization Floor
@@ -181,6 +220,7 @@ When subagent tooling is available:
 - For implementation tasks that create a meaningful diff, spawn at least one post-implementation subagent: `code-reviewer`, `verification-runner`, or `reference-auditor`.
 - For architecture, workflow, plugin, harness, or multi-file changes, prefer two independent read-only specialist subagents when their questions do not overlap.
 - For backend behavior changes, prefer `service-template` and `tdd-test` as parallel read-only specialists before implementation.
+- For backend non-trivial work, spawn `service-template` and `tdd-test` as read-only specialists before implementation unless fallback, explicit opt-out, or a concrete skip condition applies.
 - For frontend behavior changes, prefer `frontend-ui` and `tdd-test` as parallel read-only specialists before implementation.
 - For plugin/harness governance changes, prefer `reference-auditor` and `code-reviewer` as independent review specialists.
 - Do not count reading an agent TOML file as subagent usage. Only an actual delegated subagent task counts.
@@ -374,9 +414,14 @@ Before the final user response, report:
 - `Main Thread Work`: integration, non-overlapping verification, cleanup, or unblock work performed directly.
 - `Review/Verification Evidence`: reviewer findings and validation command outcomes.
 - `Files Changed`: changed paths.
+- `Git`: `not requested; git-operator not used` unless the user explicitly requested commit, push, PR, branch, merge, reset, clean, or worktree work.
 - `TaskResult`: `not requested; not created` unless the user explicitly requested it.
 
 ## Optional Task Result Artifact
+
+TaskResult remains opt-in only.
+
+TaskResult is opt-in only. Create it only when the user explicitly says `TaskResult`, `result report`, `HTML report`, `결과 HTML`, `작업 결과 파일`, or equivalent artifact request. Do not infer TaskResult from `summarize`, `report back`, `verify`, or normal final-response wording.
 
 Create a visible HTML result file only when the user explicitly asks for a Task Result report or a result artifact:
 

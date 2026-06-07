@@ -136,7 +136,19 @@ Invoke-ValidationStep "packaging hygiene" {
         'No-spawn decisions must include the exact reason.',
         'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
         'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
+        'Agent-first handoff is the default for non-trivial dotnet-harness work. The user does not need to explicitly request subagent handoff.',
+        'When task-agents is active, the main thread is a coordinator/reporter, not the default implementer.',
+        'Subagents own staged analysis, implementation, review, and verification. Main thread edits are exceptions and must be reported.',
+        'Each subagent output must be treated as the input contract for the next stage.',
+        'TaskResult remains opt-in only.',
         'Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.',
+        'If the user explicitly invokes `@dotnet-harness` for non-trivial work, treat the request as task-agents active and agent-first unless the user explicitly opts out of agents.',
+        'Non-trivial work means multi-step, multi-file, architecture/workflow/plugin/harness change, backend/frontend behavior change, test strategy, review, verification, CI, release-sensitive, or unclear approval-boundary work.',
+        'Main-thread direct work is allowed for a direct answer, status check, trivial one-file fix, or explicit agent opt-out.',
+        'If the user says `에이전트 쓰지마`, `no agents`, or equivalent explicit opt-out, do not spawn subagents; report `Delegation: skipped user-opt-out` and continue main-thread direct.',
+        'Strict staged handoff order',
+        'Subagent output as next input',
+        'For backend non-trivial work, spawn `service-template` and `tdd-test` as read-only specialists before implementation unless fallback, explicit opt-out, or a concrete skip condition applies.',
         '/feedback',
         '에이전트들이 전반적으로 수행',
         'If no agent is called, report why briefly with `Delegation: skipped <reason>`.',
@@ -145,6 +157,7 @@ Invoke-ValidationStep "packaging hygiene" {
         'Agents Used',
         'Agents Skipped',
         'Agent Results Reflected',
+        'Git`: `not requested; git-operator not used',
         'TaskResult`: `not requested; not created',
         'Limit pre-implementation read-only subagents to three unless the user explicitly approves more.',
         'Delegate implementation only when write sets are disjoint and requirements are settled.',
@@ -206,10 +219,16 @@ Invoke-ValidationStep "packaging hygiene" {
     $intakePlanner = Join-Path $harnessRoot ".codex\agents\07-intake-planner.toml"
     $intakePlannerText = Get-Content -LiteralPath $intakePlanner -Raw
     foreach ($requiredText in @(
+        '@dotnet-harness',
+        '$dotnet-harness',
+        'dotnet-harness',
         '/feedback',
         '에이전트들이 전반적으로 수행',
+        '에이전트 쓰지마',
         'agent-first orchestration request',
-        'planning, implementation, feedback/code-review, and verification should be assigned to discovered repo-local agents'
+        'planning, implementation, feedback/code-review, and verification should be assigned to discovered repo-local agents',
+        'For backend non-trivial work, route pre-implementation analysis to `service-template` and `tdd-test`.',
+        'Delegation: skipped user-opt-out'
     )) {
         if ($intakePlannerText -notmatch [regex]::Escape($requiredText)) {
             throw "Intake planner must detect agent-first routing: missing '$requiredText'."
@@ -222,6 +241,8 @@ Invoke-ValidationStep "packaging hygiene" {
         'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
         'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
         'Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.',
+        'Agent-first handoff is the default for non-trivial dotnet-harness work. The user does not need to explicitly request subagent handoff.',
+        'Each subagent output must be treated as the input contract for the next stage.',
         'Require actual subagent tool calls such as `spawn_agent`',
         'main-thread role-play does not count',
         'Require `Delegation: used` evidence',
@@ -232,6 +253,8 @@ Invoke-ValidationStep "packaging hygiene" {
         'A delegation plan is not delegation evidence.',
         'Delegation: skipped coupled',
         'While subagents are running, do not duplicate their implementation scope in the main thread.',
+        'Delegation: skipped user-opt-out',
+        'prior output contracts',
         'delegation evidence'
     )) {
         if ($implementationCoordinatorText -notmatch [regex]::Escape($requiredText)) {
@@ -244,7 +267,8 @@ Invoke-ValidationStep "packaging hygiene" {
     foreach ($requiredText in @(
         '/feedback',
         'participate early',
-        'review scope, success criteria, risk, and likely regression surfaces'
+        'review scope, success criteria, risk, and likely regression surfaces',
+        'Return `Next` as actionable next-stage input, not completion proof.'
     )) {
         if ($codeReviewerText -notmatch [regex]::Escape($requiredText)) {
             throw "Code reviewer must support early feedback routing: missing '$requiredText'."
@@ -256,10 +280,34 @@ Invoke-ValidationStep "packaging hygiene" {
         'agents used or skipped',
         'whether agent results were reflected',
         'TaskResult: not requested; not created',
-        'Report whether TaskResult was explicitly requested'
+        'Report whether TaskResult was explicitly requested',
+        'Git: not requested; git-operator not used',
+        'TaskResult is created only when the user explicitly says `TaskResult`, `result report`, `HTML report`, `결과 HTML`, `작업 결과 파일`',
+        'Report whether git was explicitly requested'
     )) {
         if ($verificationRunnerText -notmatch [regex]::Escape($requiredText)) {
             throw "Verification runner must enforce final reporting policy: missing '$requiredText'."
+        }
+    }
+
+    $workflowGuardrailsText = Get-Content -LiteralPath (Join-Path $harnessRoot ".codex\agents\01-workflow-guardrails.toml") -Raw
+    foreach ($requiredText in @(
+        '@dotnet-harness',
+        'agent-first handoff triggers',
+        'direct-main opt-out wording',
+        'safety, approval, validation, TaskResult, and git gates active'
+    )) {
+        if ($workflowGuardrailsText -notmatch [regex]::Escape($requiredText)) {
+            throw "Workflow guardrails must classify automatic handoff policy: missing '$requiredText'."
+        }
+    }
+
+    $gitOperatorText = Get-Content -LiteralPath (Join-Path $harnessRoot ".codex\agents\11-git-operator.toml") -Raw
+    foreach ($requiredText in @(
+        'Only operate on git state when the user explicitly asks for commit, push, PR, merge, reset, clean, branch, or worktree actions.'
+    )) {
+        if ($gitOperatorText -notmatch [regex]::Escape($requiredText)) {
+            throw "Git operator must require explicit git request: missing '$requiredText'."
         }
     }
 

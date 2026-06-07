@@ -169,6 +169,8 @@ if (Test-Path -LiteralPath $agentsDir) {
             'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
             'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
             'Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.',
+            'Agent-first handoff is the default for non-trivial dotnet-harness work. The user does not need to explicitly request subagent handoff.',
+            'Each subagent output must be treated as the input contract for the next stage.',
             'Require actual subagent tool calls such as `spawn_agent`',
             'main-thread role-play does not count',
             'Require `Delegation: used` evidence',
@@ -179,6 +181,8 @@ if (Test-Path -LiteralPath $agentsDir) {
             'A delegation plan is not delegation evidence.',
             'Delegation: skipped coupled',
             'While subagents are running, do not duplicate their implementation scope in the main thread.',
+            'Delegation: skipped user-opt-out',
+            'prior output contracts',
             'delegation evidence'
         )) {
             if ($implementationText -notmatch [regex]::Escape($requiredText)) {
@@ -190,10 +194,16 @@ if (Test-Path -LiteralPath $agentsDir) {
     if (Test-Path -LiteralPath $intakePlanner) {
         $intakeText = Get-Content -LiteralPath $intakePlanner -Raw
         foreach ($requiredText in @(
+            '@dotnet-harness',
+            '$dotnet-harness',
+            'dotnet-harness',
             '/feedback',
             '에이전트들이 전반적으로 수행',
+            '에이전트 쓰지마',
             'agent-first orchestration request',
-            'planning, implementation, feedback/code-review, and verification should be assigned to discovered repo-local agents'
+            'planning, implementation, feedback/code-review, and verification should be assigned to discovered repo-local agents',
+            'For backend non-trivial work, route pre-implementation analysis to `service-template` and `tdd-test`.',
+            'Delegation: skipped user-opt-out'
         )) {
             if ($intakeText -notmatch [regex]::Escape($requiredText)) {
                 Add-Failure "intake-planner missing agent-first intake policy: $requiredText"
@@ -206,7 +216,8 @@ if (Test-Path -LiteralPath $agentsDir) {
         foreach ($requiredText in @(
             '/feedback',
             'participate early',
-            'review scope, success criteria, risk, and likely regression surfaces'
+            'review scope, success criteria, risk, and likely regression surfaces',
+            'Return `Next` as actionable next-stage input, not completion proof.'
         )) {
             if ($reviewText -notmatch [regex]::Escape($requiredText)) {
                 Add-Failure "code-reviewer missing feedback routing policy: $requiredText"
@@ -220,10 +231,40 @@ if (Test-Path -LiteralPath $agentsDir) {
             'agents used or skipped',
             'whether agent results were reflected',
             'TaskResult: not requested; not created',
-            'Report whether TaskResult was explicitly requested'
+            'Report whether TaskResult was explicitly requested',
+            'Git: not requested; git-operator not used',
+            'TaskResult is created only when the user explicitly says `TaskResult`, `result report`, `HTML report`, `결과 HTML`, `작업 결과 파일`',
+            'Report whether git was explicitly requested'
         )) {
             if ($verificationText -notmatch [regex]::Escape($requiredText)) {
                 Add-Failure "verification-runner missing final reporting policy: $requiredText"
+            }
+        }
+    }
+
+    $workflowGuardrails = Join-Path $agentsDir "01-workflow-guardrails.toml"
+    if (Test-Path -LiteralPath $workflowGuardrails) {
+        $workflowText = Get-Content -LiteralPath $workflowGuardrails -Raw
+        foreach ($requiredText in @(
+            '@dotnet-harness',
+            'agent-first handoff triggers',
+            'direct-main opt-out wording',
+            'safety, approval, validation, TaskResult, and git gates active'
+        )) {
+            if ($workflowText -notmatch [regex]::Escape($requiredText)) {
+                Add-Failure "workflow-guardrails missing automatic handoff policy: $requiredText"
+            }
+        }
+    }
+
+    $gitOperator = Join-Path $agentsDir "11-git-operator.toml"
+    if (Test-Path -LiteralPath $gitOperator) {
+        $gitText = Get-Content -LiteralPath $gitOperator -Raw
+        foreach ($requiredText in @(
+            'Only operate on git state when the user explicitly asks for commit, push, PR, merge, reset, clean, branch, or worktree actions.'
+        )) {
+            if ($gitText -notmatch [regex]::Escape($requiredText)) {
+                Add-Failure "git-operator missing explicit git request policy: $requiredText"
             }
         }
     }

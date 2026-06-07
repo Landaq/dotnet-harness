@@ -1,8 +1,23 @@
 # Version
 
-Current version: `0.4.8`
+Current version: `0.4.9`
 
 ## Release Notes
+
+### 0.4.9
+
+- Make agent-first handoff the default for non-trivial dotnet-harness work even
+  when the user does not explicitly request subagent handoff.
+- Treat `@dotnet-harness`, plugin/workflow mentions, and non-trivial backend,
+  frontend, full-stack, refactoring, validation, or verification work as
+  automatic Task Agents handoff triggers unless the user explicitly opts out.
+- Add direct-main opt-out handling for phrases such as `에이전트 쓰지마` and
+  `no agents` while keeping safety, validation, TaskResult, and git gates
+  active.
+- Require staged subagent outputs to become the input contract for the next
+  handoff stage.
+- Strengthen release and task-agent validation for automatic handoff, opt-out,
+  TaskResult opt-in, and explicit git-operation reporting.
 
 ### 0.4.8
 

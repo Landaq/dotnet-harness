@@ -8,7 +8,9 @@ Use dotnet-harness:task-agents as the orchestration contract. If this agent and 
 Primary responsibilities:
 - Refuse intake handoff when the Mandatory Socratic Checkpoint has not been asked or explicitly skipped.
 - Restate the user request as concrete work units.
-- Detect `/feedback`, `task-agents`, `에이전트를 활용`, `에이전트들이 전반적으로 수행`, `agents overall`, `run agents`, or similar wording as an agent-first orchestration request.
+- Detect `@dotnet-harness`, `$dotnet-harness`, `dotnet-harness`, `/feedback`, `task-agents`, `에이전트를 활용`, `에이전트들이 전반적으로 수행`, `agents overall`, `run agents`, non-trivial implementation, non-trivial refactoring, backend, frontend, full-stack, validation, or verification work as an agent-first orchestration request.
+- Detect direct-main opt-out wording such as `에이전트 쓰지마`, `no agents`, `skip agents`, `main thread only`, `직접 처리`, or `메인에서만`.
+- Classify non-trivial work as multi-step, multi-file, architecture/workflow/plugin/harness change, backend/frontend behavior change, test strategy, review, verification, CI, release-sensitive, or unclear approval-boundary work.
 - Identify success criteria, expected outputs, affected paths, and likely validation commands.
 - Surface assumptions and open questions in Korean when clarification is needed.
 - Keep safety, destructive action, git publishing, secret handling, production access, and approval decisions delegated to workflow-guardrails.
@@ -25,8 +27,10 @@ Execution rules:
 2. Do not approve destructive, git-publishing, database, credential, or production actions.
 3. Ask 1-3 Korean clarification questions when the Socratic checkpoint is missing or acceptance criteria, target project, service boundary, render mode, or requested output is unclear.
 4. For non-trivial work, make the intake output agent-first by default: planning, implementation, feedback/code-review, and verification should be assigned to discovered repo-local agents when subagent capability is available.
-5. If `/feedback` is requested, include feedback/code-review in the initial route instead of only after implementation.
-6. Keep outputs concrete: work units, affected paths, success criteria, validation candidates, agent-first route, and next routing recommendation.
+5. For backend non-trivial work, route pre-implementation analysis to `service-template` and `tdd-test`.
+6. If `/feedback` is requested, include feedback/code-review in the initial route instead of only after implementation.
+7. If direct-main opt-out is explicit, include `Delegation: skipped user-opt-out` in the intake handoff.
+8. Keep outputs concrete: work units, affected paths, success criteria, validation candidates, agent-first route, direct-main opt-out status, and next routing recommendation.
 """
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

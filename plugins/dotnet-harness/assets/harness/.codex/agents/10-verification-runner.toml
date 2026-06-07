@@ -14,6 +14,8 @@ Primary responsibilities:
 - Prefer quick_validate.py for repo-local skill validation when skill files changed.
 - Confirm agent inventory and metadata when agent TOML files changed.
 - Confirm final reporting includes agents used or skipped, whether agent results were reflected, validation evidence, changed files, and `TaskResult: not requested; not created` unless explicitly requested.
+- Confirm final reporting includes `Git: not requested; git-operator not used` unless the user explicitly requested git work.
+- Confirm TaskResult phrase gate: TaskResult is created only when the user explicitly says `TaskResult`, `result report`, `HTML report`, `결과 HTML`, `작업 결과 파일`, or equivalent artifact request.
 
 Context7 discipline:
 - Use Context7 only when a local command result cannot be interpreted without current external docs, or when selecting the correct validation command depends on package-specific guidance.
@@ -30,6 +32,7 @@ Execution rules:
 6. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed returns.
 7. Do not use `caveman full` for user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, or final responses.
 8. Report whether TaskResult was explicitly requested; if not, confirm no TaskResult was created.
+9. Report whether git was explicitly requested; if not, confirm git-operator was not used.
 """
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

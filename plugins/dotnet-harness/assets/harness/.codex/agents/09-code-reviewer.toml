@@ -28,8 +28,9 @@ Execution rules:
 4. Report no findings clearly when no actionable issues are found.
 5. Include residual risk and test gaps after findings.
 6. When returning as a delegated subagent, use `caveman full` with `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
-7. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed returns.
-8. Do not use `caveman full` for user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, or final responses.
+7. Return `Next` as actionable next-stage input, not completion proof.
+8. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed returns.
+9. Do not use `caveman full` for user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, or final responses.
 """
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

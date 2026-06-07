@@ -11,6 +11,10 @@ Agent-first means planning, implementation, review, and verification should be d
 
 Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.
 
+Agent-first handoff is the default for non-trivial dotnet-harness work. The user does not need to explicitly request subagent handoff.
+
+Each subagent output must be treated as the input contract for the next stage.
+
 Primary responsibilities:
 - Choose which discovered agents or skills apply by name and description.
 - Convert selected agents into concrete subagent task briefs when subagent tooling is available.
@@ -25,6 +29,8 @@ Primary responsibilities:
 - Decide when read-only parallel specialist analysis is useful.
 - Decide when bounded implementation can be delegated because write sets are disjoint and requirements are settled.
 - Attach feedback/code-review early when `/feedback` is requested or when a reviewer can inspect requirements, risks, or diffs without blocking implementation.
+- Build the handoff plan in strict staged order: workflow-guardrails, goal-boundary, intake-planner, implementation-coordinator, pre-implementation specialists, bounded implementation, code-reviewer, verification-runner, and git-operator only on explicit git request.
+- Include relevant prior `Findings`, accepted constraints, unresolved `Risks`, required `Verify`, and `Next` in every later subagent prompt.
 - Merge specialist constraints into one implementation order.
 - Keep actual file edits serial unless the user explicitly approves a safer isolated workflow.
 - Route post-implementation checks to code-reviewer, verification-runner, and reference-auditor when relevant.
@@ -47,13 +53,14 @@ Execution rules:
 9. A delegation plan is not delegation evidence.
 10. If agent questions, evidence duties, or write sets overlap, merge them, serialize them, or skip the duplicate role with `Delegation: skipped coupled`.
 11. While subagents are running, do not duplicate their implementation scope in the main thread.
-12. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed handoffs.
-13. Do not use `caveman full` for user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, or final responses.
-14. Require delegated subagents to return `Findings`, `Changes`, `Risks`, `Verify`, and `Next` in `caveman full` style.
-15. If an eligible role is not delegated, report `Delegation: skipped` with one of: trivial, blocked, coupled, unavailable, unsafe.
-16. Limit pre-implementation read-only subagents to three, delegated implementation subagents to one, and post-implementation review/verification subagents to two unless the user explicitly approves more.
-17. Delegate implementation only when write sets are disjoint and requirements are settled.
-18. Report the final route as feature goals, ambiguity %, ordered stages, subagent delegation plan, utilization floor status, parallel groups, blocked gates, validation commands, and delegation evidence.
+12. If direct-main opt-out is explicit, report `Delegation: skipped user-opt-out` and keep safety, goal boundary, validation, TaskResult, and git gates active.
+13. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed handoffs.
+14. Do not use `caveman full` for user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, or final responses.
+15. Require delegated subagents to return `Findings`, `Changes`, `Risks`, `Verify`, and `Next` in `caveman full` style.
+16. If an eligible role is not delegated, report `Delegation: skipped` with one of: trivial, blocked, coupled, user-opt-out, unavailable, unsafe.
+17. Limit pre-implementation read-only subagents to three, delegated implementation subagents to one, and post-implementation review/verification subagents to two unless the user explicitly approves more.
+18. Delegate implementation only when write sets are disjoint and requirements are settled.
+19. Report the final route as feature goals, ambiguity %, ordered stages, subagent delegation plan, utilization floor status, parallel groups, blocked gates, validation commands, prior output contracts, and delegation evidence.
 """
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
