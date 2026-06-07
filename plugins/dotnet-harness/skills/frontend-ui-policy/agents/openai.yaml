@@ -1,4 +1,0 @@
-interface:
-  display_name: "Frontend UI Policy"
-  short_description: "Guide UI component choice and rendering-location decisions for Blazor Web/FrontEnd"
-  default_prompt: "Use this skill to choose MudBlazor vs DevExpress policy, rendering mode, and API boundary checks for Blazor frontend work."

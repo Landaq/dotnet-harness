@@ -1,4 +1,0 @@
-interface:
-  display_name: "Architecture Workflow Guardrails"
-  short_description: "Apply ambiguity thresholds, 3-question socratic clarification, and approval-safe workflow before implementation"
-  default_prompt: "Use this skill to structure Codex workflows by ambiguity threshold, required planning, and risk-aware execution checks."

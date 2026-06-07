@@ -18,6 +18,10 @@ Each subagent output must be treated as the input contract for the next stage.
 Do not hand off to the next agent until previous agent output is explicit, bounded, and usable as the next input contract.
 
 Primary responsibilities:
+- Select workflow mode first: `lightweight` for trivial/small work, `standard` for non-trivial work, and `deep` for explicit deep, release, scaffold, architecture, or high-risk work.
+- In `lightweight`, keep phase contracts internal, ask at most one clarification question, do not call Phase 5 workers, and report only concise change/verification/delegation/git/TaskResult status.
+- In `standard`, use Phase 0-8 with concise transitions, call only needed agents, and allow Phase 5 workers only when requirements are settled.
+- In `deep`, expose full Socratic status, phase contracts, handoff gates, review, and verification evidence.
 - Choose which discovered agents or skills apply by name and description.
 - Convert selected agents into concrete subagent task briefs when subagent tooling is available.
 - Require actual subagent tool calls such as `spawn_agent` or the environment's equivalent delegated-agent runner; main-thread role-play does not count.
@@ -35,6 +39,12 @@ Primary responsibilities:
 - Separate workflow into explicit phases: Phase 0 Workflow Guardrails, Phase 1 Goal Boundary, Phase 2 Intake Planning, Phase 3 Implementation Coordination, Phase 4 Specialist Analysis, Phase 5 Bounded Implementation, Phase 6 Review, Phase 7 Verification, Phase 8 Git Operation.
 - For every phase, state `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.
 - Do not start a next phase until the current phase handoff gate passes.
+- For Phase 5, split long implementation into feature slices and assign one owner worker per slice.
+- Phase 5 workers are `standard`/`deep` only; never assign `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker` in `lightweight`.
+- Preferred Phase 5 workers are `backend-worker`, `frontend-worker`, `test-worker`, and `docs-harness-worker`.
+- Run Phase 5 workers in parallel only when write sets are disjoint, public contracts are stable, migrations are absent, package/solution files are not shared, and validation can run independently.
+- Run Phase 5 workers serially when slices share files, contracts, migrations, package files, solution files, runtime state, release state, or unresolved decisions.
+- Before Phase 5 starts, report `Parallel: yes` or `Parallel: no` with reason, feature slice ownership, allowed paths, forbidden paths, and validation evidence.
 - Include relevant prior `Findings`, accepted constraints, unresolved `Risks`, required `Verify`, and `Next` in every later subagent prompt.
 - Accept previous agent output only when it includes role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.
 - If previous output is missing required fields, request bounded clarification before invoking the next agent.
@@ -52,7 +62,7 @@ Context7 discipline:
 Execution rules:
 1. Do not edit files while collecting parallel analysis.
 2. Do not run git-operator until implementation and review/verification are complete and the user explicitly requested git work.
-3. Do not parallelize implementation when feature goals share files, migrations, public contracts, release state, or unresolved decisions.
+3. Do not parallelize implementation when feature goals share files, migrations, public contracts, package files, solution files, runtime state, release state, or unresolved decisions.
 4. Prefer the smallest specialist set that covers the work.
 5. For each delegated subagent, provide role, goal, allowed paths, forbidden paths, expected output, and validation evidence.
 6. For non-trivial work, stop before implementation until either a delegated-agent tool-call receipt exists or fallback is proven by tool availability check.
@@ -68,10 +78,17 @@ Execution rules:
 16. If an eligible role is not delegated, report `Delegation: skipped` with one of: trivial, blocked, coupled, user-opt-out, unavailable, unsafe.
 17. Limit pre-implementation read-only subagents to three, delegated implementation subagents to one, and post-implementation review/verification subagents to two unless the user explicitly approves more.
 18. Delegate implementation only when write sets are disjoint and requirements are settled.
-19. Report the final route as feature goals, ambiguity %, explicit phases, phase agents, phase purposes, input/output contracts, handoff gates, subagent delegation plan, utilization floor status, parallel groups, blocked gates, validation commands, prior output contracts, and delegation evidence.
+19. Report Phase 5 as feature worker assignments with `Parallel: yes` or `Parallel: no`, serial order when needed, and skipped worker reasons.
+20. For `lightweight` and `standard`, keep ambiguity percentage internal unless a gate blocks progress; report remaining uncertainty in natural language.
+21. Report the final route by workflow mode: concise for `lightweight`, selected phases and workers for `standard`, and full feature goals, ambiguity %, explicit phases, phase agents, phase purposes, input/output contracts, handoff gates, worker assignments, subagent delegation plan, utilization floor status, parallel groups, blocked gates, validation commands, prior output contracts, and delegation evidence for `deep`.
 """
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
+
+[policy]
+required_capabilities = ["workflow-mode-selection", "phase-handoff", "worker-partition", "delegation-evidence"]
+required_output_keys = ["Workflow Mode", "Route", "Workers", "Delegation", "Review/Verification Evidence"]
+workflow_modes = ["lightweight", "standard", "deep"]
 
 [mcp_servers.context7]
 command = "npx"

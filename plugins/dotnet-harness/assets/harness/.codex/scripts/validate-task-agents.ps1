@@ -41,7 +41,11 @@ $requiredAgents = @(
     "08-implementation-coordinator.toml",
     "09-code-reviewer.toml",
     "10-verification-runner.toml",
-    "11-git-operator.toml"
+    "11-git-operator.toml",
+    "12-backend-worker.toml",
+    "13-frontend-worker.toml",
+    "14-test-worker.toml",
+    "15-docs-harness-worker.toml"
 )
 
 foreach ($agent in $requiredAgents) {
@@ -81,6 +85,30 @@ for key in required:
     value = data[key]
     if not isinstance(value, str) or not value.strip():
         raise SystemExit(f"{path.name} invalid non-empty string key: {key}")
+'@
+
+$policyParseScript = @'
+import pathlib
+import sys
+import tomllib
+
+path = pathlib.Path(sys.argv[1])
+expected_modes = set(sys.argv[2].split(","))
+with path.open("rb") as handle:
+    data = tomllib.load(handle)
+
+policy = data.get("policy")
+if not isinstance(policy, dict):
+    raise SystemExit(f"{path.name} missing [policy]")
+
+for key in ("required_capabilities", "required_output_keys", "workflow_modes"):
+    value = policy.get(key)
+    if not isinstance(value, list) or not value or not all(isinstance(item, str) and item.strip() for item in value):
+        raise SystemExit(f"{path.name} invalid [policy].{key}")
+
+actual_modes = set(policy["workflow_modes"])
+if actual_modes != expected_modes:
+    raise SystemExit(f"{path.name} workflow_modes expected {sorted(expected_modes)} got {sorted(actual_modes)}")
 '@
 
 if (Test-Path -LiteralPath $agentsDir) {
@@ -168,6 +196,10 @@ if (Test-Path -LiteralPath $agentsDir) {
     if (Test-Path -LiteralPath $implementationCoordinator) {
         $implementationText = Get-Content -LiteralPath $implementationCoordinator -Raw
         foreach ($requiredText in @(
+            'Select workflow mode first: `lightweight` for trivial/small work, `standard` for non-trivial work, and `deep` for explicit deep, release, scaffold, architecture, or high-risk work.',
+            'In `lightweight`, keep phase contracts internal, ask at most one clarification question, do not call Phase 5 workers, and report only concise change/verification/delegation/git/TaskResult status.',
+            'In `standard`, use Phase 0-8 with concise transitions, call only needed agents, and allow Phase 5 workers only when requirements are settled.',
+            'In `deep`, expose full Socratic status, phase contracts, handoff gates, review, and verification evidence.',
             'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
             'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
             'Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.',
@@ -184,6 +216,13 @@ if (Test-Path -LiteralPath $agentsDir) {
             'Phase 8 Git Operation',
             'For every phase, state `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.',
             'Do not start a next phase until the current phase handoff gate passes.',
+            'Phase 5 workers are `standard`/`deep` only; never assign `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker` in `lightweight`.',
+            'Preferred Phase 5 workers are `backend-worker`, `frontend-worker`, `test-worker`, and `docs-harness-worker`.',
+            'Run Phase 5 workers in parallel only when write sets are disjoint, public contracts are stable, migrations are absent, package/solution files are not shared, and validation can run independently.',
+            'Run Phase 5 workers serially when slices share files, contracts, migrations, package files, solution files, runtime state, release state, or unresolved decisions.',
+            'Parallel: yes',
+            'Parallel: no',
+            'worker assignments',
             'Do not hand off to the next agent until previous agent output is explicit, bounded, and usable as the next input contract.',
             'Accept previous agent output only when it includes role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.',
             'Prior result accepted:',
@@ -204,11 +243,17 @@ if (Test-Path -LiteralPath $agentsDir) {
             'While subagents are running, do not duplicate their implementation scope in the main thread.',
             'Delegation: skipped user-opt-out',
             'prior output contracts',
-            'delegation evidence'
+            'delegation evidence',
+            'For `lightweight` and `standard`, keep ambiguity percentage internal unless a gate blocks progress; report remaining uncertainty in natural language.'
         )) {
             if ($implementationText -notmatch [regex]::Escape($requiredText)) {
                 Add-Failure "implementation-coordinator missing agent-first policy: $requiredText"
             }
+        }
+
+        & python -c $policyParseScript $implementationCoordinator "lightweight,standard,deep"
+        if ($LASTEXITCODE -ne 0) {
+            Add-Failure "08-implementation-coordinator.toml failed structured policy metadata validation"
         }
     }
 
@@ -297,7 +342,11 @@ if (Test-Path -LiteralPath $agentsDir) {
         "06-reference-auditor.toml",
         "08-implementation-coordinator.toml",
         "09-code-reviewer.toml",
-        "10-verification-runner.toml"
+        "10-verification-runner.toml",
+        "12-backend-worker.toml",
+        "13-frontend-worker.toml",
+        "14-test-worker.toml",
+        "15-docs-harness-worker.toml"
     )
     foreach ($agentName in $compressedReturnAgents) {
         $agentPath = Join-Path $agentsDir $agentName
@@ -317,6 +366,33 @@ if (Test-Path -LiteralPath $agentsDir) {
             if ($agentText -notmatch [regex]::Escape($requiredText)) {
                 Add-Failure "$agentName missing compressed return policy: $requiredText"
             }
+        }
+    }
+
+    $workerPolicies = @{
+        "12-backend-worker.toml" = "standard,deep"
+        "13-frontend-worker.toml" = "standard,deep"
+        "14-test-worker.toml" = "standard,deep"
+        "15-docs-harness-worker.toml" = "standard,deep"
+    }
+    foreach ($workerName in $workerPolicies.Keys) {
+        $workerPath = Join-Path $agentsDir $workerName
+        if (-not (Test-Path -LiteralPath $workerPath)) {
+            continue
+        }
+        $workerText = Get-Content -LiteralPath $workerPath -Raw
+        foreach ($requiredText in @(
+            'Require workflow mode input; refuse `lightweight` and run only in `standard` or `deep`.',
+            'Require allowed paths, forbidden paths, parallel eligibility, expected changed files, validation evidence, and stop condition.'
+        )) {
+            if ($workerText -notmatch [regex]::Escape($requiredText)) {
+                Add-Failure "$workerName missing worker mode gate policy: $requiredText"
+            }
+        }
+
+        & python -c $policyParseScript $workerPath $workerPolicies[$workerName]
+        if ($LASTEXITCODE -ne 0) {
+            Add-Failure "$workerName failed structured policy metadata validation"
         }
     }
 }

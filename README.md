@@ -19,7 +19,8 @@
 ## 주요 위치
 
 - `plugins/dotnet-harness/.codex-plugin/plugin.json`: plugin manifest와 버전
-- `plugins/dotnet-harness/skills`: plugin skill 원본
+- `plugins/dotnet-harness/skills/project-structure-setup`: setup/scaffold skill 원본
+- `plugins/dotnet-harness/skills/task-agents`: workflow routing skill 원본과 domain policy references
 - `plugins/dotnet-harness/assets/harness/AGENTS.md`: 설치 대상 프로젝트용 agent 규칙
 - `plugins/dotnet-harness/assets/harness/.codex/agents`: 설치 대상 프로젝트용 agents
 - `plugins/dotnet-harness/assets/harness/.codex/scripts`: 설치/검증/업그레이드 helper
@@ -45,6 +46,16 @@ pwsh -NoProfile -File plugins\dotnet-harness\install.ps1 -Root "C:\path\to\proje
 ```
 
 Windows Codex sandbox에서는 Python 스크립트 직접 실행보다 위 PowerShell wrapper를 기본 사용합니다.
+
+## Workflow Modes
+
+Task Agents는 작업 크기와 위험도에 따라 세 가지 흐름을 사용합니다.
+
+- `lightweight`: trivial/small 작업용 빠른 흐름입니다. Phase 계약은 내부 처리하고 Phase 5 worker를 호출하지 않습니다.
+- `standard`: 일반 비단순 작업 기본 흐름입니다. Phase 0-8을 적용하되 필요한 agent만 호출하고, 독립 slice일 때만 worker 병렬화를 검토합니다.
+- `deep`: release, scaffold, architecture, 고위험 변경 또는 사용자가 명시한 경우의 심층 흐름입니다. Socratic gate, full handoff, review, verification을 강화합니다.
+
+Scaffold는 현재 .NET 10 Aspire/Clean Architecture skeleton을 만들지만, 서비스별 테스트 `.csproj` baseline과 `ServiceName`의 AppHost/Gateway 자동 통합은 다음 개선 범위입니다. 지금은 생성된 제한 사항을 README/검증 결과로 명확히 확인해야 합니다.
 
 기존 harness 업그레이드 preview:
 

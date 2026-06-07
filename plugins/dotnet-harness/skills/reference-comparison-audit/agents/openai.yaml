@@ -1,4 +1,0 @@
-interface:
-  display_name: "Reference Comparison Audit"
-  short_description: "Check architecture decisions against external references and identify required adjustments."
-  default_prompt: "Use this skill to audit current structure against Aspire, Blazor, YARP, and modular DDD references and propose concrete corrective actions."

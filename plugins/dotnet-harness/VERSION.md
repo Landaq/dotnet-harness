@@ -1,8 +1,21 @@
 # Version
 
-Current version: `0.4.10`
+Current version: `0.4.11`
 
 ## Release Notes
+
+### 0.4.11
+
+- Reduce Task Agents to a lightweight entrypoint and move detailed workflow,
+  phase, delegation, worker, git, and TaskResult policies into references.
+- Consolidate guardrail, service-template, frontend UI, TDD, and reference-audit
+  helper skills into `task-agents/references/domain-policies.md`.
+- Keep only `project-structure-setup` and `task-agents` as top-level plugin
+  skills.
+- Update harness agents to use `dotnet-harness:task-agents` domain policy
+  references instead of deleted helper skill contracts.
+- Strengthen release validation for split Task Agents references and structured
+  workflow-mode policy checks.
 
 ### 0.4.10
 

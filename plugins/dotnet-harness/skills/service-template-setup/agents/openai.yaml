@@ -1,4 +1,0 @@
-interface:
-  display_name: "Service Template Setup"
-  short_description: "Create service-layer folder and reference structure for a new bounded context"
-  default_prompt: "Use this skill to scaffold and validate a new service structure under src/BackEnd/Services/{ServiceName} with DDD layer boundaries."

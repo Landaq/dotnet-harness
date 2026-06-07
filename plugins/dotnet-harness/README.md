@@ -4,8 +4,11 @@ Versioned .NET 10 harness for plugin skills, repo-local agents, scripts, and pro
 
 ## Contains
 
-- `skills/`: plugin-discovered Codex skills. Use this as the versioned source
-  for setup, workflow routing, UI policy, service boundaries, TDD, and audits.
+- `skills/project-structure-setup`: plugin-discovered setup skill and scaffold
+  script source.
+- `skills/task-agents`: plugin-discovered workflow routing skill. Domain
+  policies for UI, service boundaries, TDD, guardrails, and audits live under
+  `skills/task-agents/references` instead of separate top-level skills.
 - `assets/harness/AGENTS.md`: project bootstrap rules. Use this to make target
   repositories route work through the local harness without hardcoding a project
   name.
@@ -21,10 +24,10 @@ Versioned .NET 10 harness for plugin skills, repo-local agents, scripts, and pro
   library/framework/API documentation is needed for implementation, review, or
   verification.
 
-`skills/` is the single source for skill content and is discovered through the
-plugin as `dotnet-harness:*`. Install and upgrade scripts do not copy skills into
-target projects because repo-local `.codex/skills` duplicates plugin skills in
-Codex discovery.
+The only top-level plugin skills are `project-structure-setup` and
+`task-agents`. Install and upgrade scripts do not copy skills into target
+projects because repo-local `.codex/skills` duplicates plugin skills in Codex
+discovery.
 
 ## Migration
 
@@ -36,6 +39,29 @@ MudBlazor, Scalar, SQL Server, and Redis skeleton files.
 
 Use project setup before Task Agents on a new repository because Task Agents
 depend on `src/`, `test/`, and `docs/Project/README.md` as baseline anchors.
+
+## Workflow Modes
+
+Task Agents choose one mode before routing:
+
+- `lightweight`: quick path for trivial or small tasks. Phase contracts stay
+  internal, Phase 5 workers are not used, and the final report stays concise.
+- `standard`: default path for non-trivial work. Phase 0-8 applies, only needed
+  agents are called, and Phase 5 workers are considered only for settled slices.
+- `deep`: release, scaffold, architecture, high-risk, or explicitly requested
+  path. Socratic clarification, full handoff gates, review, and verification are
+  stricter.
+
+Phase 5 workers (`backend-worker`, `frontend-worker`, `test-worker`, and
+`docs-harness-worker`) run only in `standard` or `deep`. Parallel workers are
+allowed only when write sets, contracts, package/solution files, runtime state,
+and validation evidence are independent.
+
+Current scaffold limits: the default skeleton is useful for .NET 10 Aspire/Clean
+Architecture startup, but service-specific test `.csproj` baselines and
+automatic `ServiceName` AppHost/Gateway integration are planned follow-up work.
+Until then, scaffold consumers should verify generated README limitations and run
+the release or project smoke checks before treating the scaffold as complete.
 
 Harness-only install:
 

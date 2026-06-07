@@ -1,4 +1,0 @@
-interface:
-  display_name: "TDD Test Workflow"
-  short_description: "Drive Red -> Green -> Refactor implementation with the project test pyramid"
-  default_prompt: "Use this skill to plan and execute TDD with Unit/Integration/Contract/Functional/Architecture testing order for service and UI changes."

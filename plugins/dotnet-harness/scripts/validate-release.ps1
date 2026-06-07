@@ -41,6 +41,30 @@ $installScript = Join-Path $pluginRootPath "install.ps1"
 $bootstrapScript = Join-Path $skillsRoot "project-structure-setup\scripts\bootstrap_project_structure.py"
 $upgradeScript = Join-Path $harnessRoot ".codex\scripts\upgrade-harness.ps1"
 
+$policyParseScript = @'
+import pathlib
+import sys
+import tomllib
+
+path = pathlib.Path(sys.argv[1])
+expected_modes = set(sys.argv[2].split(","))
+with path.open("rb") as handle:
+    data = tomllib.load(handle)
+
+policy = data.get("policy")
+if not isinstance(policy, dict):
+    raise SystemExit(f"{path.name} missing [policy]")
+
+for key in ("required_capabilities", "required_output_keys", "workflow_modes"):
+    value = policy.get(key)
+    if not isinstance(value, list) or not value or not all(isinstance(item, str) and item.strip() for item in value):
+        raise SystemExit(f"{path.name} invalid [policy].{key}")
+
+actual_modes = set(policy["workflow_modes"])
+if actual_modes != expected_modes:
+    raise SystemExit(f"{path.name} workflow_modes expected {sorted(expected_modes)} got {sorted(actual_modes)}")
+'@
+
 Invoke-ValidationStep "plugin manifest" {
     if (-not (Test-Path -LiteralPath $pluginValidator)) {
         throw "Missing plugin validator: $pluginValidator"
@@ -88,14 +112,37 @@ Invoke-ValidationStep "packaging hygiene" {
     }
 
     $taskAgents = Get-Content -LiteralPath $taskAgentsSkill -Raw
+    $taskAgentsReferences = Join-Path (Split-Path -Path $taskAgentsSkill -Parent) "references"
+    if (-not (Test-Path -LiteralPath $taskAgentsReferences)) {
+        throw "Task Agents references directory is required after splitting policy docs."
+    }
+
+    $requiredTaskAgentReferences = @(
+        "workflow-modes.md",
+        "phase-contracts.md",
+        "delegation-policy.md",
+        "worker-policy.md",
+        "domain-policies.md",
+        "task-result-and-git.md"
+    )
+    foreach ($referenceName in $requiredTaskAgentReferences) {
+        $referencePath = Join-Path $taskAgentsReferences $referenceName
+        if (-not (Test-Path -LiteralPath $referencePath)) {
+            throw "Missing Task Agents reference: $referencePath"
+        }
+    }
+
+    $taskAgentsPolicy = $taskAgents
+    foreach ($referenceFile in Get-ChildItem -LiteralPath $taskAgentsReferences -File -Filter "*.md" | Sort-Object Name) {
+        $taskAgentsPolicy += "`n" + (Get-Content -LiteralPath $referenceFile.FullName -Raw)
+    }
+
     if ($taskAgents -match "Before final response,\s*write the Task Result") {
         throw "TaskResult artifact must be opt-in, not mandatory."
     }
 
     $currentDocs = @(
         Join-Path $pluginRootPath "README.md"
-        Join-Path $skillsRoot "architecture-workflow-guardrails\SKILL.md"
-        Join-Path $skillsRoot "architecture-workflow-guardrails\references\workflow-guide.md"
         Join-Path $skillsRoot "project-structure-setup\SKILL.md"
     )
     $staleDocRefs = $currentDocs |
@@ -106,6 +153,16 @@ Invoke-ValidationStep "packaging hygiene" {
     }
 
     foreach ($requiredText in @(
+        'Workflow Modes',
+        'Select one workflow mode before routing:',
+        '`lightweight`: default for trivial or small tasks.',
+        '`standard`: default for non-trivial work.',
+        '`deep`: use when the user explicitly asks for deep review/planning',
+        'Trivial or small work -> `lightweight`.',
+        'Non-trivial work -> `standard`.',
+        'Explicit deep/release/scaffold/architecture/high-risk work -> `deep`.',
+        'In `lightweight` and `standard`, ambiguity percentage is an internal routing signal.',
+        'In `deep`, report ambiguity percentage, phase contracts, input/output contracts, and handoff gates.',
         'Agent Execution Contract',
         'Agent-First Orchestration',
         'Delegation Evidence',
@@ -162,6 +219,14 @@ Invoke-ValidationStep "packaging hygiene" {
         'Phase handoff contract',
         'Every phase must state `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.',
         'Do not enter next phase until current phase output satisfies its `Output Contract` and `Handoff Gate`.',
+        'Phase 5 worker partition',
+        'Phase 5 worker agents are `standard`/`deep` only; `lightweight` mode must not call `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker`.',
+        'Preferred workers: `backend-worker`, `frontend-worker`, `test-worker`, and `docs-harness-worker`.',
+        'Run feature workers in parallel only when their write sets are disjoint, public contracts are stable, migrations are absent, package/solution files are not shared, and validation can run independently.',
+        'Run feature workers serially when slices share files, contracts, migrations, package files, solution files, runtime state, release state, or unresolved decisions.',
+        'Parallel: yes',
+        'Parallel: no',
+        'Workers`: feature worker agents, feature slice ownership, parallel eligibility, and serial order when needed.',
         'Handoff Gate must include accepted prior result summary, unresolved risks, open questions or `none`, and whether the next phase may proceed.',
         'Handoff prompt must include `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.',
         '`Phase`: numbered workflow phase and phase name.',
@@ -208,9 +273,13 @@ Invoke-ValidationStep "packaging hygiene" {
         'Changes:',
         'Risks:',
         'Verify:',
-        'Next:'
+        'Next:',
+        'Mode-specific final reporting:',
+        '`lightweight`: include `Agents Used`, `Agents Skipped`, `Main Thread Work`, `Review/Verification Evidence`, `Files Changed`, `Git`, and `TaskResult` only.',
+        '`standard`: include concise phase summary, selected agents, skipped agents, worker eligibility, verification evidence, changed files, git status, and TaskResult status.',
+        '`deep`: include full phase/input/output/handoff-gate reporting, Socratic status, worker partition, review findings, verification evidence, changed files, git status, and TaskResult status.'
     )) {
-        if ($taskAgents -notmatch [regex]::Escape($requiredText)) {
+        if ($taskAgentsPolicy -notmatch [regex]::Escape($requiredText)) {
             throw "Task Agents must define actual subagent delegation behavior: missing '$requiredText'."
         }
     }
@@ -223,6 +292,10 @@ Invoke-ValidationStep "packaging hygiene" {
         Join-Path $harnessRoot ".codex\agents\08-implementation-coordinator.toml"
         Join-Path $harnessRoot ".codex\agents\09-code-reviewer.toml"
         Join-Path $harnessRoot ".codex\agents\10-verification-runner.toml"
+        Join-Path $harnessRoot ".codex\agents\12-backend-worker.toml"
+        Join-Path $harnessRoot ".codex\agents\13-frontend-worker.toml"
+        Join-Path $harnessRoot ".codex\agents\14-test-worker.toml"
+        Join-Path $harnessRoot ".codex\agents\15-docs-harness-worker.toml"
     )
     foreach ($agentFile in $agentFiles) {
         $agentText = Get-Content -LiteralPath $agentFile -Raw
@@ -263,6 +336,10 @@ Invoke-ValidationStep "packaging hygiene" {
     $implementationCoordinator = Join-Path $harnessRoot ".codex\agents\08-implementation-coordinator.toml"
     $implementationCoordinatorText = Get-Content -LiteralPath $implementationCoordinator -Raw
     foreach ($requiredText in @(
+        'Select workflow mode first: `lightweight` for trivial/small work, `standard` for non-trivial work, and `deep` for explicit deep, release, scaffold, architecture, or high-risk work.',
+        'In `lightweight`, keep phase contracts internal, ask at most one clarification question, do not call Phase 5 workers, and report only concise change/verification/delegation/git/TaskResult status.',
+        'In `standard`, use Phase 0-8 with concise transitions, call only needed agents, and allow Phase 5 workers only when requirements are settled.',
+        'In `deep`, expose full Socratic status, phase contracts, handoff gates, review, and verification evidence.',
         'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
         'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
         'Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.',
@@ -279,6 +356,13 @@ Invoke-ValidationStep "packaging hygiene" {
         'Phase 8 Git Operation',
         'For every phase, state `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.',
         'Do not start a next phase until the current phase handoff gate passes.',
+        'Phase 5 workers are `standard`/`deep` only; never assign `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker` in `lightweight`.',
+        'Preferred Phase 5 workers are `backend-worker`, `frontend-worker`, `test-worker`, and `docs-harness-worker`.',
+        'Run Phase 5 workers in parallel only when write sets are disjoint, public contracts are stable, migrations are absent, package/solution files are not shared, and validation can run independently.',
+        'Run Phase 5 workers serially when slices share files, contracts, migrations, package files, solution files, runtime state, release state, or unresolved decisions.',
+        'Parallel: yes',
+        'Parallel: no',
+        'worker assignments',
         'Do not hand off to the next agent until previous agent output is explicit, bounded, and usable as the next input contract.',
         'Accept previous agent output only when it includes role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.',
         'Prior result accepted:',
@@ -299,10 +383,39 @@ Invoke-ValidationStep "packaging hygiene" {
         'While subagents are running, do not duplicate their implementation scope in the main thread.',
         'Delegation: skipped user-opt-out',
         'prior output contracts',
-        'delegation evidence'
+        'delegation evidence',
+        'For `lightweight` and `standard`, keep ambiguity percentage internal unless a gate blocks progress; report remaining uncertainty in natural language.'
     )) {
         if ($implementationCoordinatorText -notmatch [regex]::Escape($requiredText)) {
             throw "Implementation coordinator must enforce actual subagent tool usage: missing '$requiredText'."
+        }
+    }
+
+    & python -c $policyParseScript $implementationCoordinator "lightweight,standard,deep"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Implementation coordinator must expose structured workflow mode policy metadata."
+    }
+
+    $workerPolicies = @{
+        "12-backend-worker.toml" = "standard,deep"
+        "13-frontend-worker.toml" = "standard,deep"
+        "14-test-worker.toml" = "standard,deep"
+        "15-docs-harness-worker.toml" = "standard,deep"
+    }
+    foreach ($workerName in $workerPolicies.Keys) {
+        $workerPath = Join-Path $harnessRoot ".codex\agents\$workerName"
+        $workerText = Get-Content -LiteralPath $workerPath -Raw
+        foreach ($requiredText in @(
+            'Require workflow mode input; refuse `lightweight` and run only in `standard` or `deep`.',
+            'Require allowed paths, forbidden paths, parallel eligibility, expected changed files, validation evidence, and stop condition.'
+        )) {
+            if ($workerText -notmatch [regex]::Escape($requiredText)) {
+                throw "Worker agent must enforce workflow mode gate: $workerName missing '$requiredText'."
+            }
+        }
+        & python -c $policyParseScript $workerPath $workerPolicies[$workerName]
+        if ($LASTEXITCODE -ne 0) {
+            throw "Worker agent must expose structured policy metadata: $workerName"
         }
     }
 
