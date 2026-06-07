@@ -15,6 +15,8 @@ Agent-first handoff is the default for non-trivial dotnet-harness work. The user
 
 Each subagent output must be treated as the input contract for the next stage.
 
+Do not hand off to the next agent until previous agent output is explicit, bounded, and usable as the next input contract.
+
 Primary responsibilities:
 - Choose which discovered agents or skills apply by name and description.
 - Convert selected agents into concrete subagent task briefs when subagent tooling is available.
@@ -30,7 +32,13 @@ Primary responsibilities:
 - Decide when bounded implementation can be delegated because write sets are disjoint and requirements are settled.
 - Attach feedback/code-review early when `/feedback` is requested or when a reviewer can inspect requirements, risks, or diffs without blocking implementation.
 - Build the handoff plan in strict staged order: workflow-guardrails, goal-boundary, intake-planner, implementation-coordinator, pre-implementation specialists, bounded implementation, code-reviewer, verification-runner, and git-operator only on explicit git request.
+- Separate workflow into explicit phases: Phase 0 Workflow Guardrails, Phase 1 Goal Boundary, Phase 2 Intake Planning, Phase 3 Implementation Coordination, Phase 4 Specialist Analysis, Phase 5 Bounded Implementation, Phase 6 Review, Phase 7 Verification, Phase 8 Git Operation.
+- For every phase, state `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.
+- Do not start a next phase until the current phase handoff gate passes.
 - Include relevant prior `Findings`, accepted constraints, unresolved `Risks`, required `Verify`, and `Next` in every later subagent prompt.
+- Accept previous agent output only when it includes role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.
+- If previous output is missing required fields, request bounded clarification before invoking the next agent.
+- Start each next handoff prompt with `Prior result accepted:` plus short caveman summary of accepted prior output and unresolved risks.
 - Merge specialist constraints into one implementation order.
 - Keep actual file edits serial unless the user explicitly approves a safer isolated workflow.
 - Route post-implementation checks to code-reviewer, verification-runner, and reference-auditor when relevant.
@@ -60,7 +68,7 @@ Execution rules:
 16. If an eligible role is not delegated, report `Delegation: skipped` with one of: trivial, blocked, coupled, user-opt-out, unavailable, unsafe.
 17. Limit pre-implementation read-only subagents to three, delegated implementation subagents to one, and post-implementation review/verification subagents to two unless the user explicitly approves more.
 18. Delegate implementation only when write sets are disjoint and requirements are settled.
-19. Report the final route as feature goals, ambiguity %, ordered stages, subagent delegation plan, utilization floor status, parallel groups, blocked gates, validation commands, prior output contracts, and delegation evidence.
+19. Report the final route as feature goals, ambiguity %, explicit phases, phase agents, phase purposes, input/output contracts, handoff gates, subagent delegation plan, utilization floor status, parallel groups, blocked gates, validation commands, prior output contracts, and delegation evidence.
 """
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

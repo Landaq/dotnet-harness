@@ -5,11 +5,7 @@ description: "Guide request clarification, ambiguity checks, plan flow, and appr
 
 # Architecture Workflow Guardrails
 
-Use this skill before implementation when user requirements include:
-- new feature
-- refactor across layers
-- service boundary changes
-- API/Gateway/FrontEnd/Aspire workflow changes
+Use before implementation when request touches feature, cross-layer refactor, service boundary, API/Gateway/FrontEnd/Aspire workflow.
 
 ## Request Classification
 
@@ -17,15 +13,15 @@ Use this skill before implementation when user requirements include:
 - Backend work: threshold 5%
 - Frontend work: threshold 5%
 
-When current ambiguity is above the threshold, ask exactly up to 3 clarifying questions before coding.
+If ambiguity above threshold, ask max 3 questions before code.
 
 ## Clarification Rule
 
-- Questions are numbered.
-- Mark recommended option with `(Recommended)`.
-- State current ambiguity and target threshold before asking questions.
+- Number questions.
+- Mark recommendation with `(Recommended)`.
+- State current ambiguity + target before questions.
 - Recalculate ambiguity after each user answer.
-- Do not implement if ambiguity is not reduced below threshold.
+- No implementation until ambiguity below threshold.
 
 ## Common Decision Sets
 
@@ -36,17 +32,17 @@ When current ambiguity is above the threshold, ask exactly up to 3 clarifying qu
 ## Common Workflow
 
 1. Confirm scope and ambiguity.
-- 2. Ask up to 3 questions if needed.
-- 3. Produce implementation plan with affected layers and test strategy.
-- 4. Create a plan artifact only when the user explicitly asks for one.
-- 5. Request user approval for work to proceed.
-- 6. Execute with TDD and tests in ordered layers.
+2. Ask up to 3 questions if needed.
+3. Plan affected layers + test strategy.
+4. Create plan artifact only when user explicitly asks.
+5. Request approval when needed.
+6. Execute TDD by ordered layers.
 
 ## Safety Rules
 
-- Do not execute destructive Git commands without explicit user request.
-- Keep branch and worktree actions approval-first.
-- Keep migration, secret handling, destructive file cleanup, commit, push, and merge actions behind explicit consent.
+- No destructive Git without explicit user request.
+- Branch/worktree approval first.
+- Migration, secret handling, destructive cleanup, commit, push, merge need explicit consent.
 
 ## Required Outputs
 

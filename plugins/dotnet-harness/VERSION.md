@@ -1,8 +1,21 @@
 # Version
 
-Current version: `0.4.9`
+Current version: `0.4.10`
 
 ## Release Notes
+
+### 0.4.10
+
+- Split Task Agents workflow into explicit phases with assigned agents,
+  purpose, input contract, output contract, handoff gate, and next phase.
+- Require previous agent results to be explicit, bounded, and accepted before
+  the next phase handoff.
+- Require handoff prompts to start from accepted prior results instead of raw
+  ambiguous agent output.
+- Compress dotnet-harness skill instructions in caveman style while preserving
+  validation-critical policy text.
+- Strengthen task-agent and release validation for phase contracts and handoff
+  gate requirements.
 
 ### 0.4.9
 

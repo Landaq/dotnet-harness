@@ -5,14 +5,14 @@ description: "Create or review a new backend service using dotnet-harness servic
 
 # Service Template Setup
 
-Use this skill when a user asks to add, review, or refactor a new service under `src/BackEnd/Services/{ServiceName}`.
+Use when adding/reviewing/refactoring service under `src/BackEnd/Services/{ServiceName}`.
 
 ## Scope
 
-- Create folder layout and optional test folders for a new service.
-- Enforce DDD layer responsibilities and dependency direction.
-- Confirm public contracts stay in `Contracts` and infrastructure details stay in `Infrastructure`.
-- Keep API/domain boundaries from being merged during scaffold planning.
+- Create service folders + optional test folders.
+- Enforce DDD responsibilities + dependency direction.
+- Public contracts stay in `Contracts`; infrastructure details stay in `Infrastructure`.
+- Keep API/domain boundaries separate during scaffold planning.
 
 ## Canonical Service Layout
 
@@ -25,7 +25,7 @@ src/BackEnd/Services/{ServiceName}/
   {ServiceName}.Contracts/
 ```
 
-Subfolder examples:
+Subfolder baseline:
 
 - Domain: `Aggregates`, `Entities`, `ValueObjects`, `Events`, `Repositories`
 - Application: `Abstractions`, `UseCases/Commands`, `UseCases/Queries`, `DTOs`, `Validators`
@@ -43,27 +43,27 @@ Subfolder examples:
 
 ## Test Placement
 
-Use this folder baseline:
+Folder baseline:
 
 - `test/Unit/Services/{ServiceName}`
 - `test/Integration/Services/{ServiceName}`
 - `test/Contract/Services/{ServiceName}`
 
-Domain/Application tests should be the first priority before wiring Infrastructure/Api and Gateway.
+Domain/Application tests first. Infrastructure/Api/Gateway wiring later.
 
 ## Usage Pattern
 
 1. Confirm `{ServiceName}` and service boundary in business terms.
-2. Scaffold service layer folders and matching test folders.
+2. Scaffold layers + matching tests.
 3. Define Domain and Application contracts/handlers first.
-4. Add Infrastructure and Api by request, keeping dependency direction.
+4. Add Infrastructure and Api by request; keep dependency direction.
 5. Add Gateway/ Aspire linkage only after service contracts and tests are stable.
 
 ## Prohibited Changes
 
-- Do not move internal Domain/Application types into `Contracts`.
-- Do not route business logic through APIGateway.
-- Do not skip unit/contract planning for new service APIs.
+- No internal Domain/Application types in `Contracts`.
+- No business logic in APIGateway.
+- No new service API without unit/contract planning.
 
 ## Quick Checklist
 

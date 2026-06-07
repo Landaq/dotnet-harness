@@ -5,33 +5,33 @@ description: "Run an architecture audit against external references and lock bas
 
 # Reference Comparison Audit
 
-Use this skill when reviewing architecture direction or before adopting a new structural change.
+Use when reviewing architecture direction or adopting structural change.
 
 ## Baseline checks
 
-- Discover the repository solution file dynamically and prefer a single `.slnx` as the active solution standard.
-- Recommend central build and package policy files:
+- Discover solution dynamically; prefer one active `.slnx`.
+- Recommend central build/package policy:
   - `global.json`
   - `Directory.Build.props`
   - `Directory.Packages.props`
-- Validate service structure aligns with bounded context boundaries.
-- Keep `ServiceDefaults` limited to observability/discovery/resilience defaults.
-- Keep Gateway focused on routing/security/transform/telemetry and not business logic.
-- Validate contract/public model isolation from Domain models.
+- Service structure aligns to bounded contexts.
+- `ServiceDefaults` = observability/discovery/resilience defaults only.
+- Gateway = routing/security/transform/telemetry, not business logic.
+- Contracts/public models isolated from Domain models.
 
 ## Service Boundary Audit
 
-- Confirm test/projects map to service boundaries.
-- Confirm dependency direction checks (Domain -> Application -> Infrastructure/Api -> Gateway/Web/Aspire).
-- Confirm no cross-service internal type usage.
-- Confirm API routes and contracts are explicit and version-aware.
+- Tests/projects map to service boundaries.
+- Dependency direction: Domain -> Application -> Infrastructure/Api -> Gateway/Web/Aspire.
+- No cross-service internal type use.
+- API routes/contracts explicit + version-aware.
 
 ## Output Structure
 
-1. List of missing baseline files/rules.
+1. Missing baseline files/rules.
 2. Recommended changes with impact.
-3. Suggested order to apply in smallest safe slices.
-4. Validation list (build/test/lint + architecture checks).
+3. Smallest safe apply order.
+4. Validation list: build/test/lint + architecture checks.
 
 ## Delivery Template
 

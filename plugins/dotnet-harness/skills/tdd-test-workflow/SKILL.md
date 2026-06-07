@@ -5,20 +5,20 @@ description: "Apply Red-Green-Refactor for all feature work, assign tests by lay
 
 # TDD Test Workflow
 
-Use this skill when implementing functionality for backend, infrastructure integration, API, or frontend flow changes.
+Use for backend, infrastructure, API, or frontend flow changes.
 
 ## Core Rule
 
-Always start with `Red`, then implement `Green`, then perform `Refactor` before moving to next layer.
+Always `Red` -> `Green` -> `Refactor` before next layer.
 
 ## Layer Order
 
-1. Unit tests: Domain/Application business rules and handlers.
-2. Contract tests: service contracts and integration events.
-3. Integration tests: EF Core mappings, persistence adapters, and external collaborators.
-4. Functional tests: API Gateway, API endpoints, and frontend flow behavior.
-5. Architecture tests: dependency direction and naming constraints.
-6. End-to-end checks for release-level scenarios.
+1. Unit: Domain/Application rules + handlers.
+2. Contract: service contracts + integration events.
+3. Integration: EF Core mapping, persistence adapters, external collaborators.
+4. Functional: API Gateway, endpoints, frontend flows.
+5. Architecture: dependency direction + naming.
+6. End-to-end: release-level scenarios.
 
 ## Required Test Folders
 
@@ -44,16 +44,16 @@ test/EndToEnd
 
 ## Working Rules
 
-- Domain/Application must not depend on Infrastructure/Api concrete implementations.
-- Unit tests should be fast and deterministic.
-- Contract tests protect interface stability even when services stay in monolith mode.
-- Never mix multiple layer changes in a single untested step.
+- Domain/Application no Infrastructure/Api concrete deps.
+- Unit tests fast + deterministic.
+- Contract tests protect interface stability, even in monolith mode.
+- Never mix multiple layer changes in one untested step.
 
 ## Frontend Test Checks
 
-- `Web.Client` only uses browser-safe dependencies.
-- `Web` handles server-only concerns.
-- API calls should go through `APIGateway` contract-based path.
+- `Web.Client`: browser-safe deps only.
+- `Web`: server-only concerns.
+- API calls through `APIGateway` contract path.
 
 ## Request Template
 

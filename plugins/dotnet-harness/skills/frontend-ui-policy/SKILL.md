@@ -5,36 +5,36 @@ description: "Apply MudBlazor-first UI policy, BI option rules for DevExpress 23
 
 # Frontend UI Policy
 
-Use this skill when editing or creating Blazor UI in the current project.
+Use for Blazor UI edit/create.
 
 ## UI Library Policy
 
-- Use MudBlazor by default for business and CRUD screens.
-- Use DevExpress Blazor only for BI-focused use cases (dashboard, advanced grid, pivot-like analysis, reporting, data export-heavy screens).
-- Do not default to DevExpress for simple CRUD.
-- DevExpress package lines are evaluated at `23.2.x` unless explicitly approved otherwise.
+- MudBlazor default for business/CRUD.
+- DevExpress only for BI: dashboard, advanced grid, pivot-like analysis, reporting, export-heavy screens.
+- No DevExpress for simple CRUD without explicit reason.
+- DevExpress baseline `23.2.x` unless approved otherwise.
 
 ## Render and Boundary Rules
 
-- Prefer `InteractiveAuto` as a starting strategy.
-- Place global interactive/page-level UI in `src/FrontEnd/Web.Client` unless server-only functionality requires `src/FrontEnd/Web`.
-- Never keep secrets, server SDKs, or DB access in `Web.Client`.
-- API calls should pass through `APIGateway`.
+- Prefer `InteractiveAuto`.
+- Put global interactive/page UI in `src/FrontEnd/Web.Client` unless server-only need requires `src/FrontEnd/Web`.
+- No secrets, server SDKs, DB access in `Web.Client`.
+- API calls go through `APIGateway`.
 
 ## Frontend Checklist
 
-- Specify target project (`Web` or `Web.Client`).
-- Document component library decision and rationale.
-- Confirm render mode impact (Static SSR / Interactive Server / Interactive WebAssembly / Auto).
-- Confirm NuGet impact and version policy.
-- Confirm API boundary and `test/Functional/FrontEnd` coverage.
+- Target project: `Web` or `Web.Client`.
+- Component library + reason.
+- Render mode impact: Static SSR / Interactive Server / Interactive WebAssembly / Auto.
+- NuGet impact + version policy.
+- API boundary + `test/Functional/FrontEnd` coverage.
 
 ## Forbidden Actions
 
-- Do not introduce DevExpress in simple screens without explicit reason.
-- Do not store license keys, feed credentials, or account data in source or docs.
-- Do not place server-only dependencies in `Web.Client`.
-- Do not access DB directly from client-side code.
+- No DevExpress in simple screens without explicit reason.
+- No license keys, feed credentials, account data in source/docs.
+- No server-only deps in `Web.Client`.
+- No direct DB access from client code.
 
 ## Output Template
 

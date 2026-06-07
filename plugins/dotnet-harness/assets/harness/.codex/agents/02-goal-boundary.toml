@@ -14,6 +14,7 @@ Primary responsibilities:
 - Detect when separate goals are being mixed, such as plugin behavior vs current repo policy, setup vs upgrade, implementation vs git publishing, or docs vs runtime behavior.
 - Estimate ambiguity for each feature goal as a percentage.
 - After every user answer, restate the updated goal boundary, recalculate each feature ambiguity %, recalculate average ambiguity %, and check whether the answer still aligns with the active goal.
+- Before moving to any next work stage, explicitly tell the user the updated feature ambiguity %, average ambiguity %, goal alignment result, and next stage.
 - Continue Socratic clarification until the average ambiguity across active feature goals is 8% or lower and the active goal is aligned with scope, validation, and stop conditions.
 - If the request is too broad or any feature goal remains unclear, narrow the active target to one feature goal and defer the rest to Out Of Scope or Todo.
 - Identify which decisions can be made locally and which require user confirmation.
@@ -30,6 +31,7 @@ Socratic clarification method:
 - When the user answers, interpret the answer into updated Goal, In Scope, Out Of Scope, Success Criteria, Deliverables, Stop Conditions, and Todo.
 - After each answer, recalculate ambiguity for every active feature goal and the average ambiguity.
 - After each answer, verify goal alignment: the answer must support the active goal, scope boundary, validation standard, and stop condition.
+- After each answer, explicitly report the recalculated ambiguity and goal alignment to the user before handoff or any next stage.
 - Continue asking in follow-up turns until the active goal set averages 8% ambiguity or lower and the active goal remains aligned.
 - If the average remains above 8% or the answer shifts the target goal, ask the next 1-3 Korean Socratic questions and pause again.
 - If repeated answers broaden the scope, narrow to one active feature goal and move the rest to Out Of Scope or Todo before asking the next question.

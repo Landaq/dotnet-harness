@@ -5,18 +5,18 @@ description: Route project work through discovered repo-local task agents and do
 
 # Task Agents
 
-Use to coordinate repo-local specialist agents without hardcoding project names, solution names, or fixed paths beyond standard discovery locations.
+Use: coordinate repo-local specialist agents. No hardcoded project/solution/path beyond standard discovery.
 
 ## Discovery First
 
-Before routing, inspect current repo:
+Before route, inspect repo:
 
 1. List `.codex/agents/*.toml`; read each `name`, `description`, `developer_instructions` summary.
 2. Use `dotnet-harness:*` plugin skills as the skill source. Do not require or create repo-local `.codex/skills`.
 3. Detect project structure anchors from `src/`, `test/`, and `docs/Project/README.md`; also detect solution anchors from `*.slnx` and `*.sln`.
 4. Treat missing agents/skills as routing constraints, not fatal errors. Report missing capability; continue closest available workflow.
 
-Do not hardcode repo identity strings. Refer to discovered solution, folders, agents, skill names.
+No repo identity hardcode. Use discovered solution, folders, agents, skill names.
 
 ## Agent-First Orchestration
 
@@ -47,29 +47,37 @@ Automatic agent-first trigger:
 
 Main-thread direct work is allowed for a direct answer, status check, trivial one-file fix, or explicit agent opt-out.
 
-Default stage ownership:
+Default stage owners:
 
-- intake/planning: discovered intake/planner agent defines work units, success criteria, affected paths, expected outputs, and validation candidates.
-- implementation: discovered implementation/coordinator assigns bounded implementation to the best matching specialist or implementation subagent when write scope is settled.
-- feedback/code-review: discovered feedback or code-review agent identifies risks, regressions, scope creep, missing tests, and boundary violations; when useful, attach it early as a parallel reviewer instead of waiting only until implementation is complete.
-- verification: discovered verification-runner selects and runs or specifies the smallest proof.
+- intake/planning: define work units, success criteria, affected paths, outputs, validation candidates.
+- implementation: assign bounded implementation when write scope settled.
+- feedback/code-review: find risks, regressions, scope creep, missing tests, boundary breaks; attach early when useful.
+- verification: select/run smallest proof.
 - git operator: discovered git-operator acts only when the user explicitly asks for commit, push, PR, branch, merge, reset, clean, or worktree actions.
 
 If no agent is called, report why briefly with `Delegation: skipped <reason>`.
 
 Strict staged handoff order:
 
-1. `workflow-guardrails`
-2. `goal-boundary`
-3. `intake-planner`
-4. `implementation-coordinator`
-5. pre-implementation read-only specialists
-6. bounded implementation
-7. `code-reviewer`
-8. `verification-runner`
-9. `git-operator` only when the user explicitly requested git work
+1. `Phase 0 - Workflow Guardrails`: call `workflow-guardrails`; purpose = safety, approval, destructive/git/secret/production gates.
+2. `Phase 1 - Goal Boundary`: call `goal-boundary`; purpose = goal, non-goals, success criteria, stop condition, Socratic ambiguity gate.
+3. `Phase 2 - Intake Planning`: call `intake-planner`; purpose = work units, affected paths, validation candidates, agent route.
+4. `Phase 3 - Implementation Coordination`: call `implementation-coordinator`; purpose = phase plan, specialist assignment, safe parallel/serial handoff order.
+5. `Phase 4 - Specialist Analysis`: call read-only specialists such as `service-template`, `frontend-ui`, `tdd-test`, or `reference-auditor`; purpose = domain-specific constraints before edits.
+6. `Phase 5 - Bounded Implementation`: call implementation worker/specialist only when write scope is settled; purpose = code/doc change in allowed paths.
+7. `Phase 6 - Review`: call `code-reviewer` or feedback specialist; purpose = diff risk, regression, test gap, boundary violation review.
+8. `Phase 7 - Verification`: call `verification-runner`; purpose = build/test/script/smoke evidence and final validation.
+9. `Phase 8 - Git Operation`: call `git-operator` only when user explicitly requested git work; purpose = stage, commit, tag, push, PR, branch/worktree work.
 
 Each stage consumes the prior stage output as input. No later stage may widen scope, loosen non-goals, or change validation without returning to `goal-boundary`.
+
+Phase handoff contract:
+
+- Every phase must state `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.
+- Do not enter next phase until current phase output satisfies its `Output Contract` and `Handoff Gate`.
+- Handoff Gate must include accepted prior result summary, unresolved risks, open questions or `none`, and whether the next phase may proceed.
+- If current phase output is unclear, missing, conflicting, or too broad, pause handoff and return to the phase owner for clarification.
+- Main thread reports phase transitions briefly; no long implementation log.
 
 ## Mandatory Socratic Checkpoint
 
@@ -81,7 +89,7 @@ Ask at least one Korean Socratic question unless one of these skip conditions is
 - The user already provided all of: explicit goal, in-scope work, out-of-scope work or non-goal, success criteria, validation command/evidence, and git/release expectation.
 - The newest user message explicitly says not to ask questions, or explicitly approves proceeding with the current assumptions.
 
-When asking:
+Ask:
 
 1. State the current best assumption first.
 2. State current ambiguity percentage and target average ambiguity `<= 8%`.
@@ -89,17 +97,18 @@ When asking:
 4. Prefer contrastive questions that let the user include one thing and exclude another.
 5. Stop all planning and implementation until the user answers.
 
-When the user answers a Socratic question:
+On user answer:
 
 1. Interpret the answer into updated Goal, In Scope, Out Of Scope, Success Criteria, Deliverables, Stop Conditions, and Todo.
 2. Recalculate ambiguity percentage for each active feature goal and the average ambiguity after every answer.
 3. Check goal alignment after every answer: the clarified answer must support the active goal, scope boundary, validation standard, and stop condition.
-4. If average ambiguity remains above `8%`, or the clarified answer does not align with the active goal, ask another 1-3 Korean Socratic questions and pause again.
-5. Continue this answer -> reassess -> ask loop until average ambiguity is `<= 8%` and the active goal is aligned enough to plan.
-6. If repeated answers keep broadening scope, narrow to one active feature goal and move the rest to Out Of Scope or Todo before asking the next question.
-7. Before proceeding past the checkpoint, print `Socratic: satisfied` with the final average ambiguity, aligned goal, remaining assumptions, and next stage.
+4. Before moving to any next work stage, explicitly tell the user the updated feature ambiguity %, average ambiguity %, goal alignment result, and next stage.
+5. If average ambiguity remains above `8%`, or the clarified answer does not align with the active goal, ask another 1-3 Korean Socratic questions and pause again.
+6. Continue this answer -> reassess -> ask loop until average ambiguity is `<= 8%` and the active goal is aligned enough to plan.
+7. If repeated answers keep broadening scope, narrow to one active feature goal and move the rest to Out Of Scope or Todo before asking the next question.
+8. Before proceeding past the checkpoint, print `Socratic: satisfied` with the final average ambiguity, aligned goal, remaining assumptions, and next stage.
 
-When skipping:
+Skip:
 
 - Print `Socratic: skipped` with the exact skip condition.
 - List the assumed goal, scope, success criteria, validation, and git/release expectation.
@@ -124,7 +133,7 @@ Task Agents must use actual subagents when subagent tooling is available and the
 - Keeping an immediate blocking task in the main thread does not remove the requirement to spawn at least one independent read-only specialist for complex or multi-step work when one exists.
 - For non-trivial work, proceeding with main-thread-only execution while subagent tooling is available is noncompliant unless the decision is reported as `Delegation: skipped` with `trivial`, `blocked`, `coupled`, or `unsafe`.
 
-Delegated prompts must include:
+Delegated prompt must include:
 
 1. selected role name;
 2. active goal and non-goals;
@@ -207,7 +216,17 @@ Subagent output as next input:
 - Every later subagent prompt must include relevant prior `Findings`, accepted constraints, unresolved `Risks`, required `Verify`, and `Next`.
 - If prior outputs conflict, lack evidence, or exceed scope, main thread resolves the conflict or sends a bounded follow-up before implementation or completion.
 
-Keep compressed agent messages free of greetings, repeated background, broad explanations, and implementation trivia that does not affect the next decision. Expand or clarify the result in the main thread before showing it to the user.
+Handoff Result Clarity Gate:
+
+- Do not hand off to the next agent until previous agent output is explicit, bounded, and usable as the next input contract.
+- Previous agent output is clear only when it includes: role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.
+- If previous output is missing required fields, internally ask that agent for a bounded clarification before invoking the next agent.
+- If previous output conflicts with goal boundary, non-goals, approval constraints, or validation plan, return to `goal-boundary` or `implementation-coordinator` before next handoff.
+- Each handoff prompt must start with `Prior result accepted:` plus short caveman summary of the previous agent result and any unresolved risks.
+- Next agent must receive only accepted prior results, not raw ambiguous output.
+- Handoff prompt must include `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.
+
+Compressed agent messages: no greetings, repeated background, broad explanations, or trivia. Main thread expands only for user-facing clarity.
 
 ## Subagent Utilization Floor
 
@@ -286,6 +305,7 @@ Run stages in order unless user narrows task:
    - Define one explicit goal statement per active feature before planning.
    - Estimate ambiguity percentage for each active feature goal.
    - After every user answer, restate the updated goal boundary, recalculate each feature ambiguity %, recalculate average ambiguity %, and check whether the answer still aligns with the active goal.
+   - Before moving to the next stage, explicitly show the user the recalculated ambiguity and goal alignment result.
    - Continue Socratic clarification until the average ambiguity across active feature goals is 8% or lower and the active goal is aligned with scope, validation, and stop conditions.
    - If the request is too broad or the active goals cannot reach the 8% average ambiguity gate, narrow the active target to one feature goal and move the rest to Out Of Scope or Todo.
    - Separate In Scope, Out Of Scope, Assumptions, Success Criteria, Deliverables, and Stop Conditions.
@@ -295,7 +315,7 @@ Run stages in order unless user narrows task:
      - Ask max three Korean questions.
      - Each question must expose a priority, tradeoff, non-goal, validation standard, output location, git/release expectation, or stop condition.
      - Prefer contrastive questions that let the user choose what to include and what to exclude.
-     - After each answer, update the boundary, recalculate ambiguity, check goal alignment, and ask the next question if the average remains above 8% or the answer shifts the target goal.
+     - After each answer, update the boundary, recalculate ambiguity, check goal alignment, explicitly report the recalculated ambiguity to the user, and ask the next question if the average remains above 8% or the answer shifts the target goal.
      - Continue in follow-up turns until active feature goals average 8% ambiguity or lower and the target goal is aligned.
    - Pause planning until the user answer makes the boundary actionable.
 
@@ -396,6 +416,12 @@ Unsafe parallel work:
 
 For orchestration turns, include:
 
+- `Phase`: numbered workflow phase and phase name.
+- `Agent`: called agent name and role.
+- `Purpose`: why this phase/agent exists.
+- `Input Contract`: accepted prior result used as input.
+- `Output Contract`: required result fields for next phase.
+- `Handoff Gate`: pass/fail, unresolved risks, open questions or `none`, and next phase permission.
 - `Stage`: current workflow stage.
 - `Discovered`: relevant agents/skills found.
 - `Route`: ordered stages, including any safe parallel read-only groups.

@@ -5,7 +5,7 @@ description: Scaffold a .NET 10 Aspire Clean Architecture project at the current
 
 # Project Structure Setup
 
-Use when creating/recreating the default .NET 10 project baseline.
+Use when creating/recreating default .NET 10 baseline.
 
 ## What it builds
 
@@ -15,9 +15,9 @@ Use when creating/recreating the default .NET 10 project baseline.
 - `src/BackEnd/BuildingBlocks/{Application,Contracts,Messaging,Observability,Persistence}`
 - `test/{Architecture,Unit,Integration,Contract,Functional/{APIGateway,FrontEnd},EndToEnd}`
 - `docs/Project/README.md` with the baseline structure summary
-- repo-local Codex harness files (`AGENTS.md`, `.codex/agents`, `.codex/scripts`) when available
-- no repo-local `.codex/skills`; skills are provided by the `dotnet-harness:*` plugin
-- .NET 10 skeleton files for Aspire, Minimal API, YARP, Scalar, EF Core, Redis, Blazor Auto, MudBlazor, and mediator-like dispatch
+- repo-local Codex harness (`AGENTS.md`, `.codex/agents`, `.codex/scripts`) when available
+- no repo-local `.codex/skills`; use `dotnet-harness:*` plugin skills
+- .NET 10 skeleton: Aspire, Minimal API, YARP, Scalar, EF Core, Redis, Blazor Auto, MudBlazor, mediator-like dispatch
 
 ## Service scaffold (optional)
 
@@ -28,16 +28,16 @@ If `{ServiceName}` enabled:
 
 ## Prompts
 
-- Always collect `ProjectName` when `--project-name` is omitted.
-- Use `ProjectName` as project metadata only; scaffold folders at the current project root.
-- Prompts interactive when `--project-name` or `--service-name` omitted.
+- Always collect `ProjectName` when `--project-name` omitted.
+- `ProjectName` = metadata only; scaffold at current project root.
+- Interactive prompts when `--project-name` or `--service-name` omitted.
 - User-facing prompt text is Korean.
 - If `ProjectName` empty, request again.
 - If `ServiceName` empty, skip service folders.
 
 ## CLI
 
-Prefer the PowerShell wrapper so UTF-8 mode and Windows process launch behavior stay predictable:
+Prefer PowerShell wrapper: UTF-8 + Windows launch safer.
 
 ```powershell
 pwsh -NoProfile -File install.ps1 -Root .
@@ -49,9 +49,9 @@ pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -HarnessOnly
 
 ## Rules
 
-- Create directories, `.gitkeep` files, and baseline .NET skeleton files.
+- Create dirs, `.gitkeep`, baseline .NET skeleton.
 - Create `docs/Project/README.md` if it does not exist.
-- Install repo-local Codex harness files into the target project root if source files exist.
+- Install repo-local Codex harness into target root if source exists.
 - Use `--harness-only` to install `AGENTS.md` and `.codex` harness files without creating `src`, `test`, or `docs/Project` structure.
 - `.gitkeep` enabled by default; use `--no-gitkeep` to skip.
 - Never delete existing directories.
