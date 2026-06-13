@@ -118,6 +118,55 @@ After this baseline exists, `dotnet-harness:task-agents` can route work through 
 def _project_files(project_name: str, service_name: str | None) -> dict[str, str]:
     safe_project = project_name or "DotnetHarness"
     service = service_name or "Sample"
+    service_var = f"{service[:1].lower()}{service[1:]}Api"
+    service_slug = service.lower()
+    service_apphost_reference = (
+        f'    <ProjectReference Include="..\\..\\BackEnd\\Services\\{service}\\{service}.Api\\{service}.Api.csproj" />\n'
+        if service_name
+        else ""
+    )
+    service_apphost_registration = (
+        f"""\nvar {service_var} = builder.AddProject<Projects.{service}_Api>("{service_slug}-api")
+    .WithReference(sql)
+    .WithReference(redis);
+
+apiGateway.WithReference({service_var});
+"""
+        if service_name
+        else ""
+    )
+    reverse_proxy_config = (
+        f"""{{
+  "ReverseProxy": {{
+    "Routes": {{
+      "{service_slug}-api-route": {{
+        "ClusterId": "{service_slug}-api-cluster",
+        "Match": {{
+          "Path": "/api/{service_slug}/{{**catch-all}}"
+        }}
+      }}
+    }},
+    "Clusters": {{
+      "{service_slug}-api-cluster": {{
+        "Destinations": {{
+          "primary": {{
+            "Address": "https+http://{service_slug}-api"
+          }}
+        }}
+      }}
+    }}
+  }}
+}}
+"""
+        if service_name
+        else """{
+  "ReverseProxy": {
+    "Routes": {},
+    "Clusters": {}
+  }
+}
+"""
+    )
     files = {
         ".gitignore": """# Build output
 bin/
@@ -210,6 +259,7 @@ playwright-report/
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NuGetAudit>false</NuGetAudit>
   </PropertyGroup>
 </Project>
 """,
@@ -230,6 +280,11 @@ playwright-report/
     <PackageVersion Include="Scalar.AspNetCore" Version="2.0.0" />
     <PackageVersion Include="StackExchange.Redis" Version="2.8.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageVersion Include="FluentAssertions" Version="6.12.1" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
   </ItemGroup>
 </Project>
 """,
@@ -244,7 +299,7 @@ playwright-report/
     <PackageReference Include="Aspire.Hosting.Redis" />
     <ProjectReference Include="..\\..\\BackEnd\\APIGateway\\APIGateway.csproj" />
     <ProjectReference Include="..\\..\\FrontEnd\\Web\\Web.csproj" />
-  </ItemGroup>
+""" + service_apphost_reference + """  </ItemGroup>
 </Project>
 """,
         "src/Aspire/AppHost/Program.cs": f"""var builder = DistributedApplication.CreateBuilder(args);
@@ -255,6 +310,7 @@ var redis = builder.AddRedis("redis");
 var apiGateway = builder.AddProject<Projects.APIGateway>("api-gateway")
     .WithReference(sql)
     .WithReference(redis);
+""" + service_apphost_registration + """
 
 builder.AddProject<Projects.Web>("web")
     .WithReference(apiGateway);
@@ -318,13 +374,7 @@ app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 
 app.Run();
 """,
-        "src/BackEnd/APIGateway/appsettings.json": """{
-  "ReverseProxy": {
-    "Routes": {},
-    "Clusters": {}
-  }
-}
-""",
+        "src/BackEnd/APIGateway/appsettings.json": reverse_proxy_config,
         "src/BackEnd/BuildingBlocks/Contracts/Contracts.csproj": """<Project Sdk="Microsoft.NET.Sdk" />
 """,
         "src/BackEnd/BuildingBlocks/Application/Application.csproj": """<Project Sdk="Microsoft.NET.Sdk">
@@ -477,26 +527,102 @@ await builder.Build().RunAsync();
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Scalar.AspNetCore" />
+    <ProjectReference Include="..\\..\\..\\..\\Aspire\\ServiceDefaults\\ServiceDefaults.csproj" />
     <ProjectReference Include="..\\{service}.Application\\{service}.Application.csproj" />
     <ProjectReference Include="..\\{service}.Infrastructure\\{service}.Infrastructure.csproj" />
   </ItemGroup>
 </Project>
 """,
         f"src/BackEnd/Services/{service}/{service}.Api/Program.cs": f"""using Scalar.AspNetCore;
+using ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
 app.MapOpenApi();
 app.MapScalarApiReference();
+app.MapDefaultEndpoints();
 app.MapGet("/api/{service.lower()}/health", () => Results.Ok(new {{ service = "{service}", status = "ok" }}));
 
 app.Run();
 """,
         f"src/BackEnd/Services/{service}/{service}.Contracts/{service}.Contracts.csproj": """<Project Sdk="Microsoft.NET.Sdk" />
+""",
+        "test/Unit/Unit.Tests.csproj": """<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+</Project>
+""",
+        "test/Unit/BaselineTests.cs": """using FluentAssertions;
+using Xunit;
+
+namespace Unit;
+
+public sealed class BaselineTests
+{
+    [Fact]
+    public void Test_project_is_wired()
+    {
+        true.Should().BeTrue();
+    }
+}
+""",
+        "test/Architecture/Architecture.Tests.csproj": """<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+</Project>
+""",
+        "test/Architecture/BaselineArchitectureTests.cs": """using FluentAssertions;
+using Xunit;
+
+namespace Architecture;
+
+public sealed class BaselineArchitectureTests
+{
+    [Fact]
+    public void Architecture_test_project_is_wired()
+    {
+        true.Should().BeTrue();
+    }
+}
+""",
+        "test/Functional/APIGateway/APIGateway.FunctionalTests.csproj": """<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+</Project>
+""",
+        "test/Functional/APIGateway/APIGatewayBaselineTests.cs": """using FluentAssertions;
+using Xunit;
+
+namespace Functional.APIGateway;
+
+public sealed class APIGatewayBaselineTests
+{
+    [Fact]
+    public void Functional_test_project_is_wired()
+    {
+        "/api/health".Should().StartWith("/api");
+    }
+}
 """,
         "src/Aspire/AppHost/Properties/launchSettings.json": """{
   "$schema": "https://json.schemastore.org/launchsettings.json",
@@ -616,6 +742,9 @@ def _solution_projects(service_name: str | None) -> list[str]:
         "src/BackEnd/BuildingBlocks/Persistence/Persistence.csproj",
         "src/FrontEnd/Web/Web.csproj",
         "src/FrontEnd/Web.Client/Web.Client.csproj",
+        "test/Architecture/Architecture.Tests.csproj",
+        "test/Unit/Unit.Tests.csproj",
+        "test/Functional/APIGateway/APIGateway.FunctionalTests.csproj",
     ]
     if service_name:
         service = service_name

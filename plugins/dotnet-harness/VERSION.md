@@ -1,8 +1,17 @@
 # Version
 
-Current version: `0.4.12`
+Current version: `0.4.13`
 
 ## Release Notes
+
+### 0.4.13
+
+- Add generated Unit, Architecture, and APIGateway Functional xUnit baseline
+  test projects to scaffolded solutions.
+- Wire the optional service API into Aspire AppHost and APIGateway YARP
+  configuration when `ServiceName` is provided.
+- Keep generated scaffold builds at warning 0 / error 0 by disabling NuGet audit
+  noise in the baseline template.
 
 ### 0.4.12
 
