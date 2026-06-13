@@ -498,6 +498,106 @@ app.Run();
 """,
         f"src/BackEnd/Services/{service}/{service}.Contracts/{service}.Contracts.csproj": """<Project Sdk="Microsoft.NET.Sdk" />
 """,
+        "src/Aspire/AppHost/Properties/launchSettings.json": """{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:15000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:18888",
+        "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:18889"
+      }
+    },
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:17000;http://localhost:15000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:18888",
+        "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:18889"
+      }
+    }
+  }
+}
+""",
+        "src/FrontEnd/Web/Properties/launchSettings.json": """{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:15010",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:17010;http://localhost:15010",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+""",
+        "src/BackEnd/APIGateway/Properties/launchSettings.json": """{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:15020",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:17020;http://localhost:15020",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+""",
+        f"src/BackEnd/Services/{service}/{service}.Api/Properties/launchSettings.json": f"""{{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {{
+    "http": {{
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:15030",
+      "environmentVariables": {{
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }}
+    }},
+    "https": {{
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:17030;http://localhost:15030",
+      "environmentVariables": {{
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }}
+    }}
+  }}
+}}
+""",
     }
     if service_name is None:
         files = {key: value for key, value in files.items() if "/Services/" not in key}
@@ -744,6 +844,7 @@ def ensure_optional_caveman_skill(target_root: Path, source_root: Path, preview:
         command.extend(["-SkillSource", str(source)])
     if install_optional_skills:
         command.append("-Apply")
+        command.append("-AllowUserSkillInstall")
 
     try:
         subprocess.run(command, check=False)

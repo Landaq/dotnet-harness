@@ -25,6 +25,14 @@
 - `plugins/dotnet-harness/assets/harness/.codex/agents`: 설치 대상 프로젝트용 agents
 - `plugins/dotnet-harness/assets/harness/.codex/scripts`: 설치/검증/업그레이드 helper
 - `.agents/plugins/marketplace.json`: repo-local marketplace 등록
+
+릴리스 버전 동기화:
+
+```powershell
+pwsh -NoProfile -File plugins\dotnet-harness\scripts\release-helper.ps1 -Version 0.4.12 -Apply
+```
+
+`validate-release.ps1`는 `plugin.json`과 `VERSION.md` 버전 일치를 검사한다.
 ## 사용
 
 기존 프로젝트에 harness만 설치:

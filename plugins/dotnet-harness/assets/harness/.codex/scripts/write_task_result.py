@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Write a task-agents HTML result artifact and prune old results."""
+"""Write a task-agents HTML result artifact and preserve old results."""
 
 from __future__ import annotations
 
@@ -104,14 +104,25 @@ def unique_path(output_dir: Path, date_prefix: str, summary: str) -> Path:
     return candidate
 
 
-def prune_results(output_dir: Path) -> None:
+def prune_results(output_dir: Path, archive_dir: Path | None, no_prune: bool) -> None:
+    if no_prune:
+        return
     results = sorted(
         output_dir.glob("*_Result.html"),
         key=lambda path: (path.stat().st_mtime, path.name),
         reverse=True,
     )
+    if archive_dir is not None:
+        archive_dir.mkdir(parents=True, exist_ok=True)
     for old in results[MAX_RESULTS:]:
-        old.unlink()
+        if archive_dir is None:
+            continue
+        target = archive_dir / old.name
+        index = 2
+        while target.exists():
+            target = archive_dir / f"{old.stem}-{index}{old.suffix}"
+            index += 1
+        old.replace(target)
 
 
 def parse_args() -> argparse.Namespace:
@@ -122,6 +133,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--result", required=True)
     parser.add_argument("--todo", default="")
     parser.add_argument("--output-dir", default="docs/TaskResult")
+    parser.add_argument("--archive-dir", default=None)
+    parser.add_argument("--no-prune", action="store_true")
     return parser.parse_args()
 
 
@@ -135,7 +148,8 @@ def main() -> None:
         build_html(args.request, args.work, args.result, args.todo),
         encoding="utf-8",
     )
-    prune_results(output_dir)
+    archive_dir = Path(args.archive_dir) if args.archive_dir else output_dir / "archive"
+    prune_results(output_dir, archive_dir, args.no_prune)
     print(output_path)
 
 

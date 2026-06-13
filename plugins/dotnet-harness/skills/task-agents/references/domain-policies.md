@@ -26,6 +26,18 @@ Use before implementation when a request touches a feature, cross-layer refactor
 - Do not create plan files by default; create a named plan artifact only when the user explicitly asks for one.
 - Include verification commands and risk list before execution.
 
+Ambiguity scoring rubric:
+
+- Score ambiguity from concrete unresolved blockers, not model confidence.
+- Start at 0%. Add the highest applicable points from each category, then cap at 100%.
+- Business goal: add 0% when the user states the goal and non-goal; 5% when the goal is clear but non-goals are missing; 15% when the desired outcome is broad or mixed.
+- Input/output specification: add 0% when target files, APIs, screens, commands, or data contracts are named; 5% when the target surface is inferable from repo context; 15% when the target surface or expected output is not named.
+- Persistence/data/runtime rules: add 0% when no data/runtime state is involved or the rule is explicit; 5% when storage, migration, cache, auth, or runtime state impact is likely but bounded; 15% when data ownership, migration, secret, auth, or production/runtime state is unclear.
+- Validation evidence: add 0% when the user or repo provides a concrete validation command; 5% when the smallest proof is inferable; 10% when no meaningful verification route is known.
+- Approval/release/git boundary: add 0% when no approval-sensitive action is needed or the user explicitly requested it; 10% when destructive, git, release, branch/worktree, migration, secret, or production access may be needed but is not approved.
+- `Socratic: satisfied` is allowed only when every active blocker category is at 0% or the remaining nonzero ambiguity is explicitly moved to Out Of Scope or Todo.
+- Recalculate after each user answer by naming which categories changed; do not lower the score only because the model feels confident.
+
 ## Service Template
 
 Use when adding, reviewing, or refactoring a service under `src/BackEnd/Services/{ServiceName}`.
@@ -61,10 +73,13 @@ MSA readiness gate: public contracts isolated, service data ownership clear, no 
 
 ## Frontend UI
 
-- MudBlazor is the default library for standard screens.
-- DevExpress only for BI-level screens: dashboard, advanced grid, pivot-like analysis, reporting, charts, export-heavy pages.
-- No DevExpress for simple CRUD without explicit reason.
-- DevExpress baseline `23.2.x` unless approved otherwise.
+- MudBlazor is the default library for standard screens when no project override exists.
+- DevExpress is optional and only for BI-level screens by default: dashboard, advanced grid, pivot-like analysis, reporting, charts, export-heavy pages.
+- No DevExpress for simple CRUD without explicit reason or project override.
+- DevExpress baseline `23.2.x` unless approved otherwise or overridden by project configuration.
+- Before enforcing UI library rules, inspect `.codex/harness-config.json` when present.
+- If `.codex/harness-config.json` declares `ui.defaultLibrary`, `ui.biLibrary`, or `ui.devExpressVersion`, follow that project config and report the override.
+- Supported default-library examples include `MudBlazor`, `FluentUI`, `BlazorBuiltIn`, and `TailwindOnly`; unknown values require a short clarification before UI implementation.
 - Prefer `InteractiveAuto`.
 - Put global interactive/page UI in `src/FrontEnd/Web.Client` unless server-only need requires `src/FrontEnd/Web`.
 - Keep `Web.Client` browser-safe and secret-free.

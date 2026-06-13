@@ -190,6 +190,7 @@ function Invoke-CavemanSkillCheck {
     }
     if ($ApplyInstall) {
         $arguments += "-Apply"
+        $arguments += "-AllowUserSkillInstall"
     }
 
     try {

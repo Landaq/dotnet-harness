@@ -22,6 +22,12 @@ Prefer the helper script when available:
 pwsh -NoProfile -File .codex\scripts\write-task-result.ps1 -Summary "short-summary" -Request "..." -Work "..." -Result "..." -Todo "..."
 ```
 
+Retention:
+
+- Keep only the newest 10 `*_Result.html` files in `docs/TaskResult`.
+- Move older result files into `docs/TaskResult/archive` instead of deleting them.
+- Use `-NoPrune` only when the user explicitly wants to keep every result in the active directory.
+
 Before final response, do not write the Task Result unless explicitly requested.
 
 ## Git

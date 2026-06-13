@@ -1,10 +1,10 @@
 # Version
 
-Current version: `0.4.11`
+Current version: `0.4.12`
 
 ## Release Notes
 
-### 0.4.11
+### 0.4.12
 
 - Reduce Task Agents to a lightweight entrypoint and move detailed workflow,
   phase, delegation, worker, git, and TaskResult policies into references.

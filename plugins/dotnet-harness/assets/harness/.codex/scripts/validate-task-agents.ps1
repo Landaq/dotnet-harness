@@ -24,7 +24,12 @@ $rootAgents = Join-Path $RepoRoot "AGENTS.md"
 
 Require-Path $agentsDir
 Require-Path $rootAgents
-Require-Path (Join-Path $RepoRoot ".codex\scripts\ensure-caveman-skill.ps1")
+$ensureCavemanScript = Join-Path $RepoRoot ".codex\scripts\ensure-caveman-skill.ps1"
+$writeTaskResultScript = Join-Path $RepoRoot ".codex\scripts\write-task-result.ps1"
+$writeTaskResultPython = Join-Path $RepoRoot ".codex\scripts\write_task_result.py"
+Require-Path $ensureCavemanScript
+Require-Path $writeTaskResultScript
+Require-Path $writeTaskResultPython
 
 if (Test-Path -LiteralPath $skillsDir) {
     Add-Failure "Repo-local .codex\skills should not exist. Use dotnet-harness:* plugin skills instead: $skillsDir"
@@ -332,6 +337,51 @@ if (Test-Path -LiteralPath $agentsDir) {
             if ($gitText -notmatch [regex]::Escape($requiredText)) {
                 Add-Failure "git-operator missing explicit git request policy: $requiredText"
             }
+        }
+    }
+
+    if (Test-Path -LiteralPath $ensureCavemanScript) {
+        $ensureCavemanText = Get-Content -LiteralPath $ensureCavemanScript -Raw
+        foreach ($requiredText in @(
+            'SkillRoot = (Join-Path $HOME ".agents\skills\caveman")',
+            'Refusing to install caveman outside the repo without -AllowUserSkillInstall',
+            '-AllowUserSkillInstall',
+            '-SkillSource <path-to-caveman-skill>'
+        )) {
+            if ($ensureCavemanText -notmatch [regex]::Escape($requiredText)) {
+                Add-Failure "ensure-caveman-skill missing sandbox-safe optional install policy: $requiredText"
+            }
+        }
+    }
+
+    if (Test-Path -LiteralPath $writeTaskResultScript) {
+        $writeTaskResultText = Get-Content -LiteralPath $writeTaskResultScript -Raw
+        foreach ($requiredText in @(
+            'ArchiveDir',
+            'NoPrune',
+            '--archive-dir',
+            '--no-prune'
+        )) {
+            if ($writeTaskResultText -notmatch [regex]::Escape($requiredText)) {
+                Add-Failure "write-task-result wrapper missing retention option: $requiredText"
+            }
+        }
+    }
+
+    if (Test-Path -LiteralPath $writeTaskResultPython) {
+        $writeTaskResultPythonText = Get-Content -LiteralPath $writeTaskResultPython -Raw
+        foreach ($requiredText in @(
+            'archive_dir',
+            'no_prune',
+            'old.replace(target)',
+            '--no-prune'
+        )) {
+            if ($writeTaskResultPythonText -notmatch [regex]::Escape($requiredText)) {
+                Add-Failure "write_task_result.py missing archive-based retention policy: $requiredText"
+            }
+        }
+        if ($writeTaskResultPythonText -match '\.unlink\(') {
+            Add-Failure "write_task_result.py must not delete old TaskResult files with unlink()."
         }
     }
 

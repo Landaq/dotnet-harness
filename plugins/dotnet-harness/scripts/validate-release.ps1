@@ -40,6 +40,7 @@ $ensureCavemanScript = Join-Path $harnessRoot ".codex\scripts\ensure-caveman-ski
 $installScript = Join-Path $pluginRootPath "install.ps1"
 $bootstrapScript = Join-Path $skillsRoot "project-structure-setup\scripts\bootstrap_project_structure.py"
 $upgradeScript = Join-Path $harnessRoot ".codex\scripts\upgrade-harness.ps1"
+$releaseHelperScript = Join-Path $pluginRootPath "scripts\release-helper.ps1"
 
 $policyParseScript = @'
 import pathlib
@@ -97,6 +98,23 @@ Invoke-ValidationStep "plugin skills" {
                 throw "Skill validation failed: $($skillDir.Name)"
             }
         }
+    }
+}
+
+Invoke-ValidationStep "version consistency" {
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+    $manifestVersion = [string]$manifest.version
+    $versionText = Get-Content -LiteralPath (Join-Path $pluginRootPath "VERSION.md") -Raw
+    $versionMatch = [regex]::Match($versionText, 'Current version:\s*`(?<version>[^`]+)`')
+    if (-not $versionMatch.Success) {
+        throw "VERSION.md must contain a Current version line."
+    }
+    $versionFileVersion = $versionMatch.Groups["version"].Value
+    if ($manifestVersion -ne $versionFileVersion) {
+        throw "plugin.json version '$manifestVersion' does not match VERSION.md '$versionFileVersion'."
+    }
+    if (-not (Test-Path -LiteralPath $releaseHelperScript)) {
+        throw "Missing release helper: $releaseHelperScript"
     }
 }
 
@@ -247,6 +265,8 @@ Invoke-ValidationStep "packaging hygiene" {
         'Agent Results Reflected',
         'Git`: `not requested; git-operator not used',
         'TaskResult`: `not requested; not created',
+        'Move older result files into `docs/TaskResult/archive` instead of deleting them.',
+        'Use `-NoPrune` only when the user explicitly wants to keep every result in the active directory.',
         'Limit pre-implementation read-only subagents to three unless the user explicitly approves more.',
         'Delegate implementation only when write sets are disjoint and requirements are settled.',
         'utilization floor satisfied',
@@ -255,6 +275,14 @@ Invoke-ValidationStep "packaging hygiene" {
         'Print `Socratic: skipped`',
         'Socratic: satisfied',
         'target average ambiguity `<= 8%`',
+        'Ambiguity scoring rubric:',
+        'Score ambiguity from concrete unresolved blockers, not model confidence.',
+        'Business goal:',
+        'Input/output specification:',
+        'Persistence/data/runtime rules:',
+        'Validation evidence:',
+        'Approval/release/git boundary:',
+        'do not lower the score only because the model feels confident.',
         'Recalculate ambiguity percentage for each active feature goal and the average ambiguity after every answer.',
         'Check goal alignment after every answer',
         'Before moving to any next work stage, explicitly tell the user the updated feature ambiguity %, average ambiguity %, goal alignment result, and next stage.',
@@ -277,7 +305,10 @@ Invoke-ValidationStep "packaging hygiene" {
         'Mode-specific final reporting:',
         '`lightweight`: include `Agents Used`, `Agents Skipped`, `Main Thread Work`, `Review/Verification Evidence`, `Files Changed`, `Git`, and `TaskResult` only.',
         '`standard`: include concise phase summary, selected agents, skipped agents, worker eligibility, verification evidence, changed files, git status, and TaskResult status.',
-        '`deep`: include full phase/input/output/handoff-gate reporting, Socratic status, worker partition, review findings, verification evidence, changed files, git status, and TaskResult status.'
+        '`deep`: include full phase/input/output/handoff-gate reporting, Socratic status, worker partition, review findings, verification evidence, changed files, git status, and TaskResult status.',
+        'Before enforcing UI library rules, inspect `.codex/harness-config.json` when present.',
+        'If `.codex/harness-config.json` declares `ui.defaultLibrary`, `ui.biLibrary`, or `ui.devExpressVersion`, follow that project config and report the override.',
+        'Supported default-library examples include `MudBlazor`, `FluentUI`, `BlazorBuiltIn`, and `TailwindOnly`'
     )) {
         if ($taskAgentsPolicy -notmatch [regex]::Escape($requiredText)) {
             throw "Task Agents must define actual subagent delegation behavior: missing '$requiredText'."
@@ -500,6 +531,8 @@ Invoke-ValidationStep "packaging hygiene" {
         'SkillRoot = (Join-Path $HOME ".agents\skills\caveman")',
         '[preview] caveman skill missing',
         'Refusing to overwrite existing skill directory',
+        'Refusing to install caveman outside the repo without -AllowUserSkillInstall',
+        '-AllowUserSkillInstall',
         '-SkillSource <path-to-caveman-skill>'
     )) {
         if ($ensureCaveman -notmatch [regex]::Escape($requiredText)) {
@@ -511,6 +544,41 @@ Invoke-ValidationStep "packaging hygiene" {
         $scriptText = Get-Content -LiteralPath $scriptPath -Raw
         if ($scriptText -notmatch "InstallOptionalSkills|install-optional-skills") {
             throw "Setup/upgrade path must expose optional skill installation: $scriptPath"
+        }
+    }
+
+    $writeTaskResultScript = Join-Path $harnessRoot ".codex\scripts\write-task-result.ps1"
+    $writeTaskResultPython = Join-Path $harnessRoot ".codex\scripts\write_task_result.py"
+    foreach ($requiredPath in @($writeTaskResultScript, $writeTaskResultPython)) {
+        if (-not (Test-Path -LiteralPath $requiredPath)) {
+            throw "Missing TaskResult helper: $requiredPath"
+        }
+    }
+    $writeTaskResultText = Get-Content -LiteralPath $writeTaskResultScript -Raw
+    foreach ($requiredText in @('ArchiveDir', 'NoPrune', '--archive-dir', '--no-prune')) {
+        if ($writeTaskResultText -notmatch [regex]::Escape($requiredText)) {
+            throw "TaskResult wrapper missing retention option: '$requiredText'."
+        }
+    }
+    $writeTaskResultPythonText = Get-Content -LiteralPath $writeTaskResultPython -Raw
+    foreach ($requiredText in @('archive_dir', 'no_prune', 'old.replace(target)', '--no-prune')) {
+        if ($writeTaskResultPythonText -notmatch [regex]::Escape($requiredText)) {
+            throw "TaskResult helper missing archive retention behavior: '$requiredText'."
+        }
+    }
+    if ($writeTaskResultPythonText -match '\.unlink\(') {
+        throw "TaskResult helper must not delete old result files with unlink()."
+    }
+
+    $releaseHelperText = Get-Content -LiteralPath $releaseHelperScript -Raw
+    foreach ($requiredText in @(
+        'Version must be SemVer core format',
+        'plugin.json',
+        'VERSION.md',
+        '-Apply'
+    )) {
+        if ($releaseHelperText -notmatch [regex]::Escape($requiredText)) {
+            throw "Release helper missing required behavior: '$requiredText'."
         }
     }
 

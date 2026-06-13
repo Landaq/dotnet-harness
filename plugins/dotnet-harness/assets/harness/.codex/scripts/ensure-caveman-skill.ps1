@@ -1,6 +1,7 @@
 param(
     [string]$SkillRoot = (Join-Path $HOME ".agents\skills\caveman"),
     [string]$SkillSource,
+    [switch]$AllowUserSkillInstall,
     [switch]$Apply
 )
 
@@ -71,6 +72,10 @@ if (-not $Apply) {
         Write-Host "[preview] install with: pwsh -NoProfile -File .codex\scripts\ensure-caveman-skill.ps1 -Apply -SkillSource <path-to-caveman-skill>"
     }
     exit 0
+}
+
+if (-not $AllowUserSkillInstall) {
+    throw "Refusing to install caveman outside the repo without -AllowUserSkillInstall. Re-run only after explicit user approval."
 }
 
 if (-not $source) {

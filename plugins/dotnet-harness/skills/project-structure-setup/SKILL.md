@@ -18,6 +18,7 @@ Use when creating/recreating default .NET 10 baseline.
 - repo-local Codex harness (`AGENTS.md`, `.codex/agents`, `.codex/scripts`) when available
 - no repo-local `.codex/skills`; use `dotnet-harness:*` plugin skills
 - .NET 10 skeleton: Aspire, Minimal API, YARP, Scalar, EF Core, Redis, Blazor Auto, MudBlazor, mediator-like dispatch
+- Optional project policy override: `.codex/harness-config.json` can document UI defaults for later Task Agents routing; setup still emits the default stack unless a future scaffold option explicitly changes templates.
 
 ## Service scaffold (optional)
 
@@ -50,6 +51,7 @@ pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -HarnessOnly
 ## Rules
 
 - Create dirs, `.gitkeep`, baseline .NET skeleton.
+- Treat Clean Architecture, DDD, MudBlazor, SQL Server, Redis, YARP, and Scalar as the default scaffold profile, not a universal policy for every target repo.
 - Create `docs/Project/README.md` if it does not exist.
 - Install repo-local Codex harness into target root if source exists.
 - Use `--harness-only` to install `AGENTS.md` and `.codex` harness files without creating `src`, `test`, or `docs/Project` structure.

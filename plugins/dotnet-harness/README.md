@@ -63,6 +63,20 @@ automatic `ServiceName` AppHost/Gateway integration are planned follow-up work.
 Until then, scaffold consumers should verify generated README limitations and run
 the release or project smoke checks before treating the scaffold as complete.
 
+Project policy overrides: Task Agents inspect `.codex/harness-config.json` when
+present. UI policy keys such as `ui.defaultLibrary`, `ui.biLibrary`, and
+`ui.devExpressVersion` override the default MudBlazor/DevExpress guidance for
+that target repo. The setup scaffold still emits the default stack unless a
+future scaffold option explicitly changes templates.
+
+Release version helper:
+
+```powershell
+pwsh -NoProfile -File scripts\release-helper.ps1 -Version 0.4.12 -Apply
+```
+
+Release validation checks that `plugin.json` and `VERSION.md` agree.
+
 Harness-only install:
 
 ```powershell
@@ -94,10 +108,16 @@ pwsh -NoProfile -File .codex\scripts\write-task-result.ps1 -Summary "short-summa
 ```
 
 Use Task Result only when a visible HTML work summary is explicitly requested.
-Normal Task Agents runs do not create result files by default.
+Normal Task Agents runs do not create result files by default. Older result
+files are moved to `docs/TaskResult/archive` instead of being deleted; pass
+`-NoPrune` only when the user explicitly wants every report to stay in the
+active folder.
 
 Use the PowerShell wrappers instead of calling Python scripts directly. The
 wrappers set UTF-8 mode and avoid Windows sandbox runner process-creation issues.
+Optional user-skill installation writes outside the repo only when explicitly
+requested through `-InstallOptionalSkills`; the caveman helper additionally
+requires `-AllowUserSkillInstall` before writing under the user profile.
 
 ## Validation
 
