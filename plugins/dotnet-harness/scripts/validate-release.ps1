@@ -61,6 +61,7 @@ $ensureCavemanScript = Join-Path $harnessRoot ".codex\scripts\ensure-caveman-ski
 $harnessConfig = Join-Path $harnessRoot ".codex\harness-config.json"
 $installScript = Join-Path $pluginRootPath "install.ps1"
 $bootstrapScript = Join-Path $skillsRoot "project-structure-setup\scripts\bootstrap_project_structure.py"
+$packageVersionsManifest = Join-Path $skillsRoot "project-structure-setup\references\package-versions.json"
 $upgradeScript = Join-Path $harnessRoot ".codex\scripts\upgrade-harness.ps1"
 $releaseHelperScript = Join-Path $pluginRootPath "scripts\release-helper.ps1"
 
@@ -201,17 +202,17 @@ Invoke-ValidationStep "packaging hygiene" {
         'Trivial or small work -> `lightweight`.',
         'Non-trivial work -> `standard`.',
         'Explicit deep/release/scaffold/architecture/high-risk work -> `deep`.',
-        'In `lightweight` and `standard`, ambiguity percentage is an internal routing signal.',
-        'In `deep`, report ambiguity percentage, phase contracts, input/output contracts, and handoff gates.',
+        'In `standard` and `deep`, report ambiguity before/after Socratic clarification, average ambiguity, goal alignment, and next stage before handoff.',
+        'In `deep`, also report phase contracts, input/output contracts, and handoff gates.',
         'Agent Execution Contract',
-        'Agent-First Orchestration',
+        'Clarify Before Delegating',
         'Delegation Evidence',
         'Compressed Agent Handoff',
         'Mandatory Socratic Checkpoint',
         'Subagent Utilization Floor',
         'Subagent delegation',
         'Delegation',
-        'default is delegation and safe parallel-agent execution, not local-only execution',
+        'Task Agents must clarify before delegating. Actual subagent execution begins only after Socratic goal clarification is satisfied and runtime delegation permission is present.',
         'For complex or multi-step work, spawn at least one read-only specialist subagent before implementation unless fallback or an explicit skip condition applies.',
         'Spawn at least one pre-implementation specialist subagent',
         'spawn at least one post-implementation subagent',
@@ -228,45 +229,46 @@ Invoke-ValidationStep "packaging hygiene" {
         'Reading agent TOML, summarizing an agent persona, or role-playing a specialist in the main thread does not count as subagent execution.',
         'Delegation: used',
         'Do not mark utilization satisfied from planned delegation, simulated agent reasoning, or reading `.codex/agents/*.toml`.',
-        'main-thread-only execution while subagent tooling is available is noncompliant',
+        'Delegation: skipped no-explicit-agent-request',
         'Delegation: skipped',
         'No-spawn decisions must include the exact reason.',
-        'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
-        'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
-        'does not need to explicitly request subagent handoff, subagents, or parallel agents',
         'When task-agents is active, the main thread is a coordinator/reporter, not the default implementer.',
-        'Subagents own staged analysis, implementation, review, and verification. Main thread edits are exceptions and must be reported.',
+        'Subagents own staged analysis, implementation, review, and verification only after clarification passes and delegation permission is present.',
+        'runtime delegation permission is present',
+        'When task-agents is active, the main thread is a coordinator/reporter, not the default implementer.',
+        'Subagents own staged analysis, implementation, review, and verification only after clarification passes and delegation permission is present.',
         'Each subagent output must be treated as the input contract for the next stage.',
         'Do not hand off to the next agent until previous agent output is explicit, bounded, and usable as the next input contract.',
         'Previous agent output is clear only when it includes: role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.',
         'Each handoff prompt must start with `Prior result accepted:` plus short caveman summary of the previous agent result and any unresolved risks.',
         'TaskResult remains opt-in only.',
-        'Direct main-thread edits are allowed only for small fixes',
-        'If the request is non-trivial, treat task-agents as active and agent-first by default unless the user explicitly opts out of agents.',
+        'Direct main-thread edits are allowed for direct answers, trivial one-file fixes, user opt-out, host-policy no-spawn fallback',
+        'If runtime policy requires explicit authorization, do not spawn actual subagents.',
         'Non-trivial work means multi-step, multi-file, architecture/workflow/plugin/harness change, backend/frontend behavior change, test strategy, review, verification, CI, release-sensitive, or unclear approval-boundary work.',
         'Main-thread direct work is allowed for a direct answer, status check, trivial one-file fix, explicit agent opt-out, or proven subagent tooling fallback.',
         'If the user says `에이전트 쓰지마`, `no agents`, or equivalent explicit opt-out, do not spawn subagents; report `Delegation: skipped user-opt-out` and continue main-thread direct.',
-        'Strict staged handoff order',
-        'Phase 0 - Workflow Guardrails',
-        'Phase 1 - Goal Boundary',
-        'Phase 2 - Intake Planning',
-        'Phase 3 - Implementation Coordination',
-        'Phase 4 - Specialist Analysis',
-        'Phase 5 - Bounded Implementation',
-        'Phase 6 - Review',
-        'Phase 7 - Verification',
-        'Phase 8 - Git Operation',
+        'Strict Workflow Order',
+        'Requirement Intake',
+        'Socratic Clarification',
+        'Ambiguity Recalculation',
+        'Goal Boundary Confirmation',
+        'Agent Route Planning',
+        'Subagent Handoff',
+        'Worker Implementation',
+        'Review Agent',
+        'Verification Agent',
+        'Main Thread Final Summary',
         'Phase handoff contract',
         'Every phase must state `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.',
         'Do not enter next phase until current phase output satisfies its `Output Contract` and `Handoff Gate`.',
-        'Phase 5 worker partition',
-        'Phase 5 worker agents are `standard`/`deep` only; `lightweight` mode must not call `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker`.',
+        'Phase 7 Worker Partition',
+        'Worker agents are `standard`/`deep` only; `lightweight` mode must not call `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker`.',
         'Preferred workers: `backend-worker`, `frontend-worker`, `test-worker`, and `docs-harness-worker`.',
-        'Run feature workers in parallel by default when their write sets are disjoint',
+        'Run feature workers in parallel only when their write sets are disjoint',
         'Run feature workers serially when slices share files, contracts, migrations, package files, solution files, runtime state, release state, or unresolved decisions.',
         'Parallel: yes',
         'Parallel: no',
-        'Workers`: feature worker agents, feature slice ownership, parallel eligibility, and serial order when needed.',
+        '`Workers`: feature worker agents, feature slice ownership, parallel eligibility, and serial order when needed.',
         'Handoff Gate must include accepted prior result summary, unresolved risks, open questions or `none`, and whether the next phase may proceed.',
         'Handoff prompt must include `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.',
         '`Phase`: numbered workflow phase and phase name.',
@@ -276,7 +278,7 @@ Invoke-ValidationStep "packaging hygiene" {
         '`Output Contract`: required result fields for next phase.',
         '`Handoff Gate`: pass/fail, unresolved risks, open questions or `none`, and next phase permission.',
         'Subagent output as next input',
-        'For backend non-trivial work, spawn `service-template` and `tdd-test` as read-only specialists before implementation unless fallback, explicit opt-out, or a concrete skip condition applies.',
+        'For backend non-trivial work, spawn `service-template` and `tdd-test` as read-only specialists before implementation unless fallback, explicit opt-out, no explicit authorization under explicit-auth runtime policy, or a concrete skip condition applies.',
         '/feedback',
         'user explicitly opts out of agents',
         'If no agent is called, report why briefly with `Delegation: skipped <reason>`.',
@@ -311,7 +313,7 @@ Invoke-ValidationStep "packaging hygiene" {
         'Continue this answer -> reassess -> ask loop until average ambiguity is `<= 8%`',
         'After every user answer, restate the updated goal boundary, recalculate each feature ambiguity %, recalculate average ambiguity %, and check whether the answer still aligns with the active goal.',
         'Before moving to the next stage, explicitly show the user the recalculated ambiguity and goal alignment result.',
-        'must use actual subagents',
+        'must clarify before delegating',
         'Agent execution fallback: unavailable',
         'allowed paths and forbidden paths',
         'instruction to avoid git operations',
@@ -376,8 +378,8 @@ Invoke-ValidationStep "packaging hygiene" {
         '/feedback',
         '에이전트들이 전반적으로 수행',
         '에이전트 쓰지마',
-        'agent-first orchestration request by default',
-        'planning, implementation, feedback/code-review, and verification should be assigned to discovered repo-local agents',
+        'clarification-first',
+        'Delegation Permission: not explicit',
         'For backend non-trivial work, route pre-implementation analysis to `service-template` and `tdd-test`.',
         'Delegation: skipped user-opt-out'
     )) {
@@ -390,14 +392,14 @@ Invoke-ValidationStep "packaging hygiene" {
     $implementationCoordinatorText = Get-Content -LiteralPath $implementationCoordinator -Raw
     foreach ($requiredText in @(
         'Select workflow mode first: `lightweight` for trivial/small work, `standard` for non-trivial work, and `deep` for explicit deep, release, scaffold, architecture, or high-risk work.',
-        'In `lightweight`, keep phase contracts internal, ask at most one clarification question, do not call Phase 5 workers, and report only concise change/verification/delegation/git/TaskResult status.',
-        'In `standard`, use Phase 0-8 with concise transitions, call only needed agents, and allow Phase 5 workers only when requirements are settled.',
+        'In `lightweight`, keep phase contracts internal, ask at most one clarification question, do not call workers, and report only concise Socratic/change/verification/delegation/git/TaskResult status.',
+        'In `standard`, start with Requirement Intake, Socratic Clarification, Ambiguity Recalculation, and Goal Boundary Confirmation',
         'In `deep`, expose full Socratic status, phase contracts, handoff gates, review, and verification evidence.',
-        'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
-        'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
-        'Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.',
-        'does not need to explicitly request subagent handoff, subagents, or parallel agents',
-        'Direct-main execution is opt-out only for non-trivial work',
+        'Main thread is the coordinator/reporter for non-trivial work when task-agents is active.',
+        'Task Agents must clarify before delegating. Actual subagent execution begins only after Socratic goal clarification is satisfied and runtime delegation permission is present.',
+        'Direct main-thread edits are allowed only for direct answers, trivial one-file fixes, user opt-out, host-policy no-spawn fallback',
+        'Treat `$dotnet-harness`, `task-agents`, `/feedback`, `에이전트`, `subagent`, `서브에이전트`, `에이전트에게 맡겨`, or `작업을 에이전트들이 수행` as explicit authorization',
+        'Delegation: skipped no-explicit-agent-request',
         'Each subagent output must be treated as the input contract for the next stage.',
         'Phase 0 Workflow Guardrails',
         'Phase 1 Goal Boundary',
@@ -410,10 +412,10 @@ Invoke-ValidationStep "packaging hygiene" {
         'Phase 8 Git Operation',
         'For every phase, state `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.',
         'Do not start a next phase until the current phase handoff gate passes.',
-        'Phase 5 workers are `standard`/`deep` only; never assign `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker` in `lightweight`.',
-        'Preferred Phase 5 workers are `backend-worker`, `frontend-worker`, `test-worker`, and `docs-harness-worker`.',
-        'Run Phase 5 workers in parallel only when write sets are disjoint, public contracts are stable, migrations are absent, package/solution files are not shared, and validation can run independently.',
-        'Run Phase 5 workers serially when slices share files, contracts, migrations, package files, solution files, runtime state, release state, or unresolved decisions.',
+        'Worker agents are `standard`/`deep` only; never assign `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker` in `lightweight`.',
+        'Preferred workers are `backend-worker`, `frontend-worker`, `test-worker`, and `docs-harness-worker`.',
+        'Run workers in parallel only when write sets are disjoint, public contracts are stable, migrations are absent, package/solution files are not shared, and validation can run independently.',
+        'Run workers serially when slices share files, contracts, migrations, package files, solution files, runtime state, release state, or unresolved decisions.',
         'Parallel: yes',
         'Parallel: no',
         'worker assignments',
@@ -438,7 +440,7 @@ Invoke-ValidationStep "packaging hygiene" {
         'Delegation: skipped user-opt-out',
         'prior output contracts',
         'delegation evidence',
-        'For `lightweight` and `standard`, keep ambiguity percentage internal unless a gate blocks progress; report remaining uncertainty in natural language.'
+        'For `standard` and `deep`, report ambiguity before/after Socratic clarification, average ambiguity, goal alignment, and next stage before handoff.'
     )) {
         if (-not (Test-PolicyPattern $implementationCoordinatorText $requiredText)) {
             throw "Implementation coordinator must enforce actual subagent tool usage: missing '$requiredText'."
@@ -504,7 +506,7 @@ Invoke-ValidationStep "packaging hygiene" {
     $workflowGuardrailsText = Get-Content -LiteralPath (Join-Path $harnessRoot ".codex\agents\01-workflow-guardrails.toml") -Raw
     foreach ($requiredText in @(
         '@dotnet-harness',
-        'agent-first handoff by default',
+        'Delegation Permission: not explicit',
         'direct-main opt-out wording',
         'safety, approval, validation, TaskResult, and git gates active'
     )) {
@@ -629,6 +631,157 @@ Invoke-ValidationStep "packaging hygiene" {
     $localSkillRefs = $harnessPolicyFiles | Select-String -Pattern "\.codex[/\\]skills" -ErrorAction SilentlyContinue
     if ($localSkillRefs) {
         throw "Harness agents/AGENTS.md must reference dotnet-harness:* plugin skills, not .codex/skills."
+    }
+}
+
+Invoke-ValidationStep "package version manifest" {
+    if (-not (Test-Path -LiteralPath $packageVersionsManifest)) {
+        throw "Missing package version manifest: $packageVersionsManifest"
+    }
+
+    $manifest = Get-Content -LiteralPath $packageVersionsManifest -Raw | ConvertFrom-Json
+    if (-not $manifest.packages) {
+        throw "package-versions.json must contain a packages object."
+    }
+
+    foreach ($packageName in @(
+        "Aspire.Hosting.AppHost",
+        "Aspire.Hosting.SqlServer",
+        "Aspire.Hosting.Redis",
+        "Microsoft.AspNetCore.Components.WebAssembly",
+        "Microsoft.AspNetCore.Components.WebAssembly.Server",
+        "Microsoft.EntityFrameworkCore.SqlServer",
+        "Microsoft.AspNetCore.OpenApi",
+        "Microsoft.Extensions.DependencyInjection.Abstractions",
+        "MudBlazor",
+        "Scalar.AspNetCore",
+        "Yarp.ReverseProxy",
+        "Microsoft.NET.Test.Sdk",
+        "xunit"
+    )) {
+        if (-not $manifest.packages.PSObject.Properties[$packageName]) {
+            throw "package-versions.json missing required package: $packageName"
+        }
+    }
+
+    $bootstrapText = Get-Content -LiteralPath $bootstrapScript -Raw
+    foreach ($requiredText in @("package-versions.json", "_package_versions_props", "json.load")) {
+        if (-not (Test-PolicyPattern $bootstrapText $requiredText)) {
+            throw "bootstrap must generate Directory.Packages.props from package-versions.json: missing '$requiredText'."
+        }
+    }
+}
+
+function Invoke-CheckedCommand {
+    param(
+        [string]$Name,
+        [string]$WorkingDirectory,
+        [string[]]$Command
+    )
+
+    Write-Host "[smoke] $Name"
+    $executable = $Command[0]
+    $arguments = @($Command | Select-Object -Skip 1)
+    & $executable @arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Name failed in $WorkingDirectory with exit code $LASTEXITCODE."
+    }
+}
+
+function Invoke-ScaffoldBuildSmoke {
+    param(
+        [string]$Name,
+        [string]$ProjectName,
+        [string]$ServiceName
+    )
+
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ("dotnet-harness-smoke-" + [Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path $root | Out-Null
+    try {
+        $installArgs = @("-NoProfile", "-File", $installScript, "-Root", $root, "-ProjectName", $ProjectName)
+        if ($ServiceName) {
+            $installArgs += @("-ServiceName", $ServiceName)
+        }
+        else {
+            $installArgs += "-NoService"
+        }
+        & pwsh @installArgs
+        if ($LASTEXITCODE -ne 0) {
+            throw "$Name scaffold install failed."
+        }
+
+        $solution = Join-Path $root "$ProjectName.slnx"
+        if (-not (Test-Path -LiteralPath $solution)) {
+            throw "$Name did not create expected solution: $solution"
+        }
+
+        Push-Location $root
+        try {
+            Invoke-CheckedCommand -Name "$Name restore" -WorkingDirectory $root -Command @("dotnet", "restore", "$ProjectName.slnx")
+            Invoke-CheckedCommand -Name "$Name build" -WorkingDirectory $root -Command @("dotnet", "build", "$ProjectName.slnx", "--no-restore")
+            Invoke-CheckedCommand -Name "$Name test" -WorkingDirectory $root -Command @("dotnet", "test", "$ProjectName.slnx", "--no-build")
+        }
+        finally {
+            Pop-Location
+        }
+    }
+    finally {
+        Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+Invoke-ValidationStep "scaffold smoke" {
+    Invoke-ScaffoldBuildSmoke -Name "no-service scaffold" -ProjectName "SmokeNoService"
+    Invoke-ScaffoldBuildSmoke -Name "with-service scaffold" -ProjectName "SmokeWithService" -ServiceName "Auth"
+
+    $harnessOnlyRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dotnet-harness-harnessonly-" + [Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path $harnessOnlyRoot | Out-Null
+    try {
+        & pwsh -NoProfile -File $installScript -Root $harnessOnlyRoot -ProjectName "HarnessOnlySmoke" -HarnessOnly
+        if ($LASTEXITCODE -ne 0) {
+            throw "harness-only install failed."
+        }
+        if (Test-Path -LiteralPath (Join-Path $harnessOnlyRoot "src")) {
+            throw "harness-only install must not create src."
+        }
+        if (Test-Path -LiteralPath (Join-Path $harnessOnlyRoot "test")) {
+            throw "harness-only install must not create test."
+        }
+        foreach ($required in @("AGENTS.md", ".codex\agents", ".codex\scripts")) {
+            if (-not (Test-Path -LiteralPath (Join-Path $harnessOnlyRoot $required))) {
+                throw "harness-only install missing $required."
+            }
+        }
+    }
+    finally {
+        Remove-Item -LiteralPath $harnessOnlyRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    $upgradeRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dotnet-harness-upgrade-" + [Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path (Join-Path $upgradeRoot ".codex\agents") | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $upgradeRoot ".codex\skills\legacy") | Out-Null
+    Set-Content -LiteralPath (Join-Path $upgradeRoot ".codex\agents\legacy.toml") -Value 'name = "legacy"' -Encoding UTF8
+    Set-Content -LiteralPath (Join-Path $upgradeRoot ".codex\skills\legacy\SKILL.md") -Value '# Legacy' -Encoding UTF8
+    try {
+        & pwsh -NoProfile -File $upgradeScript -TargetRoot $upgradeRoot -SourceRoot $harnessRoot
+        if ($LASTEXITCODE -ne 0) {
+            throw "upgrade preview failed."
+        }
+        & pwsh -NoProfile -File $upgradeScript -TargetRoot $upgradeRoot -SourceRoot $harnessRoot -Apply
+        if ($LASTEXITCODE -ne 0) {
+            throw "upgrade apply failed."
+        }
+        if (Test-Path -LiteralPath (Join-Path $upgradeRoot ".codex\skills")) {
+            throw "upgrade apply must remove active .codex\skills."
+        }
+        foreach ($required in @(".gitignore", ".gitattributes", ".codex\harness-config.json", ".codex\agents", ".codex\scripts")) {
+            if (-not (Test-Path -LiteralPath (Join-Path $upgradeRoot $required))) {
+                throw "upgrade apply missing $required."
+            }
+        }
+    }
+    finally {
+        Remove-Item -LiteralPath $upgradeRoot -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 

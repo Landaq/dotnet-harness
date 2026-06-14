@@ -18,6 +18,7 @@ Use when creating/recreating default .NET 10 baseline.
 - repo-local Codex harness (`AGENTS.md`, `.codex/agents`, `.codex/scripts`) when available
 - no repo-local `.codex/skills`; use `dotnet-harness:*` plugin skills
 - .NET 10 skeleton: Aspire, Minimal API, YARP, Scalar, EF Core, Redis, Blazor Auto, MudBlazor, mediator-like dispatch
+- package versions are generated from `references/package-versions.json`
 - Project policy override: create `.codex/harness-config.json` when missing so later Task Agents routing can read UI defaults; setup still emits the default stack unless a future scaffold option explicitly changes templates.
 
 ## Service scaffold (optional)
@@ -35,6 +36,7 @@ If `{ServiceName}` enabled:
 - User-facing prompt text is Korean.
 - If `ProjectName` empty, request again.
 - If `ServiceName` empty, skip service folders.
+- Use `-NoService` or `--no-service` for non-interactive automation when no service scaffold should be created.
 
 ## CLI
 
@@ -44,6 +46,7 @@ Prefer PowerShell wrapper: UTF-8 + Windows launch safer.
 pwsh -NoProfile -File install.ps1 -Root .
 pwsh -NoProfile -File install.ps1 -Root . -ServiceName Orders
 pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj
+pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -NoService
 pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -ServiceName Orders -Preview
 pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -HarnessOnly
 ```
@@ -60,5 +63,6 @@ pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -HarnessOnly
 - Do not overwrite an existing `docs/Project/README.md`.
 - Do not overwrite existing Codex harness files.
 - Do not overwrite existing source or project files.
+- Update `references/package-versions.json` instead of editing package versions inline in the bootstrap script.
 
 See [scripts/bootstrap_project_structure.py](scripts/bootstrap_project_structure.py) and [references/project-structure.md](references/project-structure.md).

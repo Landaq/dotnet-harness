@@ -1,0 +1,21 @@
+{
+  "packages": {
+    "Aspire.Hosting.AppHost": "13.0.0",
+    "Aspire.Hosting.SqlServer": "13.0.0",
+    "Aspire.Hosting.Redis": "13.0.0",
+    "Microsoft.AspNetCore.Components.WebAssembly": "10.0.0",
+    "Microsoft.AspNetCore.Components.WebAssembly.Server": "10.0.0",
+    "Microsoft.EntityFrameworkCore.SqlServer": "10.0.0",
+    "Microsoft.AspNetCore.OpenApi": "10.0.0",
+    "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.0",
+    "MudBlazor": "8.0.0",
+    "Scalar.AspNetCore": "2.0.0",
+    "StackExchange.Redis": "2.8.0",
+    "Yarp.ReverseProxy": "2.3.0",
+    "Microsoft.NET.Test.Sdk": "17.12.0",
+    "xunit": "2.9.2",
+    "xunit.runner.visualstudio": "2.8.2",
+    "FluentAssertions": "6.12.1",
+    "coverlet.collector": "6.0.2"
+  }
+}

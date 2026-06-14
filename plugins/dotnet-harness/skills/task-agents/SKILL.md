@@ -32,27 +32,34 @@ Read `references/workflow-modes.md` when mode selection, ambiguity reporting, or
 
 Run stages in order unless the user narrows the task:
 
-1. Phase 0 - Workflow Guardrails.
-2. Phase 1 - Goal Boundary.
-3. Phase 2 - Intake Planning.
-4. Phase 3 - Implementation Coordination.
-5. Phase 4 - Specialist Analysis.
-6. Phase 5 - Bounded Implementation.
-7. Phase 6 - Review.
-8. Phase 7 - Verification.
-9. Phase 8 - Git Operation.
+1. Requirement Intake.
+2. Socratic Clarification.
+3. Ambiguity Recalculation.
+4. Goal Boundary Confirmation.
+5. Agent Route Planning.
+6. Subagent Handoff.
+7. Worker Implementation.
+8. Review Agent.
+9. Verification Agent.
+10. Main Thread Final Summary.
 
 Read `references/phase-contracts.md` for full phase, Socratic, routing, output, and handoff gate contracts.
 
 ## Delegation Core
 
-For non-trivial Task Agents work, the default is actual subagent and safe parallel-agent execution, even when the user does not mention agents. Use direct main-thread work only when the user explicitly opts out of agents with wording such as `에이전트 쓰지마`, `no agents`, `메인에서 직접 해줘`, or `직접 해줘`, the task is trivial, or subagent tooling is unavailable.
+Task Agents must clarify before delegating. Actual subagent execution begins only after Socratic goal clarification is satisfied and runtime delegation permission is present.
+
+Treat `$dotnet-harness`, `task-agents`, `/feedback`, `에이전트`, `subagent`, `서브에이전트`, `에이전트에게 맡겨`, or `작업을 에이전트들이 수행` as explicit authorization for actual subagent execution after clarification.
+
+When the user asks for implementation, refactoring, review, or validation without agent wording, check runtime policy before spawning. If host/runtime policy requires explicit authorization, do not spawn; ask briefly whether to delegate to agents, or report `Delegation: skipped no-explicit-agent-request` and proceed main-thread direct after clarification.
+
+Do not spawn worker subagents before Socratic clarification is satisfied and average ambiguity is `<= 8%`. Read-only clarification helpers such as `goal-boundary` or `intake-planner` also require runtime policy permission.
 
 Read `references/delegation-policy.md` before spawning or skipping subagents, reporting delegation evidence, using compressed handoffs, or applying the subagent utilization floor.
 
 ## Worker Core
 
-Phase 5 workers are `standard`/`deep` only. Do not call `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker` in `lightweight`.
+Worker agents are `standard`/`deep` only. Do not call `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker` in `lightweight`.
 
 Read `references/worker-policy.md` before assigning feature slices, deciding `Parallel: yes` or `Parallel: no`, or writing worker handoffs.
 

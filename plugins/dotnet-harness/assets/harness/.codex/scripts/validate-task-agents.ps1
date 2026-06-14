@@ -225,14 +225,14 @@ if (Test-Path -LiteralPath $agentsDir) {
         $implementationText = Get-Content -LiteralPath $implementationCoordinator -Raw
         foreach ($requiredText in @(
             'Select workflow mode first: `lightweight` for trivial/small work, `standard` for non-trivial work, and `deep` for explicit deep, release, scaffold, architecture, or high-risk work.',
-            'In `lightweight`, keep phase contracts internal, ask at most one clarification question, do not call Phase 5 workers, and report only concise change/verification/delegation/git/TaskResult status.',
-            'In `standard`, use Phase 0-8 with concise transitions, call only needed agents, and allow Phase 5 workers only when requirements are settled.',
+            'In `lightweight`, keep phase contracts internal, ask at most one clarification question, do not call workers, and report only concise Socratic/change/verification/delegation/git/TaskResult status.',
+            'In `standard`, start with Requirement Intake, Socratic Clarification, Ambiguity Recalculation, and Goal Boundary Confirmation',
             'In `deep`, expose full Socratic status, phase contracts, handoff gates, review, and verification evidence.',
-            'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
-            'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
-            'Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.',
-            'Agent-first handoff is the default for non-trivial dotnet-harness work. The user does not need to explicitly request subagent handoff, subagents, or parallel agents.',
-            'Direct-main execution is opt-out only for non-trivial work',
+            'Main thread is the coordinator/reporter for non-trivial work when task-agents is active.',
+            'Subagents own staged analysis, implementation, review, and verification only after clarification passes and delegation permission is present.',
+            'Direct main-thread edits are allowed only for direct answers, trivial one-file fixes, user opt-out, host-policy no-spawn fallback',
+            'Task Agents must clarify before delegating. Actual subagent execution begins only after Socratic goal clarification is satisfied and runtime delegation permission is present.',
+            'Delegation: skipped no-explicit-agent-request',
             'Each subagent output must be treated as the input contract for the next stage.',
             'Phase 0 Workflow Guardrails',
             'Phase 1 Goal Boundary',
@@ -245,10 +245,10 @@ if (Test-Path -LiteralPath $agentsDir) {
             'Phase 8 Git Operation',
             'For every phase, state `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.',
             'Do not start a next phase until the current phase handoff gate passes.',
-            'Phase 5 workers are `standard`/`deep` only; never assign `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker` in `lightweight`.',
-            'Preferred Phase 5 workers are `backend-worker`, `frontend-worker`, `test-worker`, and `docs-harness-worker`.',
-            'Run Phase 5 workers in parallel only when write sets are disjoint, public contracts are stable, migrations are absent, package/solution files are not shared, and validation can run independently.',
-            'Run Phase 5 workers serially when slices share files, contracts, migrations, package files, solution files, runtime state, release state, or unresolved decisions.',
+            'Worker agents are `standard`/`deep` only; never assign `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker` in `lightweight`.',
+            'Preferred workers are `backend-worker`, `frontend-worker`, `test-worker`, and `docs-harness-worker`.',
+            'Run workers in parallel only when write sets are disjoint, public contracts are stable, migrations are absent, package/solution files are not shared, and validation can run independently.',
+            'Run workers serially when slices share files, contracts, migrations, package files, solution files, runtime state, release state, or unresolved decisions.',
             'Parallel: yes',
             'Parallel: no',
             'worker assignments',
@@ -273,7 +273,7 @@ if (Test-Path -LiteralPath $agentsDir) {
             'Delegation: skipped user-opt-out',
             'prior output contracts',
             'delegation evidence',
-            'For `lightweight` and `standard`, keep ambiguity percentage internal unless a gate blocks progress; report remaining uncertainty in natural language.'
+            'For `standard` and `deep`, report ambiguity before/after Socratic clarification, average ambiguity, goal alignment, and next stage before handoff.'
         )) {
             if (-not (Test-PolicyPattern $implementationText $requiredText)) {
                 Add-Failure "implementation-coordinator missing agent-first policy: $requiredText"
@@ -295,8 +295,8 @@ if (Test-Path -LiteralPath $agentsDir) {
             '/feedback',
             '에이전트들이 전반적으로 수행',
             '에이전트 쓰지마',
-            'agent-first orchestration request by default',
-            'planning, implementation, feedback/code-review, and verification should be assigned to discovered repo-local agents',
+            'clarification-first',
+            'Delegation Permission: not explicit',
             'For backend non-trivial work, route pre-implementation analysis to `service-template` and `tdd-test`.',
             'Delegation: skipped user-opt-out'
         )) {
@@ -342,7 +342,7 @@ if (Test-Path -LiteralPath $agentsDir) {
         $workflowText = Get-Content -LiteralPath $workflowGuardrails -Raw
         foreach ($requiredText in @(
             '@dotnet-harness',
-            'agent-first handoff by default',
+            'Delegation Permission: not explicit',
             'direct-main opt-out wording',
             'safety, approval, validation, TaskResult, and git gates active'
         )) {

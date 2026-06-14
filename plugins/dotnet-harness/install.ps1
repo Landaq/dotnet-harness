@@ -2,6 +2,7 @@ param(
     [string]$Root = (Get-Location).Path,
     [string]$ProjectName,
     [string]$ServiceName,
+    [switch]$NoService,
     [switch]$HarnessOnly,
     [switch]$Preview,
     [switch]$NoGitkeep,
@@ -24,6 +25,10 @@ if ($ProjectName) {
 
 if ($ServiceName) {
     $arguments += @("--service-name", $ServiceName)
+}
+
+if ($NoService) {
+    $arguments += "--no-service"
 }
 
 if ($HarnessOnly) {

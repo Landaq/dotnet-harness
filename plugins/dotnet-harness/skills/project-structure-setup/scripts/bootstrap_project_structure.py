@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import subprocess
 from pathlib import Path
+from xml.sax.saxutils import escape
 
 BASE_DIRS = [
     "src/Aspire/AppHost",
@@ -114,6 +116,34 @@ Run `dotnet-harness:project-structure-setup` before `dotnet-harness:task-agents`
 
 After this baseline exists, `dotnet-harness:task-agents` can route work through workflow guardrails, intake planning, implementation coordination, specialist analysis, serial implementation, review, verification, and explicit git operations.
 """
+
+
+def _package_versions_manifest() -> Path:
+    return Path(__file__).resolve().parents[1] / "references" / "package-versions.json"
+
+
+def _package_versions_props() -> str:
+    manifest = _package_versions_manifest()
+    with manifest.open("r", encoding="utf-8") as handle:
+        data = json.load(handle)
+
+    packages = data.get("packages")
+    if not isinstance(packages, dict) or not packages:
+        raise SystemExit(f"Invalid package version manifest: {manifest}")
+
+    lines = [
+        "<Project>",
+        "  <PropertyGroup>",
+        "    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>",
+        "  </PropertyGroup>",
+        "  <ItemGroup>",
+    ]
+    for name, version in packages.items():
+        if not isinstance(name, str) or not isinstance(version, str) or not name or not version:
+            raise SystemExit(f"Invalid package version entry in {manifest}: {name!r}")
+        lines.append(f'    <PackageVersion Include="{escape(name)}" Version="{escape(version)}" />')
+    lines.extend(["  </ItemGroup>", "</Project>", ""])
+    return "\n".join(lines)
 
 def _project_files(project_name: str, service_name: str | None) -> dict[str, str]:
     safe_project = project_name or "DotnetHarness"
@@ -271,31 +301,7 @@ playwright-report/
   </PropertyGroup>
 </Project>
 """,
-        "Directory.Packages.props": """<Project>
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.0.0" />
-    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.0.0" />
-    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.0.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
-    <PackageVersion Include="MudBlazor" Version="8.0.0" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.0.0" />
-    <PackageVersion Include="StackExchange.Redis" Version="2.8.0" />
-    <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageVersion Include="xunit" Version="2.9.2" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
-    <PackageVersion Include="FluentAssertions" Version="6.12.1" />
-    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
-  </ItemGroup>
-</Project>
-""",
+        "Directory.Packages.props": _package_versions_props(),
         "src/Aspire/AppHost/AppHost.csproj": """<Project Sdk="Microsoft.NET.Sdk">
   <Sdk Name="Aspire.AppHost.Sdk" Version="13.0.0" />
   <PropertyGroup>
@@ -1037,6 +1043,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--root", default=".", help="Base path where structure is created")
     parser.add_argument("--project-name", help="Project folder name")
     parser.add_argument("--service-name", help="Optional service name")
+    parser.add_argument("--no-service", action="store_true", help="Skip service scaffold without prompting")
     parser.add_argument("--preview", action="store_true", help="Print target directories only")
     parser.add_argument("--no-gitkeep", action="store_true", help="Do not create .gitkeep files")
     parser.add_argument("--harness-only", action="store_true", help="Install Codex harness files only")
@@ -1054,7 +1061,9 @@ def main() -> int:
         project_name = _normalize_name(_prompt_project_name())
 
     service_name = _normalize_name(args.service_name) if args.service_name else None
-    if service_name is None and not args.harness_only:
+    if args.no_service:
+        service_name = None
+    elif service_name is None and not args.harness_only:
         prompted_service = _prompt_service_name()
         service_name = _normalize_name(prompted_service) if prompted_service else None
 

@@ -1,59 +1,104 @@
 # Phase Contracts
 
-## Agent-First Orchestration
+## Clarify Before Delegating
 
-Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.
+Task Agents must clarify before delegating. Actual subagent execution begins only after Socratic goal clarification is satisfied and runtime delegation permission is present.
 
-Agent-first handoff is the default for non-trivial dotnet-harness work. The user does not need to explicitly request subagent handoff, subagents, or parallel agents.
+When task-agents is active, the main thread is a coordinator/reporter, not the default implementer. The main thread owns requirement intake, Socratic clarification, ambiguity recalculation, goal boundary confirmation, agent route planning, result integration, and final reporting.
 
-Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.
+Subagents own staged analysis, implementation, review, and verification only after clarification passes and delegation permission is present. Each subagent output must be treated as the input contract for the next stage.
 
-When task-agents is active, the main thread is a coordinator/reporter, not the default implementer.
+Do not implement or spawn worker subagents immediately after the user request. First clarify the goal. Then recalculate ambiguity. Then confirm the boundary. Then plan the route. Then hand off if allowed.
 
-Subagents own staged analysis, implementation, review, and verification. Main thread edits are exceptions and must be reported.
+Direct main-thread edits are allowed for direct answers, trivial one-file fixes, user opt-out, host-policy no-spawn fallback, integration of accepted agent output, or non-overlapping unblock work. Direct work must be reported.
 
-Each subagent output must be treated as the input contract for the next stage.
-
-Run task-agent routing before non-trivial implementation starts. Treat every non-trivial implementation, refactor, scaffold, release, validation, review, frontend, backend, full-stack, plugin, or harness task as agent-first orchestration by default when subagent tooling is available.
-
-Direct main-thread edits are allowed only for small fixes, integration of agent output, non-overlapping unblock work, proven subagent-tool fallback, or explicit user opt-out.
-
-Automatic default and opt-out:
-
-- If the request is non-trivial, treat task-agents as active and agent-first by default unless the user explicitly opts out of agents.
-- Treat the request as agent-first when the newest user message asks for non-trivial work, even if it does not mention `@dotnet-harness`, `$dotnet-harness`, `dotnet-harness`, `task-agents`, `/feedback`, `에이전트`, `agents overall`, or `run agents`.
-- Non-trivial work means multi-step, multi-file, architecture/workflow/plugin/harness change, backend/frontend behavior change, test strategy, review, verification, CI, release-sensitive, or unclear approval-boundary work.
-- If the user says `에이전트 쓰지마`, `no agents`, `skip agents`, `직접 해줘`, `메인에서 직접 해줘`, `빠르게 메인에서 해줘`, `main thread only`, or equivalent explicit opt-out, do not spawn subagents; report `Delegation: skipped user-opt-out` and continue main-thread direct.
-- Main-thread direct work is allowed for a direct answer, status check, trivial one-file fix, explicit agent opt-out, or proven subagent tooling fallback.
+Main-thread direct work is allowed for a direct answer, status check, trivial one-file fix, explicit agent opt-out, or proven subagent tooling fallback.
 
 If no agent is called, report why briefly with `Delegation: skipped <reason>`.
 
-## Strict Staged Handoff Order
+## Delegation Permission Gate
 
-Strict staged handoff order:
+Treat the following as explicit authorization for actual subagent execution after clarification:
 
-1. `Phase 0 - Workflow Guardrails`: call `workflow-guardrails`; purpose = safety, approval, destructive/git/secret/production gates.
-2. `Phase 1 - Goal Boundary`: call `goal-boundary`; purpose = goal, non-goals, success criteria, stop condition, Socratic ambiguity gate.
-3. `Phase 2 - Intake Planning`: call `intake-planner`; purpose = work units, affected paths, validation candidates, agent route.
-4. `Phase 3 - Implementation Coordination`: call `implementation-coordinator`; purpose = phase plan, specialist assignment, safe parallel/serial handoff order.
-5. `Phase 4 - Specialist Analysis`: call read-only specialists such as `service-template`, `frontend-ui`, `tdd-test`, or `reference-auditor`; purpose = domain-specific constraints before edits.
-6. `Phase 5 - Bounded Implementation`: call feature-specific worker agents only when write scope is settled; purpose = code/doc/test change in allowed paths.
-7. `Phase 6 - Review`: call `code-reviewer` or feedback specialist; purpose = diff risk, regression, test gap, boundary violation review.
-8. `Phase 7 - Verification`: call `verification-runner`; purpose = build/test/script/smoke evidence and final validation.
-9. `Phase 8 - Git Operation`: call `git-operator` only when user explicitly requested git work; purpose = stage, commit, tag, push, PR, branch/worktree work.
+- `$dotnet-harness`
+- `task-agents`
+- `/feedback`
+- `에이전트`
+- `subagent`
+- `서브에이전트`
+- `에이전트에게 맡겨`
+- `작업을 에이전트들이 수행`
 
-Phase handoff contract:
+If the user asks for implementation, refactoring, review, validation, frontend, backend, full-stack, plugin, or harness work without agent wording, check runtime policy:
 
-- Every phase must state `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.
-- Do not enter next phase until current phase output satisfies its `Output Contract` and `Handoff Gate`.
-- Handoff Gate must include accepted prior result summary, unresolved risks, open questions or `none`, and whether the next phase may proceed.
-- Handoff prompt must include `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.
+- If runtime policy allows default subagent execution, proceed to route planning after Socratic clarification.
+- If runtime policy requires explicit authorization, do not spawn actual subagents. Ask briefly `에이전트에게 맡겨 진행할까요?`, or report `Delegation: skipped no-explicit-agent-request` and continue main-thread direct after clarification.
+- If the user says `에이전트 쓰지마`, `no agents`, `skip agents`, `직접 해줘`, `메인에서 직접 해줘`, `빠르게 메인에서 해줘`, `main thread only`, or equivalent explicit opt-out, do not spawn subagents; report `Delegation: skipped user-opt-out`.
+- If the user says `에이전트 쓰지마`, `no agents`, or equivalent explicit opt-out, do not spawn subagents; report `Delegation: skipped user-opt-out` and continue main-thread direct.
+- Direct work is allowed when the user explicitly opts out of agents.
+
+Non-trivial work means multi-step, multi-file, architecture/workflow/plugin/harness change, backend/frontend behavior change, test strategy, review, verification, CI, release-sensitive, or unclear approval-boundary work.
+
+Read-only clarification helpers such as `goal-boundary` and `intake-planner` also require runtime delegation permission when implemented as actual subagent calls. Without permission, the main thread may perform Socratic clarification and role-based planning, but must not report simulated work as `Agents Used`.
+
+## Strict Workflow Order
+
+Run stages in order unless the user narrows the task:
+
+1. `Requirement Intake`: main thread records request, assumptions, risks, and initial ambiguity.
+2. `Socratic Clarification`: main thread asks targeted questions before implementation or worker handoff.
+3. `Ambiguity Recalculation`: main thread recalculates per-feature ambiguity and average ambiguity.
+4. `Goal Boundary Confirmation`: confirm goal, non-goals, success criteria, stop condition, allowed paths, forbidden paths, validation, git, TaskResult, and risk gates.
+5. `Agent Route Planning`: discover repo-local agents, map roles, decide serial or parallel route, and check delegation permission.
+6. `Subagent Handoff`: call allowed subagents only after clarification is satisfied and handoff inputs are explicit.
+7. `Worker Implementation`: call feature workers only when write scope is settled, permission exists, and dependencies allow serial or parallel execution.
+8. `Review Agent`: call review/feedback agent after meaningful diff or earlier as read-only risk review when allowed.
+9. `Verification Agent`: call verification runner for build/test/script/smoke evidence when allowed.
+10. `Main Thread Final Summary`: integrate results and report changes, verification, delegation, skipped agents, git, and TaskResult.
+
+Legacy phase mapping:
+
+- `Phase 0 - Workflow Guardrails` maps to Requirement Intake risk gates.
+- `Phase 1 - Goal Boundary` maps to Socratic Clarification, Ambiguity Recalculation, and Goal Boundary Confirmation.
+- `Phase 2 - Intake Planning` maps to Agent Route Planning.
+- `Phase 3 - Implementation Coordination` maps to Agent Route Planning and Subagent Handoff.
+- `Phase 4 - Specialist Analysis` maps to Subagent Handoff.
+- `Phase 5 - Bounded Implementation` maps to Worker Implementation.
+- `Phase 6 - Review` maps to Review Agent.
+- `Phase 7 - Verification` maps to Verification Agent.
+- `Phase 8 - Git Operation` is allowed only when the user explicitly requested git work.
+
+## Phase Handoff Contract
+
+Every handoff phase must state `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.
+
+Do not enter the next phase until current phase output satisfies its `Output Contract` and `Handoff Gate`.
+
+Handoff Gate must include accepted prior result summary, unresolved risks, open questions or `none`, average ambiguity %, goal alignment result, delegation permission status, and whether the next phase may proceed.
+
+Handoff prompt must include `Phase`, `Agent`, `Purpose`, `Input Contract`, `Output Contract`, `Handoff Gate`, and `Next Phase`.
+
+Do not hand off to the next agent until previous agent output is explicit, bounded, and usable as the next input contract.
+
+Previous agent output is clear only when it includes: role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.
+
+Each handoff prompt must start with `Prior result accepted:` plus a short caveman summary of the previous agent result and any unresolved risks.
 
 ## Mandatory Socratic Checkpoint
 
-Mandatory Socratic Checkpoint:
-
 Ask at least one Korean Socratic question unless a skip condition applies.
+
+Socratic clarification must cover:
+
+- user's actual purpose;
+- success criteria;
+- scope;
+- non-goals;
+- priorities;
+- allowed files or areas;
+- validation criteria;
+- git, commit, and TaskResult expectation;
+- destructive, secret, network, or production risks.
 
 Ask:
 
@@ -61,7 +106,7 @@ Ask:
 2. State current ambiguity percentage and target average ambiguity `<= 8%`.
 3. Ask 1-3 Korean questions that expose priority, tradeoff, non-goal, affected surface, output location, validation standard, git/release expectation, or stop condition.
 4. Prefer contrastive questions that let the user include one thing and exclude another.
-5. Stop all planning and implementation until the user answers.
+5. Stop implementation and worker handoff until the user answers, unless the task is a direct answer or trivial one-file fix with no unresolved ambiguity.
 
 On user answer:
 
@@ -72,28 +117,7 @@ On user answer:
 - Before moving to the next stage, explicitly show the user the recalculated ambiguity and goal alignment result.
 - Continue this answer -> reassess -> ask loop until average ambiguity is `<= 8%`.
 - Print `Socratic: skipped` with the exact skip condition when skipped.
-- Print `Socratic: satisfied` when satisfied.
-
-## Routing Order
-
-Run stages in order unless user narrows task:
-
-1. Safety gate.
-2. Goal boundary.
-3. Intake planning.
-4. Implementation coordination.
-5. Subagent delegation.
-6. Read-only parallel specialist analysis.
-7. Serial implementation.
-8. Post-implementation review.
-9. Verification.
-10. Explicit git operation.
-
-Subagent delegation must enforce the Agent Execution Contract.
-
-If agent questions, evidence duties, or write sets overlap, merge them, serialize them, or skip the duplicate role with `Delegation: skipped coupled`.
-
-While subagents are running, do not duplicate their implementation scope in the main thread.
+- Print `Socratic: satisfied` only when average ambiguity is `<= 8%` or remaining ambiguity is explicitly moved to Out Of Scope or Todo.
 
 ## Agent Selection Rules
 
@@ -103,15 +127,20 @@ Prefer capabilities when present: workflow or guardrails, goal or boundary, inta
 
 ## Parallelization Rules
 
-Use parallel work when outputs are independent and read-only, or when post-implementation reviewers inspect the same completed diff without editing it. Prefer safe parallel read-only specialist groups over serial analysis when their outputs do not overlap.
+Use parallel work only after Goal Boundary Confirmation and Agent Route Planning. Parallel outputs must be independent, or read-only, or post-implementation reviewers inspecting the same completed diff without editing it.
 
 Safe parallel groups:
 
 - Pre-implementation backend analysis: service-template + TDD/test.
 - Pre-implementation UI/API analysis: frontend/UI + service-template + TDD/test.
 - Pre-implementation structure analysis: reference/audit + TDD/test.
+- Worker implementation: backend-worker + frontend-worker + test-worker + docs-harness-worker only when write sets are disjoint and contracts are stable.
 - Post-implementation review: code-reviewer + reference/auditor when architecture boundaries changed.
 - Post-implementation verification: verification-runner can run in parallel only when its command is non-mutating and independent of review outputs.
+
+If agent questions, evidence duties, or write sets overlap, merge them, serialize them, or skip the duplicate role with `Delegation: skipped coupled`.
+
+While subagents are running, do not duplicate their implementation scope in the main thread.
 
 ## Output Contract
 
@@ -122,13 +151,17 @@ For orchestration turns, include:
 - `Purpose`: why this phase/agent exists.
 - `Input Contract`: accepted prior result used as input.
 - `Output Contract`: required result fields for next phase.
-- `Handoff Gate`: pass/fail, unresolved risks, open questions or `none`, and next phase permission.
+- `Handoff Gate`: pass/fail, unresolved risks, open questions or `none`, ambiguity %, goal alignment, delegation permission, and next phase permission.
 - `Stage`: current workflow stage.
 - `Discovered`: relevant agents/skills found.
 - `Route`: ordered stages, including any safe parallel read-only groups.
 - `Workers`: feature worker agents, feature slice ownership, parallel eligibility, and serial order when needed.
-- `Socratic`: questions asked, skipped with reason, or blocked waiting for user answer.
+- `Socratic`: asked, satisfied, skipped with reason, or blocked waiting for user answer.
+- `Ambiguity`: before/after per feature and average.
+- `Delegation Permission`: explicit, not explicit, user-opt-out, host-policy, or unavailable.
 - `Delegation`: spawned subagents, skipped eligible roles with concrete reasons, utilization floor satisfied or not, and fallback status.
+- `Agents Used`: actual spawned agents only.
+- `Agents Skipped`: spawnable but skipped agents and reasons.
 - `Gate`: clarification, approval, test, verification, or git requirement.
 - `Action`: what happens next.
 
@@ -137,6 +170,9 @@ Before the final user response, report:
 - `Agents Used`: agents called, role, purpose, and whether each result was reflected.
 - `Agents Skipped`: skipped eligible agents and short reason, or `none`.
 - `Agent Results Reflected`: yes/no; if no, state why.
+- `Socratic`: asked/satisfied/skipped.
+- `Ambiguity`: before/after average and any remaining feature ambiguity.
+- `Delegation Permission`: explicit, not explicit, user-opt-out, host-policy, or unavailable.
 - `Main Thread Work`: integration, non-overlapping verification, cleanup, or unblock work performed directly.
 - `Review/Verification Evidence`: reviewer findings and validation command outcomes.
 - `Files Changed`: changed paths.

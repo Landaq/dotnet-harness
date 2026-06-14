@@ -1,8 +1,19 @@
 # Version
 
-Current version: `0.4.14`
+Current version: `0.4.15`
 
 ## Release Notes
+
+### 0.4.15
+
+- Require Socratic clarification and ambiguity recalculation before Task Agents
+  delegation, with runtime delegation permission reporting.
+- Add release scaffold smoke validation for no-service, with-service,
+  harness-only, and upgrade preview/apply paths.
+- Run generated scaffold restore, build, and test during release validation.
+- Move scaffold package versions to
+  `project-structure-setup/references/package-versions.json`.
+- Add `--no-service` / `-NoService` for non-interactive scaffold automation.
 
 ### 0.4.14
 
