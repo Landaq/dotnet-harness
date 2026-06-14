@@ -46,28 +46,39 @@ Task Agents choose one mode before routing:
 
 - `lightweight`: quick path for trivial or small tasks. Phase contracts stay
   internal, Phase 5 workers are not used, and the final report stays concise.
-- `standard`: default path for non-trivial work. Phase 0-8 applies, only needed
-  agents are called, and Phase 5 workers are considered only for settled slices.
+- `standard`: default path for non-trivial work. Phase 0-8 applies, actual
+  subagent delegation is assumed even when the user does not mention agents,
+  and Phase 5 workers are considered only for settled slices.
 - `deep`: release, scaffold, architecture, high-risk, or explicitly requested
   path. Socratic clarification, full handoff gates, review, and verification are
   stricter.
 
 Phase 5 workers (`backend-worker`, `frontend-worker`, `test-worker`, and
-`docs-harness-worker`) run only in `standard` or `deep`. Parallel workers are
-allowed only when write sets, contracts, package/solution files, runtime state,
-and validation evidence are independent.
+`docs-harness-worker`) run only in `standard` or `deep`. Parallel read-only
+specialists and Phase 5 workers are preferred when write sets, contracts,
+package/solution files, runtime state, and validation evidence are independent.
+Agents are skipped for user preference only on explicit opt-out wording such as
+`에이전트 쓰지마`, `no agents`, `메인에서 직접 해줘`, or `직접 해줘`; Task Result
+reports and git operations remain explicit-only.
 
-Current scaffold limits: the default skeleton is useful for .NET 10 Aspire/Clean
-Architecture startup, but service-specific test `.csproj` baselines and
-automatic `ServiceName` AppHost/Gateway integration are planned follow-up work.
-Until then, scaffold consumers should verify generated README limitations and run
-the release or project smoke checks before treating the scaffold as complete.
+For non-trivial work, subagent and safe parallel-agent execution is the default.
+The user does not need to mention agents. Direct main-thread execution is used
+only for trivial work, unavailable subagent tooling, or explicit opt-out wording
+such as `에이전트 쓰지마`, `no agents`, `skip agents`, `직접 해줘`, or
+`메인에서 직접 해줘`, or `main thread only`.
 
-Project policy overrides: Task Agents inspect `.codex/harness-config.json` when
-present. UI policy keys such as `ui.defaultLibrary`, `ui.biLibrary`, and
-`ui.devExpressVersion` override the default MudBlazor/DevExpress guidance for
-that target repo. The setup scaffold still emits the default stack unless a
-future scaffold option explicitly changes templates.
+Current scaffold baseline: setup creates .NET project files, solution entries,
+Unit/Architecture/APIGateway Functional xUnit smoke tests, and optional
+`ServiceName` AppHost/Gateway integration. Scaffold consumers should still run
+the generated solution build/test smoke checks before treating the target project
+as ready for feature work.
+
+Project policy overrides: setup creates `.codex/harness-config.json` when it is
+missing. Task Agents inspect that file before UI work. Keys such as
+`ui.defaultLibrary`, `ui.biLibrary`, and `ui.devExpressVersion` override the
+default MudBlazor/DevExpress guidance for that target repo. The setup scaffold
+still emits the default stack unless a future scaffold option explicitly changes
+templates.
 
 Release version helper:
 

@@ -18,7 +18,7 @@ Use when creating/recreating default .NET 10 baseline.
 - repo-local Codex harness (`AGENTS.md`, `.codex/agents`, `.codex/scripts`) when available
 - no repo-local `.codex/skills`; use `dotnet-harness:*` plugin skills
 - .NET 10 skeleton: Aspire, Minimal API, YARP, Scalar, EF Core, Redis, Blazor Auto, MudBlazor, mediator-like dispatch
-- Optional project policy override: `.codex/harness-config.json` can document UI defaults for later Task Agents routing; setup still emits the default stack unless a future scaffold option explicitly changes templates.
+- Project policy override: create `.codex/harness-config.json` when missing so later Task Agents routing can read UI defaults; setup still emits the default stack unless a future scaffold option explicitly changes templates.
 
 ## Service scaffold (optional)
 

@@ -11,6 +11,27 @@ function Add-Failure {
     $failures.Add($Message) | Out-Null
 }
 
+function ConvertTo-PolicyPattern {
+    param([string]$Text)
+
+    $tokens = [regex]::Matches($Text, "[\p{L}\p{N}_@/$%+.-]+") |
+        ForEach-Object { [regex]::Escape($_.Value) }
+    if (-not $tokens -or $tokens.Count -eq 0) {
+        return [regex]::Escape($Text)
+    }
+
+    return "(?is)" + ($tokens -join "[\s\S]{0,120}")
+}
+
+function Test-PolicyPattern {
+    param(
+        [string]$Content,
+        [string]$Text
+    )
+
+    return $Content -match (ConvertTo-PolicyPattern $Text)
+}
+
 function Require-Path {
     param([string]$Path)
     if (-not (Test-Path -LiteralPath $Path)) {
@@ -21,9 +42,11 @@ function Require-Path {
 $agentsDir = Join-Path $RepoRoot ".codex\agents"
 $skillsDir = Join-Path $RepoRoot ".codex\skills"
 $rootAgents = Join-Path $RepoRoot "AGENTS.md"
+$harnessConfig = Join-Path $RepoRoot ".codex\harness-config.json"
 
 Require-Path $agentsDir
 Require-Path $rootAgents
+Require-Path $harnessConfig
 $ensureCavemanScript = Join-Path $RepoRoot ".codex\scripts\ensure-caveman-skill.ps1"
 $writeTaskResultScript = Join-Path $RepoRoot ".codex\scripts\write-task-result.ps1"
 $writeTaskResultPython = Join-Path $RepoRoot ".codex\scripts\write_task_result.py"
@@ -192,7 +215,7 @@ if (Test-Path -LiteralPath $agentsDir) {
             "Socratic: satisfied",
             "Goal Alignment"
         )) {
-            if ($goalBoundaryText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $goalBoundaryText $requiredText)) {
                 Add-Failure "goal-boundary missing Socratic reassessment policy: $requiredText"
             }
         }
@@ -208,7 +231,8 @@ if (Test-Path -LiteralPath $agentsDir) {
             'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
             'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
             'Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.',
-            'Agent-first handoff is the default for non-trivial dotnet-harness work. The user does not need to explicitly request subagent handoff.',
+            'Agent-first handoff is the default for non-trivial dotnet-harness work. The user does not need to explicitly request subagent handoff, subagents, or parallel agents.',
+            'Direct-main execution is opt-out only for non-trivial work',
             'Each subagent output must be treated as the input contract for the next stage.',
             'Phase 0 Workflow Guardrails',
             'Phase 1 Goal Boundary',
@@ -251,7 +275,7 @@ if (Test-Path -LiteralPath $agentsDir) {
             'delegation evidence',
             'For `lightweight` and `standard`, keep ambiguity percentage internal unless a gate blocks progress; report remaining uncertainty in natural language.'
         )) {
-            if ($implementationText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $implementationText $requiredText)) {
                 Add-Failure "implementation-coordinator missing agent-first policy: $requiredText"
             }
         }
@@ -271,12 +295,12 @@ if (Test-Path -LiteralPath $agentsDir) {
             '/feedback',
             '에이전트들이 전반적으로 수행',
             '에이전트 쓰지마',
-            'agent-first orchestration request',
+            'agent-first orchestration request by default',
             'planning, implementation, feedback/code-review, and verification should be assigned to discovered repo-local agents',
             'For backend non-trivial work, route pre-implementation analysis to `service-template` and `tdd-test`.',
             'Delegation: skipped user-opt-out'
         )) {
-            if ($intakeText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $intakeText $requiredText)) {
                 Add-Failure "intake-planner missing agent-first intake policy: $requiredText"
             }
         }
@@ -290,7 +314,7 @@ if (Test-Path -LiteralPath $agentsDir) {
             'review scope, success criteria, risk, and likely regression surfaces',
             'Return `Next` as actionable next-stage input, not completion proof.'
         )) {
-            if ($reviewText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $reviewText $requiredText)) {
                 Add-Failure "code-reviewer missing feedback routing policy: $requiredText"
             }
         }
@@ -307,7 +331,7 @@ if (Test-Path -LiteralPath $agentsDir) {
             'TaskResult is created only when the user explicitly says `TaskResult`, `result report`, `HTML report`, `결과 HTML`, `작업 결과 파일`',
             'Report whether git was explicitly requested'
         )) {
-            if ($verificationText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $verificationText $requiredText)) {
                 Add-Failure "verification-runner missing final reporting policy: $requiredText"
             }
         }
@@ -318,11 +342,11 @@ if (Test-Path -LiteralPath $agentsDir) {
         $workflowText = Get-Content -LiteralPath $workflowGuardrails -Raw
         foreach ($requiredText in @(
             '@dotnet-harness',
-            'agent-first handoff triggers',
+            'agent-first handoff by default',
             'direct-main opt-out wording',
             'safety, approval, validation, TaskResult, and git gates active'
         )) {
-            if ($workflowText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $workflowText $requiredText)) {
                 Add-Failure "workflow-guardrails missing automatic handoff policy: $requiredText"
             }
         }
@@ -334,7 +358,7 @@ if (Test-Path -LiteralPath $agentsDir) {
         foreach ($requiredText in @(
             'Only operate on git state when the user explicitly asks for commit, push, PR, merge, reset, clean, branch, or worktree actions.'
         )) {
-            if ($gitText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $gitText $requiredText)) {
                 Add-Failure "git-operator missing explicit git request policy: $requiredText"
             }
         }
@@ -348,7 +372,7 @@ if (Test-Path -LiteralPath $agentsDir) {
             '-AllowUserSkillInstall',
             '-SkillSource <path-to-caveman-skill>'
         )) {
-            if ($ensureCavemanText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $ensureCavemanText $requiredText)) {
                 Add-Failure "ensure-caveman-skill missing sandbox-safe optional install policy: $requiredText"
             }
         }
@@ -362,7 +386,7 @@ if (Test-Path -LiteralPath $agentsDir) {
             '--archive-dir',
             '--no-prune'
         )) {
-            if ($writeTaskResultText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $writeTaskResultText $requiredText)) {
                 Add-Failure "write-task-result wrapper missing retention option: $requiredText"
             }
         }
@@ -376,7 +400,7 @@ if (Test-Path -LiteralPath $agentsDir) {
             'old.replace(target)',
             '--no-prune'
         )) {
-            if ($writeTaskResultPythonText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $writeTaskResultPythonText $requiredText)) {
                 Add-Failure "write_task_result.py missing archive-based retention policy: $requiredText"
             }
         }
@@ -413,7 +437,7 @@ if (Test-Path -LiteralPath $agentsDir) {
             "Next",
             "Preserve exact file paths, commands, errors, API names"
         )) {
-            if ($agentText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $agentText $requiredText)) {
                 Add-Failure "$agentName missing compressed return policy: $requiredText"
             }
         }
@@ -435,7 +459,7 @@ if (Test-Path -LiteralPath $agentsDir) {
             'Require workflow mode input; refuse `lightweight` and run only in `standard` or `deep`.',
             'Require allowed paths, forbidden paths, parallel eligibility, expected changed files, validation evidence, and stop condition.'
         )) {
-            if ($workerText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $workerText $requiredText)) {
                 Add-Failure "$workerName missing worker mode gate policy: $requiredText"
             }
         }

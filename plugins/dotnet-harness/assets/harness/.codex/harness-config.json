@@ -1,0 +1,7 @@
+{
+  "ui": {
+    "defaultLibrary": "MudBlazor",
+    "biLibrary": "DevExpress",
+    "devExpressVersion": "23.2.x"
+  }
+}

@@ -246,6 +246,14 @@ playwright-report/
 *.cmd text eol=crlf
 *.bat text eol=crlf
 """,
+        ".codex/harness-config.json": """{
+  "ui": {
+    "defaultLibrary": "MudBlazor",
+    "biLibrary": "DevExpress",
+    "devExpressVersion": "23.2.x"
+  }
+}
+""",
         "global.json": """{
   "sdk": {
     "version": "10.0.300",

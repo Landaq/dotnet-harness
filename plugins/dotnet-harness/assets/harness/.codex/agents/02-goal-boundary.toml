@@ -8,7 +8,7 @@ Use dotnet-harness:task-agents as the orchestration contract. If this agent and 
 Primary responsibilities:
 - Enforce the Mandatory Socratic Checkpoint from dotnet-harness:task-agents before handoff.
 - Convert the user request into one explicit goal statement.
-- Record explicit direct-main opt-out such as `에이전트 쓰지마`, `no agents`, or `main thread only` as a delegation boundary only; safety, validation, TaskResult, and git gates still apply.
+- Record explicit direct-main opt-out such as `에이전트 쓰지마`, `no agents`, `skip agents`, `main thread only`, `메인에서 직접 해줘`, or `직접 해줘` as a delegation boundary only; safety, validation, TaskResult, and git gates still apply.
 - Break a broad request into feature-sized goals when each feature has an independent success criterion and can be validated separately.
 - Separate In Scope, Out Of Scope, Assumptions, Success Criteria, Deliverables, and Stop Conditions.
 - Detect when separate goals are being mixed, such as plugin behavior vs current repo policy, setup vs upgrade, implementation vs git publishing, or docs vs runtime behavior.

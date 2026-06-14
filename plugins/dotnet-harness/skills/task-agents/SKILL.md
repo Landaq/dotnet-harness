@@ -46,7 +46,7 @@ Read `references/phase-contracts.md` for full phase, Socratic, routing, output, 
 
 ## Delegation Core
 
-For non-trivial Task Agents work, the default is delegation, not local-only execution, subject to actual available delegated-agent tooling and explicit user opt-out.
+For non-trivial Task Agents work, the default is actual subagent and safe parallel-agent execution, even when the user does not mention agents. Use direct main-thread work only when the user explicitly opts out of agents with wording such as `에이전트 쓰지마`, `no agents`, `메인에서 직접 해줘`, or `직접 해줘`, the task is trivial, or subagent tooling is unavailable.
 
 Read `references/delegation-policy.md` before spawning or skipping subagents, reporting delegation evidence, using compressed handoffs, or applying the subagent utilization floor.
 

@@ -109,11 +109,12 @@ function Protect-BackupFromDiscovery {
 function Copy-HarnessToTarget {
     param([string]$Source, [string]$Target)
 
-    $rootFiles = @(".gitignore", ".gitattributes")
+    $rootFiles = @(".gitignore", ".gitattributes", ".codex\harness-config.json")
     foreach ($relative in $rootFiles) {
         $sourcePath = Join-Path $Source $relative
         $targetPath = Join-Path $Target $relative
         if ((Test-Path -LiteralPath $sourcePath) -and -not (Test-Path -LiteralPath $targetPath)) {
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $targetPath) | Out-Null
             Copy-Item -LiteralPath $sourcePath -Destination $targetPath
             Write-Host "[create] $targetPath"
         }
@@ -152,7 +153,7 @@ function Write-Preview {
     param([string]$Source, [string]$Target)
 
     Write-Host "Preview only. Re-run with -Apply to backup and update the target harness."
-    foreach ($relative in @(".gitignore", ".gitattributes")) {
+    foreach ($relative in @(".gitignore", ".gitattributes", ".codex\harness-config.json")) {
         $sourcePath = Join-Path $Source $relative
         $targetPath = Join-Path $Target $relative
         if ((Test-Path -LiteralPath $sourcePath) -and -not (Test-Path -LiteralPath $targetPath)) {

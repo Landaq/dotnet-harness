@@ -12,6 +12,27 @@ function Add-Failure {
     $failures.Add($Message) | Out-Null
 }
 
+function ConvertTo-PolicyPattern {
+    param([string]$Text)
+
+    $tokens = [regex]::Matches($Text, "[\p{L}\p{N}_@/$%+.-]+") |
+        ForEach-Object { [regex]::Escape($_.Value) }
+    if (-not $tokens -or $tokens.Count -eq 0) {
+        return [regex]::Escape($Text)
+    }
+
+    return "(?is)" + ($tokens -join "[\s\S]{0,120}")
+}
+
+function Test-PolicyPattern {
+    param(
+        [string]$Content,
+        [string]$Text
+    )
+
+    return $Content -match (ConvertTo-PolicyPattern $Text)
+}
+
 function Invoke-ValidationStep {
     param(
         [string]$Name,
@@ -37,6 +58,7 @@ $taskAgentsSkill = Join-Path $skillsRoot "task-agents\SKILL.md"
 $manifestPath = Join-Path $pluginRootPath ".codex-plugin\plugin.json"
 $optionalCavemanSkill = Join-Path $pluginRootPath "assets\optional-skills\caveman\SKILL.md"
 $ensureCavemanScript = Join-Path $harnessRoot ".codex\scripts\ensure-caveman-skill.ps1"
+$harnessConfig = Join-Path $harnessRoot ".codex\harness-config.json"
 $installScript = Join-Path $pluginRootPath "install.ps1"
 $bootstrapScript = Join-Path $skillsRoot "project-structure-setup\scripts\bootstrap_project_structure.py"
 $upgradeScript = Join-Path $harnessRoot ".codex\scripts\upgrade-harness.ps1"
@@ -189,7 +211,7 @@ Invoke-ValidationStep "packaging hygiene" {
         'Subagent Utilization Floor',
         'Subagent delegation',
         'Delegation',
-        'default is delegation, not local-only execution',
+        'default is delegation and safe parallel-agent execution, not local-only execution',
         'For complex or multi-step work, spawn at least one read-only specialist subagent before implementation unless fallback or an explicit skip condition applies.',
         'Spawn at least one pre-implementation specialist subagent',
         'spawn at least one post-implementation subagent',
@@ -211,7 +233,7 @@ Invoke-ValidationStep "packaging hygiene" {
         'No-spawn decisions must include the exact reason.',
         'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
         'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
-        'Agent-first handoff is the default for non-trivial dotnet-harness work. The user does not need to explicitly request subagent handoff.',
+        'does not need to explicitly request subagent handoff, subagents, or parallel agents',
         'When task-agents is active, the main thread is a coordinator/reporter, not the default implementer.',
         'Subagents own staged analysis, implementation, review, and verification. Main thread edits are exceptions and must be reported.',
         'Each subagent output must be treated as the input contract for the next stage.',
@@ -219,10 +241,10 @@ Invoke-ValidationStep "packaging hygiene" {
         'Previous agent output is clear only when it includes: role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.',
         'Each handoff prompt must start with `Prior result accepted:` plus short caveman summary of the previous agent result and any unresolved risks.',
         'TaskResult remains opt-in only.',
-        'Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.',
-        'If the user explicitly invokes `@dotnet-harness` for non-trivial work, treat the request as task-agents active and agent-first unless the user explicitly opts out of agents.',
+        'Direct main-thread edits are allowed only for small fixes',
+        'If the request is non-trivial, treat task-agents as active and agent-first by default unless the user explicitly opts out of agents.',
         'Non-trivial work means multi-step, multi-file, architecture/workflow/plugin/harness change, backend/frontend behavior change, test strategy, review, verification, CI, release-sensitive, or unclear approval-boundary work.',
-        'Main-thread direct work is allowed for a direct answer, status check, trivial one-file fix, or explicit agent opt-out.',
+        'Main-thread direct work is allowed for a direct answer, status check, trivial one-file fix, explicit agent opt-out, or proven subagent tooling fallback.',
         'If the user says `에이전트 쓰지마`, `no agents`, or equivalent explicit opt-out, do not spawn subagents; report `Delegation: skipped user-opt-out` and continue main-thread direct.',
         'Strict staged handoff order',
         'Phase 0 - Workflow Guardrails',
@@ -240,7 +262,7 @@ Invoke-ValidationStep "packaging hygiene" {
         'Phase 5 worker partition',
         'Phase 5 worker agents are `standard`/`deep` only; `lightweight` mode must not call `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker`.',
         'Preferred workers: `backend-worker`, `frontend-worker`, `test-worker`, and `docs-harness-worker`.',
-        'Run feature workers in parallel only when their write sets are disjoint, public contracts are stable, migrations are absent, package/solution files are not shared, and validation can run independently.',
+        'Run feature workers in parallel by default when their write sets are disjoint',
         'Run feature workers serially when slices share files, contracts, migrations, package files, solution files, runtime state, release state, or unresolved decisions.',
         'Parallel: yes',
         'Parallel: no',
@@ -256,7 +278,7 @@ Invoke-ValidationStep "packaging hygiene" {
         'Subagent output as next input',
         'For backend non-trivial work, spawn `service-template` and `tdd-test` as read-only specialists before implementation unless fallback, explicit opt-out, or a concrete skip condition applies.',
         '/feedback',
-        '에이전트들이 전반적으로 수행',
+        'user explicitly opts out of agents',
         'If no agent is called, report why briefly with `Delegation: skipped <reason>`.',
         'If agent questions, evidence duties, or write sets overlap, merge them, serialize them, or skip the duplicate role with `Delegation: skipped coupled`.',
         'While subagents are running, do not duplicate their implementation scope in the main thread.',
@@ -310,7 +332,7 @@ Invoke-ValidationStep "packaging hygiene" {
         'If `.codex/harness-config.json` declares `ui.defaultLibrary`, `ui.biLibrary`, or `ui.devExpressVersion`, follow that project config and report the override.',
         'Supported default-library examples include `MudBlazor`, `FluentUI`, `BlazorBuiltIn`, and `TailwindOnly`'
     )) {
-        if ($taskAgentsPolicy -notmatch [regex]::Escape($requiredText)) {
+        if (-not (Test-PolicyPattern $taskAgentsPolicy $requiredText)) {
             throw "Task Agents must define actual subagent delegation behavior: missing '$requiredText'."
         }
     }
@@ -339,7 +361,7 @@ Invoke-ValidationStep "packaging hygiene" {
             'Next',
             'Preserve exact file paths, commands, errors, API names'
         )) {
-            if ($agentText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $agentText $requiredText)) {
                 throw "Agent must define compressed handoff behavior: $agentFile missing '$requiredText'."
             }
         }
@@ -354,12 +376,12 @@ Invoke-ValidationStep "packaging hygiene" {
         '/feedback',
         '에이전트들이 전반적으로 수행',
         '에이전트 쓰지마',
-        'agent-first orchestration request',
+        'agent-first orchestration request by default',
         'planning, implementation, feedback/code-review, and verification should be assigned to discovered repo-local agents',
         'For backend non-trivial work, route pre-implementation analysis to `service-template` and `tdd-test`.',
         'Delegation: skipped user-opt-out'
     )) {
-        if ($intakePlannerText -notmatch [regex]::Escape($requiredText)) {
+        if (-not (Test-PolicyPattern $intakePlannerText $requiredText)) {
             throw "Intake planner must detect agent-first routing: missing '$requiredText'."
         }
     }
@@ -374,7 +396,8 @@ Invoke-ValidationStep "packaging hygiene" {
         'Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.',
         'Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.',
         'Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.',
-        'Agent-first handoff is the default for non-trivial dotnet-harness work. The user does not need to explicitly request subagent handoff.',
+        'does not need to explicitly request subagent handoff, subagents, or parallel agents',
+        'Direct-main execution is opt-out only for non-trivial work',
         'Each subagent output must be treated as the input contract for the next stage.',
         'Phase 0 Workflow Guardrails',
         'Phase 1 Goal Boundary',
@@ -417,7 +440,7 @@ Invoke-ValidationStep "packaging hygiene" {
         'delegation evidence',
         'For `lightweight` and `standard`, keep ambiguity percentage internal unless a gate blocks progress; report remaining uncertainty in natural language.'
     )) {
-        if ($implementationCoordinatorText -notmatch [regex]::Escape($requiredText)) {
+        if (-not (Test-PolicyPattern $implementationCoordinatorText $requiredText)) {
             throw "Implementation coordinator must enforce actual subagent tool usage: missing '$requiredText'."
         }
     }
@@ -440,7 +463,7 @@ Invoke-ValidationStep "packaging hygiene" {
             'Require workflow mode input; refuse `lightweight` and run only in `standard` or `deep`.',
             'Require allowed paths, forbidden paths, parallel eligibility, expected changed files, validation evidence, and stop condition.'
         )) {
-            if ($workerText -notmatch [regex]::Escape($requiredText)) {
+            if (-not (Test-PolicyPattern $workerText $requiredText)) {
                 throw "Worker agent must enforce workflow mode gate: $workerName missing '$requiredText'."
             }
         }
@@ -458,7 +481,7 @@ Invoke-ValidationStep "packaging hygiene" {
         'review scope, success criteria, risk, and likely regression surfaces',
         'Return `Next` as actionable next-stage input, not completion proof.'
     )) {
-        if ($codeReviewerText -notmatch [regex]::Escape($requiredText)) {
+        if (-not (Test-PolicyPattern $codeReviewerText $requiredText)) {
             throw "Code reviewer must support early feedback routing: missing '$requiredText'."
         }
     }
@@ -473,7 +496,7 @@ Invoke-ValidationStep "packaging hygiene" {
         'TaskResult is created only when the user explicitly says `TaskResult`, `result report`, `HTML report`, `결과 HTML`, `작업 결과 파일`',
         'Report whether git was explicitly requested'
     )) {
-        if ($verificationRunnerText -notmatch [regex]::Escape($requiredText)) {
+        if (-not (Test-PolicyPattern $verificationRunnerText $requiredText)) {
             throw "Verification runner must enforce final reporting policy: missing '$requiredText'."
         }
     }
@@ -481,11 +504,11 @@ Invoke-ValidationStep "packaging hygiene" {
     $workflowGuardrailsText = Get-Content -LiteralPath (Join-Path $harnessRoot ".codex\agents\01-workflow-guardrails.toml") -Raw
     foreach ($requiredText in @(
         '@dotnet-harness',
-        'agent-first handoff triggers',
+        'agent-first handoff by default',
         'direct-main opt-out wording',
         'safety, approval, validation, TaskResult, and git gates active'
     )) {
-        if ($workflowGuardrailsText -notmatch [regex]::Escape($requiredText)) {
+        if (-not (Test-PolicyPattern $workflowGuardrailsText $requiredText)) {
             throw "Workflow guardrails must classify automatic handoff policy: missing '$requiredText'."
         }
     }
@@ -494,7 +517,7 @@ Invoke-ValidationStep "packaging hygiene" {
     foreach ($requiredText in @(
         'Only operate on git state when the user explicitly asks for commit, push, PR, merge, reset, clean, branch, or worktree actions.'
     )) {
-        if ($gitOperatorText -notmatch [regex]::Escape($requiredText)) {
+        if (-not (Test-PolicyPattern $gitOperatorText $requiredText)) {
             throw "Git operator must require explicit git request: missing '$requiredText'."
         }
     }
@@ -511,7 +534,7 @@ Invoke-ValidationStep "packaging hygiene" {
         'Socratic: satisfied',
         'Goal Alignment'
     )) {
-        if ($goalBoundaryText -notmatch [regex]::Escape($requiredText)) {
+        if (-not (Test-PolicyPattern $goalBoundaryText $requiredText)) {
             throw "Goal boundary agent must enforce Socratic reassessment loop: missing '$requiredText'."
         }
     }
@@ -526,6 +549,16 @@ Invoke-ValidationStep "packaging hygiene" {
         }
     }
 
+    if (-not (Test-Path -LiteralPath $harnessConfig)) {
+        throw "Missing harness config defaults: $harnessConfig"
+    }
+    $harnessConfigText = Get-Content -LiteralPath $harnessConfig -Raw
+    foreach ($requiredText in @("defaultLibrary", "biLibrary", "devExpressVersion")) {
+        if (-not (Test-PolicyPattern $harnessConfigText $requiredText)) {
+            throw "Harness config defaults missing required UI key: '$requiredText'."
+        }
+    }
+
     $ensureCaveman = Get-Content -LiteralPath $ensureCavemanScript -Raw
     foreach ($requiredText in @(
         'SkillRoot = (Join-Path $HOME ".agents\skills\caveman")',
@@ -535,7 +568,7 @@ Invoke-ValidationStep "packaging hygiene" {
         '-AllowUserSkillInstall',
         '-SkillSource <path-to-caveman-skill>'
     )) {
-        if ($ensureCaveman -notmatch [regex]::Escape($requiredText)) {
+        if (-not (Test-PolicyPattern $ensureCaveman $requiredText)) {
             throw "Caveman optional skill helper missing required behavior: '$requiredText'."
         }
     }
@@ -544,6 +577,13 @@ Invoke-ValidationStep "packaging hygiene" {
         $scriptText = Get-Content -LiteralPath $scriptPath -Raw
         if ($scriptText -notmatch "InstallOptionalSkills|install-optional-skills") {
             throw "Setup/upgrade path must expose optional skill installation: $scriptPath"
+        }
+    }
+
+    $upgradeText = Get-Content -LiteralPath $upgradeScript -Raw
+    foreach ($requiredText in @(".codex\harness-config.json", "[create]", "[preview] create")) {
+        if (-not (Test-PolicyPattern $upgradeText $requiredText)) {
+            throw "Upgrade path must create missing harness config without overwriting: '$requiredText'."
         }
     }
 
@@ -556,13 +596,13 @@ Invoke-ValidationStep "packaging hygiene" {
     }
     $writeTaskResultText = Get-Content -LiteralPath $writeTaskResultScript -Raw
     foreach ($requiredText in @('ArchiveDir', 'NoPrune', '--archive-dir', '--no-prune')) {
-        if ($writeTaskResultText -notmatch [regex]::Escape($requiredText)) {
+        if (-not (Test-PolicyPattern $writeTaskResultText $requiredText)) {
             throw "TaskResult wrapper missing retention option: '$requiredText'."
         }
     }
     $writeTaskResultPythonText = Get-Content -LiteralPath $writeTaskResultPython -Raw
     foreach ($requiredText in @('archive_dir', 'no_prune', 'old.replace(target)', '--no-prune')) {
-        if ($writeTaskResultPythonText -notmatch [regex]::Escape($requiredText)) {
+        if (-not (Test-PolicyPattern $writeTaskResultPythonText $requiredText)) {
             throw "TaskResult helper missing archive retention behavior: '$requiredText'."
         }
     }
@@ -577,7 +617,7 @@ Invoke-ValidationStep "packaging hygiene" {
         'VERSION.md',
         '-Apply'
     )) {
-        if ($releaseHelperText -notmatch [regex]::Escape($requiredText)) {
+        if (-not (Test-PolicyPattern $releaseHelperText $requiredText)) {
             throw "Release helper missing required behavior: '$requiredText'."
         }
     }

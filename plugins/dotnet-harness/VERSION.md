@@ -1,8 +1,20 @@
 # Version
 
-Current version: `0.4.13`
+Current version: `0.4.14`
 
 ## Release Notes
+
+### 0.4.14
+
+- Make subagent and safe parallel-agent execution the default for non-trivial
+  Task Agents work, even when the user does not explicitly mention agents.
+- Treat direct main-thread execution as an explicit opt-out path for phrases
+  such as `에이전트 쓰지마`, `no agents`, `skip agents`, `직접 해줘`, and
+  `main thread only`.
+- Add generated `.codex/harness-config.json` defaults for scaffold and harness
+  upgrade paths so UI/library policy overrides are available in target repos.
+- Relax policy validators from brittle full-sentence matching toward semantic
+  token-pattern checks while preserving exact checks for fixed config blocks.
 
 ### 0.4.13
 

@@ -4,7 +4,7 @@
 
 Main thread is the orchestrator, not the default implementer, for non-trivial work when task-agents is active.
 
-Agent-first handoff is the default for non-trivial dotnet-harness work. The user does not need to explicitly request subagent handoff.
+Agent-first handoff is the default for non-trivial dotnet-harness work. The user does not need to explicitly request subagent handoff, subagents, or parallel agents.
 
 Agent-first means planning, implementation, review, and verification should be delegated to discovered repo-local agents whenever the task is non-trivial and subagent capability is available.
 
@@ -14,17 +14,17 @@ Subagents own staged analysis, implementation, review, and verification. Main th
 
 Each subagent output must be treated as the input contract for the next stage.
 
-Run task-agent routing before non-trivial implementation starts. If the user explicitly says `/feedback`, `task-agents`, `에이전트를 활용`, `에이전트들이 전반적으로 수행`, `agents overall`, `run agents`, or similar wording, treat the request as agent-first orchestration instead of agent-assisted review.
+Run task-agent routing before non-trivial implementation starts. Treat every non-trivial implementation, refactor, scaffold, release, validation, review, frontend, backend, full-stack, plugin, or harness task as agent-first orchestration by default when subagent tooling is available.
 
-Direct main-thread edits are allowed only for small fixes, integration of agent output, or non-overlapping unblock work.
+Direct main-thread edits are allowed only for small fixes, integration of agent output, non-overlapping unblock work, proven subagent-tool fallback, or explicit user opt-out.
 
-Automatic trigger and opt-out:
+Automatic default and opt-out:
 
-- If the user explicitly invokes `@dotnet-harness` for non-trivial work, treat the request as task-agents active and agent-first unless the user explicitly opts out of agents.
-- Treat the request as agent-first when the newest user message mentions `@dotnet-harness`, `$dotnet-harness`, `dotnet-harness`, `task-agents`, `/feedback`, `에이전트`, `agents overall`, `run agents`, or asks for non-trivial work.
+- If the request is non-trivial, treat task-agents as active and agent-first by default unless the user explicitly opts out of agents.
+- Treat the request as agent-first when the newest user message asks for non-trivial work, even if it does not mention `@dotnet-harness`, `$dotnet-harness`, `dotnet-harness`, `task-agents`, `/feedback`, `에이전트`, `agents overall`, or `run agents`.
 - Non-trivial work means multi-step, multi-file, architecture/workflow/plugin/harness change, backend/frontend behavior change, test strategy, review, verification, CI, release-sensitive, or unclear approval-boundary work.
-- If the user says `에이전트 쓰지마`, `no agents`, or equivalent explicit opt-out, do not spawn subagents; report `Delegation: skipped user-opt-out` and continue main-thread direct.
-- Main-thread direct work is allowed for a direct answer, status check, trivial one-file fix, or explicit agent opt-out.
+- If the user says `에이전트 쓰지마`, `no agents`, `skip agents`, `직접 해줘`, `메인에서 직접 해줘`, `빠르게 메인에서 해줘`, `main thread only`, or equivalent explicit opt-out, do not spawn subagents; report `Delegation: skipped user-opt-out` and continue main-thread direct.
+- Main-thread direct work is allowed for a direct answer, status check, trivial one-file fix, explicit agent opt-out, or proven subagent tooling fallback.
 
 If no agent is called, report why briefly with `Delegation: skipped <reason>`.
 
@@ -103,7 +103,7 @@ Prefer capabilities when present: workflow or guardrails, goal or boundary, inta
 
 ## Parallelization Rules
 
-Use parallel work only when outputs are independent and read-only, or when post-implementation reviewers inspect the same completed diff without editing it.
+Use parallel work when outputs are independent and read-only, or when post-implementation reviewers inspect the same completed diff without editing it. Prefer safe parallel read-only specialist groups over serial analysis when their outputs do not overlap.
 
 Safe parallel groups:
 
