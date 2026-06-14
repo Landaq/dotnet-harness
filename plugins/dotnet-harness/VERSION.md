@@ -1,8 +1,15 @@
 # Version
 
-Current version: `0.4.15`
+Current version: `0.4.16`
 
 ## Release Notes
+
+### 0.4.16
+
+- Remove unsupported `[policy]` tables from generated repo-local agent TOML
+  files so Codex can load worker agents without malformed agent warnings.
+- Update task-agent and release validators to reject unsupported `[policy]`
+  tables instead of requiring them.
 
 ### 0.4.15
 

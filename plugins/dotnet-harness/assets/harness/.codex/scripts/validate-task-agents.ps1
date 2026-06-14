@@ -115,30 +115,6 @@ for key in required:
         raise SystemExit(f"{path.name} invalid non-empty string key: {key}")
 '@
 
-$policyParseScript = @'
-import pathlib
-import sys
-import tomllib
-
-path = pathlib.Path(sys.argv[1])
-expected_modes = set(sys.argv[2].split(","))
-with path.open("rb") as handle:
-    data = tomllib.load(handle)
-
-policy = data.get("policy")
-if not isinstance(policy, dict):
-    raise SystemExit(f"{path.name} missing [policy]")
-
-for key in ("required_capabilities", "required_output_keys", "workflow_modes"):
-    value = policy.get(key)
-    if not isinstance(value, list) or not value or not all(isinstance(item, str) and item.strip() for item in value):
-        raise SystemExit(f"{path.name} invalid [policy].{key}")
-
-actual_modes = set(policy["workflow_modes"])
-if actual_modes != expected_modes:
-    raise SystemExit(f"{path.name} workflow_modes expected {sorted(expected_modes)} got {sorted(actual_modes)}")
-'@
-
 if (Test-Path -LiteralPath $agentsDir) {
     $agentNames = @{}
     foreach ($agentFile in Get-ChildItem -LiteralPath $agentsDir -Filter "*.toml" -File) {
@@ -148,6 +124,10 @@ if (Test-Path -LiteralPath $agentsDir) {
         }
 
         $content = Get-Content -LiteralPath $agentFile.FullName -Raw
+        if ($content -match "(?m)^\s*\[policy\]\s*$") {
+            Add-Failure "$($agentFile.Name) contains unsupported [policy] table. Keep policy as developer_instructions text."
+        }
+
         foreach ($key in $requiredKeys) {
             if ($content -notmatch "(?m)^$key\s*=\s*.+") {
                 Add-Failure "$($agentFile.Name) missing key: $key"
@@ -278,11 +258,6 @@ if (Test-Path -LiteralPath $agentsDir) {
             if (-not (Test-PolicyPattern $implementationText $requiredText)) {
                 Add-Failure "implementation-coordinator missing agent-first policy: $requiredText"
             }
-        }
-
-        & python -c $policyParseScript $implementationCoordinator "lightweight,standard,deep"
-        if ($LASTEXITCODE -ne 0) {
-            Add-Failure "08-implementation-coordinator.toml failed structured policy metadata validation"
         }
     }
 
@@ -462,11 +437,6 @@ if (Test-Path -LiteralPath $agentsDir) {
             if (-not (Test-PolicyPattern $workerText $requiredText)) {
                 Add-Failure "$workerName missing worker mode gate policy: $requiredText"
             }
-        }
-
-        & python -c $policyParseScript $workerPath $workerPolicies[$workerName]
-        if ($LASTEXITCODE -ne 0) {
-            Add-Failure "$workerName failed structured policy metadata validation"
         }
     }
 }

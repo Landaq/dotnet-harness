@@ -32,11 +32,6 @@ Preserve exact file paths, commands, errors, API names, package names, versions,
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
-[policy]
-required_capabilities = ["docs-harness-implementation", "bounded-write-scope", "parallel-eligibility-check"]
-required_output_keys = ["Findings", "Changes", "Risks", "Verify", "Next"]
-workflow_modes = ["standard", "deep"]
-
 [mcp_servers.context7]
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]

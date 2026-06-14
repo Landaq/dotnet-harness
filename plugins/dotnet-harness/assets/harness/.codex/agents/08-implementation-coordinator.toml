@@ -89,11 +89,6 @@ Execution rules:
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
-[policy]
-required_capabilities = ["workflow-mode-selection", "phase-handoff", "worker-partition", "delegation-evidence"]
-required_output_keys = ["Workflow Mode", "Route", "Workers", "Delegation", "Review/Verification Evidence"]
-workflow_modes = ["lightweight", "standard", "deep"]
-
 [mcp_servers.context7]
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]

@@ -65,30 +65,6 @@ $packageVersionsManifest = Join-Path $skillsRoot "project-structure-setup\refere
 $upgradeScript = Join-Path $harnessRoot ".codex\scripts\upgrade-harness.ps1"
 $releaseHelperScript = Join-Path $pluginRootPath "scripts\release-helper.ps1"
 
-$policyParseScript = @'
-import pathlib
-import sys
-import tomllib
-
-path = pathlib.Path(sys.argv[1])
-expected_modes = set(sys.argv[2].split(","))
-with path.open("rb") as handle:
-    data = tomllib.load(handle)
-
-policy = data.get("policy")
-if not isinstance(policy, dict):
-    raise SystemExit(f"{path.name} missing [policy]")
-
-for key in ("required_capabilities", "required_output_keys", "workflow_modes"):
-    value = policy.get(key)
-    if not isinstance(value, list) or not value or not all(isinstance(item, str) and item.strip() for item in value):
-        raise SystemExit(f"{path.name} invalid [policy].{key}")
-
-actual_modes = set(policy["workflow_modes"])
-if actual_modes != expected_modes:
-    raise SystemExit(f"{path.name} workflow_modes expected {sorted(expected_modes)} got {sorted(actual_modes)}")
-'@
-
 Invoke-ValidationStep "plugin manifest" {
     if (-not (Test-Path -LiteralPath $pluginValidator)) {
         throw "Missing plugin validator: $pluginValidator"
@@ -447,11 +423,6 @@ Invoke-ValidationStep "packaging hygiene" {
         }
     }
 
-    & python -c $policyParseScript $implementationCoordinator "lightweight,standard,deep"
-    if ($LASTEXITCODE -ne 0) {
-        throw "Implementation coordinator must expose structured workflow mode policy metadata."
-    }
-
     $workerPolicies = @{
         "12-backend-worker.toml" = "standard,deep"
         "13-frontend-worker.toml" = "standard,deep"
@@ -468,10 +439,6 @@ Invoke-ValidationStep "packaging hygiene" {
             if (-not (Test-PolicyPattern $workerText $requiredText)) {
                 throw "Worker agent must enforce workflow mode gate: $workerName missing '$requiredText'."
             }
-        }
-        & python -c $policyParseScript $workerPath $workerPolicies[$workerName]
-        if ($LASTEXITCODE -ne 0) {
-            throw "Worker agent must expose structured policy metadata: $workerName"
         }
     }
 
