@@ -1,8 +1,22 @@
 # Version
 
-Current version: `0.4.17`
+Current version: `0.4.18`
 
 ## Release Notes
+
+### 0.4.18
+
+- Add feature-slice routing for Task Agents with a dedicated
+  `feature-slicer` coordination agent.
+- Add feature-scoped reviewer agents for backend, frontend, test, and
+  docs/harness review perspectives.
+- Add `docs-harness-specialist` for read-only plugin, skill, agent, scaffold,
+  install, upgrade, validation, docs, and release analysis before worker
+  handoff.
+- Scope existing service, frontend, test, and reference specialists to assigned
+  feature slices to avoid broad whole-repo analysis by default.
+- Strengthen task-agent and harness validation for feature slicing,
+  perspective reviewers, and specialist routing contracts.
 
 ### 0.4.17
 

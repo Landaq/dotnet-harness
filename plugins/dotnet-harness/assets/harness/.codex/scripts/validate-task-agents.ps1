@@ -73,7 +73,13 @@ $requiredAgents = @(
     "12-backend-worker.toml",
     "13-frontend-worker.toml",
     "14-test-worker.toml",
-    "15-docs-harness-worker.toml"
+    "15-docs-harness-worker.toml",
+    "16-backend-reviewer.toml",
+    "17-frontend-reviewer.toml",
+    "18-test-reviewer.toml",
+    "19-docs-harness-reviewer.toml",
+    "20-feature-slicer.toml",
+    "21-docs-harness-specialist.toml"
 )
 
 foreach ($agent in $requiredAgents) {
@@ -227,11 +233,20 @@ if (Test-Path -LiteralPath $agentsDir) {
             'Do not start a next phase until the current phase handoff gate passes.',
             'Worker agents are `standard`/`deep` only; never assign `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker` in `lightweight`.',
             'Preferred workers are `backend-worker`, `frontend-worker`, `test-worker`, and `docs-harness-worker`.',
+            'Route non-trivial multi-area work through `feature-slicer`',
+            'Use feature-scoped read-only specialists',
+            'Preferred feature-scoped specialists are `service-template`, `frontend-ui`, `tdd-test`, `reference-auditor`, and `docs-harness-specialist`.',
+            'Route post-implementation checks to the smallest relevant reviewer set',
+            'Split review work by feature slice.',
+            'Prefer parallel read-only review when reviewers inspect disjoint feature slices or distinct perspectives over the same completed slice.',
             'Run workers in parallel only when write sets are disjoint, public contracts are stable, migrations are absent, package/solution files are not shared, and validation can run independently.',
             'Run workers serially when slices share files, contracts, migrations, package files, solution files, runtime state, release state, or unresolved decisions.',
             'Parallel: yes',
             'Parallel: no',
             'worker assignments',
+            'feature-slicer output',
+            'specialist assignments',
+            'reviewer assignments by feature slice',
             'Do not hand off to the next agent until previous agent output is explicit, bounded, and usable as the next input contract.',
             'Accept previous agent output only when it includes role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.',
             'Prior result accepted:',
@@ -395,7 +410,13 @@ if (Test-Path -LiteralPath $agentsDir) {
         "12-backend-worker.toml",
         "13-frontend-worker.toml",
         "14-test-worker.toml",
-        "15-docs-harness-worker.toml"
+        "15-docs-harness-worker.toml",
+        "16-backend-reviewer.toml",
+        "17-frontend-reviewer.toml",
+        "18-test-reviewer.toml",
+        "19-docs-harness-reviewer.toml",
+        "20-feature-slicer.toml",
+        "21-docs-harness-specialist.toml"
     )
     foreach ($agentName in $compressedReturnAgents) {
         $agentPath = Join-Path $agentsDir $agentName
@@ -436,6 +457,75 @@ if (Test-Path -LiteralPath $agentsDir) {
         )) {
             if (-not (Test-PolicyPattern $workerText $requiredText)) {
                 Add-Failure "$workerName missing worker mode gate policy: $requiredText"
+            }
+        }
+    }
+
+    $reviewerPolicies = @{
+        "16-backend-reviewer.toml" = "backend feature-slice reviewer"
+        "17-frontend-reviewer.toml" = "frontend feature-slice reviewer"
+        "18-test-reviewer.toml" = "test and validation feature-slice reviewer"
+        "19-docs-harness-reviewer.toml" = "docs and harness feature-slice reviewer"
+    }
+    foreach ($reviewerName in $reviewerPolicies.Keys) {
+        $reviewerPath = Join-Path $agentsDir $reviewerName
+        if (-not (Test-Path -LiteralPath $reviewerPath)) {
+            continue
+        }
+        $reviewerText = Get-Content -LiteralPath $reviewerPath -Raw
+        foreach ($requiredText in @(
+            $reviewerPolicies[$reviewerName],
+            'Review only the assigned feature slice',
+            'Do not perform broad whole-repo review',
+            'Refuse unclear handoff that lacks feature slice, allowed paths, success criteria, changed files or diff scope, and validation evidence.',
+            'Keep review bounded to the assigned feature slice.'
+        )) {
+            if (-not (Test-PolicyPattern $reviewerText $requiredText)) {
+                Add-Failure "$reviewerName missing feature-slice review policy: $requiredText"
+            }
+        }
+    }
+
+    $featureScopedSpecialists = @(
+        "03-service-template.toml",
+        "04-frontend-ui.toml",
+        "05-tdd-test.toml",
+        "06-reference-auditor.toml",
+        "21-docs-harness-specialist.toml"
+    )
+    foreach ($specialistName in $featureScopedSpecialists) {
+        $specialistPath = Join-Path $agentsDir $specialistName
+        if (-not (Test-Path -LiteralPath $specialistPath)) {
+            continue
+        }
+        $specialistText = Get-Content -LiteralPath $specialistPath -Raw
+        foreach ($requiredText in @(
+            'assigned feature slice',
+            'Analyze only the assigned feature slice',
+            'allowed paths',
+            'success criteria',
+            'validation evidence'
+        )) {
+            if (-not (Test-PolicyPattern $specialistText $requiredText)) {
+                Add-Failure "$specialistName missing feature-scoped specialist policy: $requiredText"
+            }
+        }
+    }
+
+    $featureSlicer = Join-Path $agentsDir "20-feature-slicer.toml"
+    if (Test-Path -LiteralPath $featureSlicer) {
+        $featureSlicerText = Get-Content -LiteralPath $featureSlicer -Raw
+        foreach ($requiredText in @(
+            'Split the accepted goal into feature slices',
+            'allowed paths',
+            'forbidden paths',
+            'dependency order',
+            'parallel eligibility',
+            'validation evidence',
+            'stop condition'
+        )) {
+            if (-not (Test-PolicyPattern $featureSlicerText $requiredText)) {
+                Add-Failure "feature-slicer missing slice contract: $requiredText"
             }
         }
     }

@@ -137,13 +137,18 @@ When subagent tooling is available and allowed:
 
 - For complex or multi-step work, spawn at least one read-only specialist subagent before implementation unless fallback or an explicit skip condition applies.
 - Spawn at least one pre-implementation specialist subagent before editing files when the task is non-trivial and delegation permission is present.
-- For implementation tasks that create a meaningful diff, spawn at least one post-implementation subagent: `code-reviewer`, `verification-runner`, or `reference-auditor`.
+- For multi-area work, prefer `feature-slicer` before planner or worker handoff.
+- Spawn feature-scoped specialists when a slice needs domain planning: `service-template`, `frontend-ui`, `tdd-test`, `reference-auditor`, or `docs-harness-specialist`.
+- For implementation tasks that create a meaningful diff, spawn at least one post-implementation subagent: a feature-slice scoped reviewer, `code-reviewer`, `verification-runner`, or `reference-auditor`.
+- Prefer perspective reviewers over one broad reviewer when the diff contains multiple feature slices: `backend-reviewer`, `frontend-reviewer`, `test-reviewer`, or `docs-harness-reviewer`.
 - For backend non-trivial work, spawn `service-template` and `tdd-test` as read-only specialists before implementation unless fallback, explicit opt-out, no explicit authorization under explicit-auth runtime policy, or a concrete skip condition applies.
 - Spawn independent read-only specialists in parallel when their questions are distinct and their outputs do not block each other.
 - Spawn parallel implementation workers only when write sets are disjoint, contracts are settled, validation can run independently, and no migration/package/solution/runtime state is shared.
 - Only an actual delegated subagent task counts.
 - Limit pre-implementation read-only subagents to three unless the user explicitly approves more.
+- `feature-slicer` counts as coordination, not a domain specialist; still keep specialist fan-out small.
 - Delegate implementation only when write sets are disjoint and requirements are settled.
+- Keep review bounded: one reviewer should inspect one feature slice or one explicit perspective, not the entire diff, unless the whole change is one slice.
 
 If an eligible role is not spawned, output `Delegation: skipped` with the concrete reason.
 

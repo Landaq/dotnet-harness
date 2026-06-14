@@ -97,7 +97,13 @@ Invoke-ValidationStep "agent role contracts" {
         "12-backend-worker.toml",
         "13-frontend-worker.toml",
         "14-test-worker.toml",
-        "15-docs-harness-worker.toml"
+        "15-docs-harness-worker.toml",
+        "16-backend-reviewer.toml",
+        "17-frontend-reviewer.toml",
+        "18-test-reviewer.toml",
+        "19-docs-harness-reviewer.toml",
+        "20-feature-slicer.toml",
+        "21-docs-harness-specialist.toml"
     )
     foreach ($agentName in $agentFiles) {
         $agentText = Get-Content -LiteralPath (Join-Path $ctx.HarnessRoot ".codex\agents\$agentName") -Raw
@@ -121,7 +127,13 @@ Invoke-ValidationStep "agent role contracts" {
         'Require actual subagent tool calls such as `spawn_agent`',
         'A delegation plan is not delegation evidence.',
         'Do not hand off to the next agent until previous agent output is explicit, bounded, and usable as the next input contract.',
-        'Preferred workers are `backend-worker`, `frontend-worker`, `test-worker`, and `docs-harness-worker`.'
+        'Preferred workers are `backend-worker`, `frontend-worker`, `test-worker`, and `docs-harness-worker`.',
+        'Route non-trivial multi-area work through `feature-slicer`',
+        'Use feature-scoped read-only specialists',
+        'specialist assignments',
+        'Route post-implementation checks to the smallest relevant reviewer set',
+        'Split review work by feature slice.',
+        'reviewer assignments by feature slice'
     )) {
         if (-not (Test-PolicyPattern $implementationText $requiredText)) {
             throw "Implementation coordinator missing routing policy: '$requiredText'."

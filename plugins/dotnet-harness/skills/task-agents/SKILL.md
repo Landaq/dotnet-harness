@@ -59,9 +59,33 @@ Read `references/delegation-policy.md` before spawning or skipping subagents, re
 
 ## Worker Core
 
+Before assigning specialists or workers for non-trivial multi-area work, route through `feature-slicer` when available. Feature slices must define purpose, allowed paths, forbidden paths, dependency order, parallel eligibility, validation evidence, and stop condition.
+
+Use feature-scoped specialists when a slice needs domain-specific planning before worker handoff:
+
+- `service-template`: backend/API/domain/infrastructure/service slice.
+- `frontend-ui`: Blazor/UI/client/rendering slice.
+- `tdd-test`: test/validation/regression slice.
+- `reference-auditor`: external reference or architecture comparison slice.
+- `docs-harness-specialist`: plugin/skill/agent/script/scaffold/install/upgrade/docs slice.
+
 Worker agents are `standard`/`deep` only. Do not call `backend-worker`, `frontend-worker`, `test-worker`, or `docs-harness-worker` in `lightweight`.
 
-Read `references/worker-policy.md` before assigning feature slices, deciding `Parallel: yes` or `Parallel: no`, or writing worker handoffs.
+Read `references/feature-slicing-policy.md` and `references/worker-policy.md` before assigning feature slices, deciding `Parallel: yes` or `Parallel: no`, or writing specialist/worker handoffs.
+
+## Review Core
+
+Review agents are feature-slice scoped. Do not route a single reviewer over the whole diff unless the work is truly one slice or a cross-slice contract must be reviewed.
+
+Prefer the smallest relevant reviewer set:
+
+- `code-reviewer`: broad defect scan for a completed meaningful diff.
+- `backend-reviewer`: backend, API, domain, EF, Aspire, YARP, SQL, Redis, or service slice.
+- `frontend-reviewer`: Blazor, Web.Client, MudBlazor, UI state, rendering, or component slice.
+- `test-reviewer`: test coverage, validation evidence, regression surface, or smoke command slice.
+- `docs-harness-reviewer`: plugin, skill, agent, script, scaffold, install, upgrade, README, or release slice.
+
+Read `references/review-policy.md` before assigning reviewer perspectives or parallel review groups.
 
 ## Domain Policies
 

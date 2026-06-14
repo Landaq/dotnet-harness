@@ -49,10 +49,10 @@ Run stages in order unless the user narrows the task:
 2. `Socratic Clarification`: main thread asks targeted questions before implementation or worker handoff.
 3. `Ambiguity Recalculation`: main thread recalculates per-feature ambiguity and average ambiguity.
 4. `Goal Boundary Confirmation`: confirm goal, non-goals, success criteria, stop condition, allowed paths, forbidden paths, validation, git, TaskResult, and risk gates.
-5. `Agent Route Planning`: discover repo-local agents, map roles, decide serial or parallel route, and check delegation permission.
+5. `Agent Route Planning`: discover repo-local agents, map roles, split accepted goals into feature slices, decide serial or parallel route, and check delegation permission.
 6. `Subagent Handoff`: call allowed subagents only after clarification is satisfied and handoff inputs are explicit.
-7. `Worker Implementation`: call feature workers only when write scope is settled, permission exists, and dependencies allow serial or parallel execution.
-8. `Review Agent`: call review/feedback agent after meaningful diff or earlier as read-only risk review when allowed.
+7. `Worker Implementation`: call feature-scoped specialists and feature workers only when slice scope is settled, permission exists, and dependencies allow serial or parallel execution.
+8. `Review Agent`: call feature-slice scoped reviewer agents after meaningful diff or earlier as read-only risk review when allowed.
 9. `Verification Agent`: call verification runner for build/test/script/smoke evidence when allowed.
 10. `Main Thread Final Summary`: integrate results and report changes, verification, delegation, skipped agents, git, and TaskResult.
 
@@ -61,10 +61,10 @@ Legacy phase mapping:
 - `Phase 0 - Workflow Guardrails` maps to Requirement Intake risk gates.
 - `Phase 1 - Goal Boundary` maps to Socratic Clarification, Ambiguity Recalculation, and Goal Boundary Confirmation.
 - `Phase 2 - Intake Planning` maps to Agent Route Planning.
-- `Phase 3 - Implementation Coordination` maps to Agent Route Planning and Subagent Handoff.
-- `Phase 4 - Specialist Analysis` maps to Subagent Handoff.
+- `Phase 3 - Implementation Coordination` maps to Agent Route Planning, feature slicing, and Subagent Handoff.
+- `Phase 4 - Specialist Analysis` maps to feature-specific planner handoff.
 - `Phase 5 - Bounded Implementation` maps to Worker Implementation.
-- `Phase 6 - Review` maps to Review Agent.
+- `Phase 6 - Review` maps to Review Agent and must route review by feature slice and reviewer perspective.
 - `Phase 7 - Verification` maps to Verification Agent.
 - `Phase 8 - Git Operation` is allowed only when the user explicitly requested git work.
 
@@ -123,7 +123,7 @@ On user answer:
 
 Match agents by discovered `name` + `description`, not filename.
 
-Prefer capabilities when present: workflow or guardrails, goal or boundary, intake or planner, implementation or coordinator, service or backend template, frontend or UI policy, TDD or test, reference or audit, code reviewer or review, verification or runner, and git operator.
+Prefer capabilities when present: workflow or guardrails, goal or boundary, intake or planner, feature slicer, implementation or coordinator, service or backend template, frontend or UI policy, TDD or test, reference or audit, docs/harness specialist, code reviewer or review, backend reviewer, frontend reviewer, test reviewer, docs/harness reviewer, verification or runner, and git operator.
 
 ## Parallelization Rules
 
@@ -134,9 +134,17 @@ Safe parallel groups:
 - Pre-implementation backend analysis: service-template + TDD/test.
 - Pre-implementation UI/API analysis: frontend/UI + service-template + TDD/test.
 - Pre-implementation structure analysis: reference/audit + TDD/test.
+- Feature-scoped specialist planning: service-template + frontend-ui + tdd-test + reference-auditor + docs-harness-specialist only when each receives a different accepted feature slice or distinct read-only perspective.
 - Worker implementation: backend-worker + frontend-worker + test-worker + docs-harness-worker only when write sets are disjoint and contracts are stable.
-- Post-implementation review: code-reviewer + reference/auditor when architecture boundaries changed.
+- Post-implementation review: one or more feature-slice scoped reviewers. Use `backend-reviewer` for backend/API/domain slices, `frontend-reviewer` for UI/client slices, `test-reviewer` for test/validation slices, `docs-harness-reviewer` for plugin/docs/harness slices, `code-reviewer` for broad defect scan, and reference/auditor when architecture or external API boundaries changed.
 - Post-implementation verification: verification-runner can run in parallel only when its command is non-mutating and independent of review outputs.
+
+Review parallelism:
+
+- Run reviewers in parallel only when they are read-only and each reviewer has a bounded feature slice or distinct perspective.
+- Do not ask every reviewer to inspect the whole diff.
+- Serialize review when one reviewer output changes another reviewer's input contract.
+- Each reviewer handoff must include feature slice, allowed paths, forbidden paths, changed files or diff scope, success criteria, unresolved risks, validation evidence, and stop condition.
 
 If agent questions, evidence duties, or write sets overlap, merge them, serialize them, or skip the duplicate role with `Delegation: skipped coupled`.
 
@@ -156,6 +164,7 @@ For orchestration turns, include:
 - `Discovered`: relevant agents/skills found.
 - `Route`: ordered stages, including any safe parallel read-only groups.
 - `Workers`: feature worker agents, feature slice ownership, parallel eligibility, and serial order when needed.
+- `Specialists`: feature-scoped specialist agents, feature slice ownership, planning perspective, and skipped specialist reasons.
 - `Socratic`: asked, satisfied, skipped with reason, or blocked waiting for user answer.
 - `Ambiguity`: before/after per feature and average.
 - `Delegation Permission`: explicit, not explicit, user-opt-out, host-policy, or unavailable.
