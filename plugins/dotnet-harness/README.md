@@ -87,12 +87,32 @@ pwsh -NoProfile -File scripts\release-helper.ps1 -Version 0.4.12 -Apply
 ```
 
 Release validation checks that `plugin.json` and `VERSION.md` agree.
+Default release validation is quick and skips generated .NET restore/build/test:
+
+```powershell
+pwsh -NoProfile -File scripts\validate-release.ps1
+```
+
+Run full scaffold validation only before scaffold/template/package releases:
+
+```powershell
+pwsh -NoProfile -File scripts\validate-release.ps1 -Mode Full
+pwsh -NoProfile -File scripts\validate-release.ps1 -Mode Scaffold
+```
+
+Available validation goals are `Core`, `Harness`, `Scaffold`, `Upgrade`, and
+`Whitespace`.
 
 Harness-only install:
 
 ```powershell
 pwsh -NoProfile -File install.ps1 -Root "C:\path\to\project" -ProjectName ExistingProject -HarnessOnly
 ```
+
+When the target already has `AGENTS.md`, `.codex\agents`, `.codex\scripts`, or
+legacy `.codex\skills`, `install.ps1` first runs the backup-based harness
+upgrade path. Pass `-SkipHarnessUpgrade` only when stale repo-local harness files
+must intentionally remain untouched.
 
 Default .NET project setup:
 

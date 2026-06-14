@@ -1,8 +1,19 @@
 # Version
 
-Current version: `0.4.16`
+Current version: `0.4.17`
 
 ## Release Notes
+
+### 0.4.17
+
+- Make `install.ps1` automatically run backup-based harness upgrade when the
+  target already has repo-local `AGENTS.md`, `.codex/agents`, `.codex/scripts`,
+  or legacy `.codex/skills`.
+- Add `-SkipHarnessUpgrade` for intentionally preserving stale repo-local
+  harness files.
+- Add release validation coverage for install-driven existing harness upgrade.
+- Split release validation into goal-specific scripts with `Quick`, `Full`,
+  `Core`, `Harness`, `Scaffold`, `Upgrade`, and `Whitespace` modes.
 
 ### 0.4.16
 

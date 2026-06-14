@@ -49,6 +49,7 @@ pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj
 pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -NoService
 pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -ServiceName Orders -Preview
 pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -HarnessOnly
+pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -HarnessOnly -SkipHarnessUpgrade
 ```
 
 ## Rules
@@ -58,10 +59,12 @@ pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -HarnessOnly
 - Create `docs/Project/README.md` if it does not exist.
 - Install repo-local Codex harness into target root if source exists.
 - Use `--harness-only` to install `AGENTS.md` and `.codex` harness files without creating `src`, `test`, or `docs/Project` structure.
+- Re-running `install.ps1` against a project that already has `AGENTS.md`, `.codex/agents`, `.codex/scripts`, or legacy `.codex/skills` triggers backup-based harness upgrade before scaffold work.
+- Use `-SkipHarnessUpgrade` only when stale repo-local harness files must intentionally remain untouched.
 - `.gitkeep` enabled by default; use `--no-gitkeep` to skip.
 - Never delete existing directories.
 - Do not overwrite an existing `docs/Project/README.md`.
-- Do not overwrite existing Codex harness files.
+- The bootstrap script does not overwrite existing Codex harness files by itself; `install.ps1` uses the explicit upgrade script for existing harness refresh.
 - Do not overwrite existing source or project files.
 - Update `references/package-versions.json` instead of editing package versions inline in the bootstrap script.
 
