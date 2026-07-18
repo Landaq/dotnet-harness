@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if ($Version -notmatch '^\d+\.\d+\.\d+$') {
-    throw "Version must be SemVer core format, for example 0.4.12."
+    throw "Version must be SemVer core format, for example 0.5.0."
 }
 
 $pluginRootPath = (Resolve-Path -LiteralPath $PluginRoot).Path

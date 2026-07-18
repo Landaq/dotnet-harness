@@ -49,6 +49,8 @@ MudBlazor, Scalar, SQL Server, and Redis skeleton files.
 
 Use project setup before Task Agents on a new repository because Task Agents
 depend on `src/`, `test/`, and `docs/Project/README.md` as baseline anchors.
+For 0.5.0 upgrade notes, read `MIGRATION.md` before applying an existing harness
+upgrade.
 
 ## Workflow Modes
 
@@ -56,8 +58,8 @@ Task Agents choose one mode before routing:
 
 - `lightweight`: quick path for trivial or small tasks. Phase contracts stay
   internal, Phase 5 workers are not used, and the final report stays concise.
-- `standard`: default path for non-trivial work. Phase 0-8 applies, actual
-  subagent delegation is assumed even when the user does not mention agents,
+- `standard`: default path for non-trivial work. Phase 0-8 applies, subagent
+  delegation is used when the active runtime exposes and authorizes it,
   and Phase 5 workers are considered only for settled slices.
 - `deep`: release, scaffold, architecture, high-risk, or explicitly requested
   path. Socratic clarification, full handoff gates, review, and verification are
@@ -71,9 +73,10 @@ Agents are skipped for user preference only on explicit opt-out wording such as
 `에이전트 쓰지마`, `no agents`, `메인에서 직접 해줘`, or `직접 해줘`; Task Result
 reports and git operations remain explicit-only.
 
-For non-trivial work, subagent and safe parallel-agent execution is the default.
-The user does not need to mention agents. Direct main-thread execution is used
-only for trivial work, unavailable subagent tooling, or explicit opt-out wording
+For non-trivial work, subagent and safe parallel-agent execution is preferred
+when the host/runtime makes delegation available. Some hosts require explicit
+authorization before delegation. Direct main-thread execution is used for
+trivial work, unavailable or unauthorized subagent tooling, or opt-out wording
 such as `에이전트 쓰지마`, `no agents`, `skip agents`, `직접 해줘`, or
 `메인에서 직접 해줘`, or `main thread only`.
 
@@ -81,7 +84,9 @@ Current scaffold baseline: setup creates .NET project files, solution entries,
 Unit/Architecture/APIGateway Functional xUnit smoke tests, and optional
 `ServiceName` AppHost/Gateway integration. Scaffold consumers should still run
 the generated solution build/test smoke checks before treating the target project
-as ready for feature work.
+as ready for feature work. `ServiceName` is an initial-scaffold option; 0.5.0
+fails before writing when a service is supplied on a rerun of an existing
+no-service scaffold, because safe structured merging is not yet supported.
 
 Project policy overrides: setup creates `.codex/harness-config.json` when it is
 missing. Task Agents inspect that file before UI work. Keys such as
@@ -93,7 +98,7 @@ templates.
 Release version helper:
 
 ```powershell
-pwsh -NoProfile -File scripts\release-helper.ps1 -Version 0.4.12 -Apply
+pwsh -NoProfile -File scripts\release-helper.ps1 -Version 0.5.0 -Apply
 ```
 
 Release validation checks that `plugin.json` and `VERSION.md` agree.
@@ -156,10 +161,11 @@ pwsh -NoProfile -File assets\harness\.codex\scripts\upgrade-harness.ps1 -TargetR
 ```
 
 Use upgrade when a project already has `.codex` harness files. The script backs
-up existing harness files, replaces active agents/scripts from this plugin,
+up existing harness files, transactionally replaces active agents/scripts,
 removes repo-local `.codex/skills` after backup, creates missing `.gitignore` and
 `.gitattributes`, and renames backup agent/skill discovery files to `.bak` so
-Codex does not load stale duplicates.
+Codex does not load stale duplicates. Failed apply or validation restores the
+pre-upgrade state while retaining the backup for diagnosis.
 
 Task Result reports are opt-in:
 
@@ -176,6 +182,11 @@ active folder.
 Use PowerShell wrappers on Windows and zsh wrappers on macOS instead of calling
 the shared Python cores directly. Each platform wrapper resolves its runtime and
 maps native command-line options to the same behavior.
+
+The model catalog is documentation only. Runtime agents remain flat, and their
+effective sandbox is also bounded by the parent session permissions supported by
+the active host.
+
 ## Validation
 
 Release validation:
