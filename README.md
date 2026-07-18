@@ -106,13 +106,21 @@ macOS preview/apply:
 ## 검증
 
 macOS에서는 Python 3.11 이상과 `uv`를 사용해 격리된 검증 환경을 구성하고 OS 전용
-entrypoint를 실행합니다. PyYAML은 첫 실행 때 uv cache에 설치되며 global Python은
-변경하지 않습니다.
+entrypoint를 실행합니다. Python 의존성은 첫 실행 때 uv cache에 설치되며 global
+Python은 변경하지 않습니다. `Full`은 Playwright Chromium 설치가 필요하며 생성된
+Blazor 앱의 WebAssembly handoff까지 브라우저에서 검증합니다.
 
 ```zsh
 ./plugins/dotnet-harness/scripts/validate-release.zsh --mode Quick
 ./plugins/dotnet-harness/scripts/validate-release.zsh --mode Full
 ```
+
+```zsh
+uv run --no-project --with-requirements plugins/dotnet-harness/scripts/validation/requirements.txt -- python -m playwright install chromium
+```
+
+`.github/workflows/validate.yml`은 `windows-latest`와 `macos-latest`에서 동일한
+`Full` 계약을 실행합니다.
 
 Plugin manifest 검증:
 

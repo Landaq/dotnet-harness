@@ -6,9 +6,14 @@ import json
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Callable
@@ -289,6 +294,7 @@ class Context:
         codex_home = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
         self.plugin_validator = codex_home / "skills/.system/plugin-creator/scripts/validate_plugin.py"
         self.skill_validator = codex_home / "skills/.system/skill-creator/scripts/quick_validate.py"
+        self.browser_e2e = False
 
 
 def host_wrapper_command(
@@ -341,12 +347,20 @@ def validate_core(ctx: Context) -> None:
         content = path.read_text(encoding="utf-8")
         require("*.zsh text eol=lf" in content, f"Missing zsh LF policy: {path}")
 
-    require(ctx.plugin_validator.is_file(), f"Missing plugin validator: {ctx.plugin_validator}")
-    require(ctx.skill_validator.is_file(), f"Missing skill validator: {ctx.skill_validator}")
-    run([sys.executable, str(ctx.plugin_validator), str(ctx.plugin_root)])
-    for skill_dir in sorted(path for path in ctx.skills_root.iterdir() if path.is_dir()):
-        if (skill_dir / "SKILL.md").is_file():
-            run([sys.executable, str(ctx.skill_validator), str(skill_dir)])
+    skip_system_validators = os.environ.get("DOTNET_HARNESS_SKIP_SYSTEM_VALIDATORS") == "1"
+    if skip_system_validators:
+        require(
+            os.environ.get("GITHUB_ACTIONS") == "true",
+            "System validator bypass is restricted to GitHub Actions.",
+        )
+        print("Skipping Codex system validators in GitHub Actions; local Full remains authoritative.")
+    else:
+        require(ctx.plugin_validator.is_file(), f"Missing plugin validator: {ctx.plugin_validator}")
+        require(ctx.skill_validator.is_file(), f"Missing skill validator: {ctx.skill_validator}")
+        run([sys.executable, str(ctx.plugin_validator), str(ctx.plugin_root)])
+        for skill_dir in sorted(path for path in ctx.skills_root.iterdir() if path.is_dir()):
+            if (skill_dir / "SKILL.md").is_file():
+                run([sys.executable, str(ctx.skill_validator), str(skill_dir)])
 
     manifest = json.loads(ctx.manifest.read_text(encoding="utf-8"))
     mcp_config = json.loads((ctx.plugin_root / ".mcp.json").read_text(encoding="utf-8"))
@@ -361,6 +375,16 @@ def validate_core(ctx: Context) -> None:
     require(manifest["version"] == match.group(1), "plugin.json and VERSION.md versions differ.")
     require((ctx.plugin_root / "scripts/release-helper.ps1").is_file(), "Missing release helper.")
     require((ctx.plugin_root / "MIGRATION.md").is_file(), "Missing release migration guide.")
+    workflow = ctx.plugin_root.parent.parent / ".github/workflows/validate.yml"
+    require_text(
+        workflow,
+        "windows-latest",
+        "macos-latest",
+        "playwright install chromium",
+        "DOTNET_HARNESS_SKIP_SYSTEM_VALIDATORS",
+        "-Mode Full",
+        "--mode Full",
+    )
 
     for group in ("core", "harness", "scaffold", "upgrade", "whitespace"):
         wrapper = ctx.plugin_root / f"scripts/validation/validate-{group}.ps1"
@@ -763,6 +787,194 @@ def validate_upgrade(ctx: Context) -> None:
     print(f"Upgrade validation passed: {ctx.plugin_root}")
 
 
+def _available_tcp_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+        server.bind(("127.0.0.1", 0))
+        return int(server.getsockname()[1])
+
+
+def _read_log_tail(log: object, limit: int = 20_000) -> str:
+    log.seek(0)
+    content = log.read()
+    return content if len(content) <= limit else f"[earlier log omitted]\n{content[-limit:]}"
+
+
+def _wait_for_http(url: str, process: subprocess.Popen[str], log: object) -> None:
+    deadline = time.monotonic() + 90
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            raise ValidationError(
+                f"Blazor test server exited early:\n{_read_log_tail(log)}"
+            )
+        try:
+            with urllib.request.urlopen(url, timeout=2) as response:
+                if response.status < 500:
+                    return
+        except (urllib.error.URLError, TimeoutError):
+            time.sleep(0.5)
+    raise ValidationError(
+        f"Blazor test server did not become ready: {url}\n{_read_log_tail(log)}"
+    )
+
+
+def validate_blazor_wasm_handoff(root: Path) -> None:
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError as exc:
+        raise ValidationError(
+            "Playwright is required for Full validation; install validation requirements first."
+        ) from exc
+
+    publish_root = root / ".artifacts/browser-e2e"
+    run(
+        [
+            "dotnet",
+            "publish",
+            "src/FrontEnd/Web/Web.csproj",
+            "--configuration",
+            "Release",
+            "--no-restore",
+            "--output",
+            str(publish_root),
+        ],
+        cwd=root,
+        timeout=600,
+    )
+
+    port = _available_tcp_port()
+    url = f"http://127.0.0.1:{port}/interactive"
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "ASPNETCORE_ENVIRONMENT": "Production",
+            "ASPNETCORE_URLS": f"http://127.0.0.1:{port}",
+            "DOTNET_NOLOGO": "1",
+        }
+    )
+    log = tempfile.TemporaryFile(mode="w+", encoding="utf-8")
+    process = subprocess.Popen(
+        ["dotnet", str(publish_root / "Web.dll")],
+        cwd=publish_root,
+        env=environment,
+        stdout=log,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    try:
+        _wait_for_http(url, process, log)
+        with sync_playwright() as playwright:
+            launch_options: dict[str, object] = {"headless": True}
+            browser_channel = os.environ.get("DOTNET_HARNESS_BROWSER_CHANNEL")
+            if browser_channel:
+                launch_options["channel"] = browser_channel
+            try:
+                browser = playwright.chromium.launch(**launch_options)
+            except Exception as exc:
+                raise ValidationError(
+                    "Chromium is unavailable; run 'python -m playwright install chromium'."
+                ) from exc
+
+            try:
+                context = browser.new_context()
+                pending_framework_requests: set[str] = set()
+                completed_framework_resources: list[str] = []
+                last_framework_activity = [time.monotonic()]
+                first_page = context.new_page()
+
+                def framework_request_started(request: object) -> None:
+                    if "/_framework/" in request.url:
+                        pending_framework_requests.add(request.url)
+                        last_framework_activity[0] = time.monotonic()
+
+                def framework_request_finished(request: object) -> None:
+                    if "/_framework/" in request.url:
+                        pending_framework_requests.discard(request.url)
+                        completed_framework_resources.append(request.url)
+                        last_framework_activity[0] = time.monotonic()
+
+                first_page.on("request", framework_request_started)
+                first_page.on("requestfinished", framework_request_finished)
+                first_page.on("requestfailed", framework_request_finished)
+                first_page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+                first_button = first_page.get_by_role("button", name="Increment", exact=True)
+                first_button.wait_for(timeout=60_000)
+
+                download_deadline = time.monotonic() + 120
+                while True:
+                    app_bundle_downloaded = any(
+                        "/_framework/Web.Client." in resource
+                        and resource.endswith(".wasm")
+                        for resource in completed_framework_resources
+                    )
+                    framework_idle = (
+                        not pending_framework_requests
+                        and time.monotonic() - last_framework_activity[0] >= 1.5
+                    )
+                    if app_bundle_downloaded and framework_idle:
+                        break
+                    if time.monotonic() >= download_deadline:
+                        raise ValidationError(
+                            "InteractiveAuto did not finish downloading the WebAssembly app bundle."
+                        )
+                    first_page.wait_for_timeout(500)
+                first_page.close()
+
+                blocked_blazor_requests: list[str] = []
+
+                def block_server_interactivity(route: object) -> None:
+                    request_url = route.request.url
+                    request_path = urllib.parse.urlsplit(request_url).path.rstrip("/")
+                    if request_path in {"/_blazor", "/_blazor/negotiate"}:
+                        blocked_blazor_requests.append(request_url)
+                        route.abort()
+                    else:
+                        route.continue_()
+
+                context.route("**/*", block_server_interactivity)
+                second_page = context.new_page()
+                page_errors: list[str] = []
+                second_page.on("pageerror", lambda error: page_errors.append(str(error)))
+                second_page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+                second_button = second_page.get_by_role("button", name="Increment", exact=True)
+                second_button.wait_for(timeout=60_000)
+                positive_count = second_page.get_by_text(
+                    re.compile(r"Count: [1-9]\d*"),
+                    exact=True,
+                )
+                interaction_deadline = time.monotonic() + 120
+                while not positive_count.is_visible():
+                    second_button.click()
+                    if time.monotonic() >= interaction_deadline:
+                        raise ValidationError(
+                            "The WebAssembly counter did not become interactive after reload."
+                        )
+                    second_page.wait_for_timeout(500)
+                require(
+                    not blocked_blazor_requests,
+                    "Second InteractiveAuto load attempted server interactivity instead of WebAssembly.",
+                )
+                require(not page_errors, f"Browser page errors during WebAssembly handoff: {page_errors}")
+                context.close()
+            finally:
+                browser.close()
+    except ValidationError:
+        raise
+    except Exception as exc:
+        raise ValidationError(
+            f"Blazor browser validation failed: {exc}\n{_read_log_tail(log)}"
+        ) from exc
+    finally:
+        process.terminate()
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=10)
+        log.close()
+
+    print("Blazor InteractiveAuto WebAssembly handoff validation passed.")
+
+
 def validate_scaffold(ctx: Context) -> None:
     require(shutil.which("dotnet") is not None, "dotnet is required for scaffold validation.")
     with tempfile.TemporaryDirectory(prefix="dotnet-harness-invalid-name-") as temp:
@@ -865,6 +1077,8 @@ def validate_scaffold(ctx: Context) -> None:
                 cwd=root,
                 timeout=600,
             )
+            if service_name is None and ctx.browser_e2e:
+                validate_blazor_wasm_handoff(root)
     print(f"Scaffold validation passed: {ctx.plugin_root}")
 
 
@@ -889,6 +1103,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--plugin-root", default=Path(__file__).resolve().parents[2])
     parser.add_argument("--mode", default="Quick")
     parser.add_argument("--include-scaffold", action="store_true")
+    parser.add_argument("--browser-e2e", action="store_true")
     args = parser.parse_args()
     args.mode = args.mode.lower()
     if args.mode not in MODES:
@@ -901,6 +1116,7 @@ def main() -> int:
         raise SystemExit("Release validation requires Python 3.11 or newer.")
     args = parse_args()
     ctx = Context(Path(args.plugin_root))
+    ctx.browser_e2e = args.mode == "full" or args.browser_e2e
     validators: dict[str, Callable[[Context], None]] = {
         "core": validate_core,
         "harness": validate_harness,

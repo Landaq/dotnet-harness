@@ -5,6 +5,7 @@ script_dir=${0:A:h}
 plugin_root=${script_dir:h}
 
 mode=Quick
+browser_e2e=false
 for (( index = 1; index <= $#; index++ )); do
   if [[ ${argv[index]} == --mode ]]; then
     if (( index == $# )); then
@@ -15,6 +16,8 @@ for (( index = 1; index <= $#; index++ )); do
     (( index++ ))
   elif [[ ${argv[index]} == --mode=* ]]; then
     mode=${argv[index]#--mode=}
+  elif [[ ${argv[index]} == --browser-e2e ]]; then
+    browser_e2e=true
   fi
 done
 
@@ -34,18 +37,39 @@ resolve_dotnet_harness_python
 core="$script_dir/validation/validate_release.py"
 requirements="$script_dir/validation/requirements.txt"
 
+needs_yaml=false
+needs_playwright=false
 case ${mode:l} in
-  harness|scaffold|upgrade|whitespace)
-    exec "$DOTNET_HARNESS_PYTHON" "$core" --plugin-root "$plugin_root" "$@"
+  quick|full|core)
+    needs_yaml=true
     ;;
 esac
+if [[ ${mode:l} == full || $browser_e2e == true ]]; then
+  needs_playwright=true
+fi
 
-if "$DOTNET_HARNESS_PYTHON" -c 'import yaml' 2>/dev/null; then
+if [[ $needs_yaml == false && $needs_playwright == false ]]; then
+    exec "$DOTNET_HARNESS_PYTHON" "$core" --plugin-root "$plugin_root" "$@"
+fi
+
+imports=""
+if [[ $needs_yaml == true ]]; then
+  imports="import yaml"
+fi
+if [[ $needs_playwright == true ]]; then
+  if [[ -n $imports ]]; then
+    imports+="; import playwright"
+  else
+    imports="import playwright"
+  fi
+fi
+
+if "$DOTNET_HARNESS_PYTHON" -c "$imports" 2>/dev/null; then
   exec "$DOTNET_HARNESS_PYTHON" "$core" --plugin-root "$plugin_root" "$@"
 fi
 
 if (( ! $+commands[uv] )); then
-  print -u2 "PyYAML is required for release validation."
+  print -u2 "Release validation dependencies are missing."
   print -u2 "Install uv with 'brew install uv', then rerun this command."
   exit 1
 fi

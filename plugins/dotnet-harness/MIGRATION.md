@@ -65,3 +65,9 @@ be inspected before retrying an interrupted upgrade.
 
 After migration, run the installed harness validator and the generated solution's
 restore, build, and test commands.
+
+For a release, install the pinned Playwright dependency and Chromium, then run
+`Full`. Full validation starts the generated Blazor app twice: the second browser
+load blocks `/_blazor` requests and must still pass the interactive counter test
+through WebAssembly. GitHub Actions repeats this contract on native Windows and
+macOS runners.

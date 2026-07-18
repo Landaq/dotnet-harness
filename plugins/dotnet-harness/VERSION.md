@@ -21,6 +21,8 @@ Current version: `0.5.0`
 - Pin the remaining Context7 MCP configuration to the reviewed 3.0.0 release.
 - Consolidate release validation on the shared Python core and strengthen
   scaffold, upgrade, harness-only, and compatibility checks.
+- Add native Windows/macOS CI and a Playwright browser check that proves Blazor
+  InteractiveAuto works from WebAssembly without a server circuit after reload.
 
 See `MIGRATION.md` for upgrade behavior and compatibility notes.
 

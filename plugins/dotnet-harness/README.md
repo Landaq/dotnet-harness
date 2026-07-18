@@ -115,15 +115,31 @@ an isolated uv environment for release-only Python dependencies:
 ./scripts/validate-release.zsh --mode Quick
 ```
 
-Run full scaffold validation only before scaffold/template/package releases:
+Run full validation before scaffold/template/package releases. `Full` restores,
+builds, and tests generated solutions, then uses Playwright Chromium to verify
+that Blazor `InteractiveAuto` remains interactive after server interactivity is
+blocked on a second load:
 
 ```powershell
 pwsh -NoProfile -File scripts\validate-release.ps1 -Mode Full
 pwsh -NoProfile -File scripts\validate-release.ps1 -Mode Scaffold
 ```
 
+Install the browser once before local `Full` validation:
+
+```powershell
+python -m pip install -r scripts\validation\requirements.txt
+python -m playwright install chromium
+```
+
+GitHub Actions runs the same `Full` contract on native `windows-latest` and
+`macos-latest` runners. Codex system validators remain a required local check;
+CI skips only those host-provided validators because they are not installed on
+standard GitHub runners.
+
 Available validation goals are `Core`, `Harness`, `Scaffold`, `Upgrade`, and
-`Whitespace`.
+`Whitespace`. Use `-BrowserE2E` or `--browser-e2e` with `Scaffold` to opt into
+the browser handoff check without running every `Full` validation group.
 
 Harness-only install:
 
