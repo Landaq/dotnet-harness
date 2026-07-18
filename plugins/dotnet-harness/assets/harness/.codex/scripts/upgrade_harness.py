@@ -4,17 +4,32 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
+import json
 import os
 from pathlib import Path
 import platform
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 
 class UpgradeError(RuntimeError):
     """An expected harness upgrade failure."""
+
+
+MANAGED_PATHS = (
+    Path(".gitignore"),
+    Path(".gitattributes"),
+    Path("AGENTS.md"),
+    Path(".codex/harness-config.json"),
+    Path(".codex/agent-categories"),
+    Path(".codex/agents"),
+    Path(".codex/skills"),
+    Path(".codex/scripts"),
+)
 
 
 def full_path(value: str | Path) -> Path:
@@ -37,6 +52,44 @@ def assert_harness_source(root: Path) -> None:
             raise UpgradeError(f"Invalid harness source. Missing: {path}")
 
 
+def assert_safe_target_layout(target: Path) -> None:
+    for path in (target / ".codex", target / ".codex/backups"):
+        if path.is_symlink():
+            raise UpgradeError(
+                f"Refusing harness upgrade through a symlinked managed directory: {path}"
+            )
+
+
+@contextmanager
+def upgrade_lock(target: Path):
+    codex_root = target / ".codex"
+    codex_root.mkdir(parents=True, exist_ok=True)
+    lock_path = codex_root / ".harness-upgrade.lock"
+    try:
+        descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    except FileExistsError as error:
+        raise UpgradeError(
+            f"Another harness upgrade is active or left an unresolved lock: {lock_path}"
+        ) from error
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(f"pid={os.getpid()}\n")
+        yield
+    finally:
+        try:
+            lock_path.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def write_transaction_state(backup_root: Path, state: str, error: BaseException | None = None) -> None:
+    payload = {"state": state}
+    if error is not None:
+        payload["error"] = str(error) or type(error).__name__
+    state_path = backup_root / "transaction-state.json"
+    state_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
 def copy_existing_to_backup(target: Path, backup_root: Path) -> None:
     backup_items = (
         (Path("AGENTS.md"), Path("AGENTS.md")),
@@ -48,16 +101,73 @@ def copy_existing_to_backup(target: Path, backup_root: Path) -> None:
 
     for relative, backup_relative in backup_items:
         source = target / relative
-        if not source.exists():
+        if not path_exists(source):
             continue
 
         backup = backup_root / backup_relative
         backup.parent.mkdir(parents=True, exist_ok=True)
-        if source.is_dir():
-            shutil.copytree(source, backup, dirs_exist_ok=True)
-        else:
-            shutil.copy2(source, backup)
+        copy_path(source, backup)
         print(f"[backup] {source} -> {backup}")
+
+
+def path_exists(path: Path) -> bool:
+    return path.exists() or path.is_symlink()
+
+
+def copy_path(source: Path, target: Path) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if source.is_symlink():
+        target.symlink_to(os.readlink(source), target_is_directory=source.is_dir())
+    elif source.is_dir():
+        shutil.copytree(source, target, symlinks=True)
+    else:
+        shutil.copy2(source, target, follow_symlinks=False)
+
+
+def create_rollback_snapshot(target: Path, snapshot_root: Path) -> dict[Path, Path | None]:
+    snapshot: dict[Path, Path | None] = {}
+    for index, relative in enumerate(MANAGED_PATHS):
+        source = target / relative
+        if not path_exists(source):
+            snapshot[relative] = None
+            continue
+
+        saved = snapshot_root / f"item-{index:02d}"
+        copy_path(source, saved)
+        snapshot[relative] = saved
+    return snapshot
+
+
+def restore_rollback_snapshot(target: Path, snapshot: dict[Path, Path | None]) -> list[str]:
+    failures: list[str] = []
+    for relative, saved in snapshot.items():
+        destination = target / relative
+        try:
+            if path_exists(destination):
+                remove_path(destination)
+            if saved is not None:
+                copy_path(saved, destination)
+            print(f"[rollback] restored {destination}")
+        except Exception as error:
+            failures.append(f"{destination}: {error}")
+    return failures
+
+
+def allocate_backup_root(target: Path) -> Path:
+    backups_root = target / ".codex/backups"
+    backups_root.mkdir(parents=True, exist_ok=True)
+    stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime())
+
+    for sequence in range(1000):
+        suffix = "" if sequence == 0 else f"-{sequence:03d}"
+        backup_root = backups_root / f"harness-upgrade-{stamp}{suffix}"
+        try:
+            backup_root.mkdir()
+        except FileExistsError:
+            continue
+        return backup_root
+
+    raise UpgradeError(f"Could not allocate a unique harness backup below: {backups_root}")
 
 
 def move_to_backup_file(path: Path) -> None:
@@ -128,6 +238,8 @@ def copy_harness_to_target(source: Path, target: Path) -> None:
 
     source_agents = source / "AGENTS.md"
     target_agents = target / "AGENTS.md"
+    if path_exists(target_agents):
+        remove_path(target_agents)
     target_agents.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source_agents, target_agents)
     print(f"[update] {target_agents}")
@@ -170,16 +282,10 @@ def write_preview(source: Path, target: Path) -> None:
 
 
 def run_validation(target: Path, backup_root: Path) -> None:
-    scripts_root = target / ".codex/scripts"
-    if os.name == "nt" or platform.system() == "Windows":
-        validator = scripts_root / "validate-task-agents.ps1"
-        command = ("pwsh", "-NoProfile", "-File", str(validator), "-RepoRoot", str(target))
-    else:
-        validator = scripts_root / "validate-task-agents.zsh"
-        command = ("zsh", str(validator), "--repo-root", str(target))
+    validator, command = validation_command(target)
 
-    if not validator.exists():
-        return
+    if not validator.is_file():
+        raise UpgradeError(f"Harness validation requested but validator is missing: {validator}")
 
     try:
         sys.stdout.flush()
@@ -190,6 +296,23 @@ def run_validation(target: Path, backup_root: Path) -> None:
         ) from error
     if result.returncode != 0:
         raise UpgradeError(f"Harness validation failed after upgrade. Backup: {backup_root}")
+
+
+def validation_command(root: Path) -> tuple[Path, tuple[str, ...]]:
+    scripts_root = root / ".codex/scripts"
+    if os.name == "nt" or platform.system() == "Windows":
+        validator = scripts_root / "validate-task-agents.ps1"
+        command = ("pwsh", "-NoProfile", "-File", str(validator), "-RepoRoot", str(root))
+    else:
+        validator = scripts_root / "validate-task-agents.zsh"
+        command = ("zsh", str(validator), "--repo-root", str(root))
+    return validator, command
+
+
+def assert_validator_source(source: Path) -> None:
+    validator, _ = validation_command(source)
+    if not validator.is_file():
+        raise UpgradeError(f"Harness validation requested but source validator is missing: {validator}")
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -213,17 +336,41 @@ def upgrade(args: argparse.Namespace) -> None:
         write_preview(source, target)
         return
 
-    target.mkdir(parents=True, exist_ok=True)
-    stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime())
-    backup_root = target / ".codex/backups" / f"harness-upgrade-{stamp}"
-    backup_root.mkdir(parents=True, exist_ok=True)
-
-    copy_existing_to_backup(target, backup_root)
-    protect_backup_from_discovery(target / ".codex/backups")
-    copy_harness_to_target(source, target)
-
+    assert_safe_target_layout(target)
     if not args.skip_validation:
-        run_validation(target, backup_root)
+        assert_validator_source(source)
+
+    target.mkdir(parents=True, exist_ok=True)
+    with upgrade_lock(target):
+        backup_root = allocate_backup_root(target)
+        write_transaction_state(backup_root, "applying")
+
+        with tempfile.TemporaryDirectory(
+            prefix="dotnet-harness-upgrade-", ignore_cleanup_errors=True
+        ) as snapshot_directory:
+            snapshot = create_rollback_snapshot(target, Path(snapshot_directory))
+            try:
+                copy_existing_to_backup(target, backup_root)
+                protect_backup_from_discovery(backup_root)
+                copy_harness_to_target(source, target)
+
+                if not args.skip_validation:
+                    run_validation(target, backup_root)
+            except BaseException as error:
+                rollback_failures = restore_rollback_snapshot(target, snapshot)
+                if rollback_failures:
+                    write_transaction_state(backup_root, "rollback-failed", error)
+                    details = "; ".join(rollback_failures)
+                    raise UpgradeError(
+                        f"Harness upgrade failed: {error}. Backup: {backup_root}. "
+                        f"Rollback failures: {details}"
+                    ) from error
+                write_transaction_state(backup_root, "rolled-back", error)
+                raise UpgradeError(
+                    f"Harness upgrade failed and was rolled back: {error}. Backup: {backup_root}"
+                ) from error
+
+        write_transaction_state(backup_root, "complete")
 
     print(f"Harness upgrade complete. Backup: {backup_root}")
 
