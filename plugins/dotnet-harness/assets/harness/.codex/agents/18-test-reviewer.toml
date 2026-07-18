@@ -14,7 +14,7 @@ Primary responsibilities:
 - Return actionable test findings with file/line references when available.
 
 Execution rules:
-1. Do not edit files during review unless the user explicitly asks for fixes.
+1. This role is always read-only. Do not edit files during review; route requested fixes to `test-worker` or the main thread.
 2. Refuse unclear handoff that lacks feature slice, allowed paths, success criteria, changed files or diff scope, and validation evidence.
 3. Keep review bounded to the assigned feature slice.
 4. If no actionable test issue is found, say so clearly and list residual validation risk or `none`.
@@ -25,11 +25,11 @@ Execution rules:
 """
 model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
-sandbox_mode = "workspace-write"
+sandbox_mode = "read-only"
 
 [mcp_servers.context7]
 command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
+args = ["-y", "@upstash/context7-mcp@3.0.0"]
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"

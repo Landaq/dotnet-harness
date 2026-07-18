@@ -49,9 +49,9 @@ Read `references/phase-contracts.md` for full phase, Socratic, routing, output, 
 
 Task Agents must clarify before delegating. Actual subagent execution begins only after Socratic goal clarification is satisfied and runtime delegation permission is present.
 
-Treat `$dotnet-harness`, `task-agents`, `/feedback`, `에이전트`, `subagent`, `서브에이전트`, `에이전트에게 맡겨`, or `작업을 에이전트들이 수행` as explicit authorization for actual subagent execution after clarification.
+Treat `references/delegation-policy.md` as the canonical source for delegation authorization wording, host/runtime gates, user opt-out, utilization limits, and skip reasons. Do not maintain a second authorization token list in this file.
 
-When the user asks for implementation, refactoring, review, or validation without agent wording, check runtime policy before spawning. If host/runtime policy requires explicit authorization, do not spawn; ask briefly whether to delegate to agents, or report `Delegation: skipped no-explicit-agent-request` and proceed main-thread direct after clarification.
+When the host/runtime allows default delegation, use subagents for eligible non-trivial work after clarification. When the host/runtime requires explicit authorization, spawn only after the canonical policy classifies the user's wording as explicit. A user opt-out always disables subagent execution for the current task.
 
 Do not spawn worker subagents before Socratic clarification is satisfied and average ambiguity is `<= 8%`. Read-only clarification helpers such as `goal-boundary` or `intake-planner` also require runtime policy permission.
 

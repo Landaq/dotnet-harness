@@ -197,13 +197,47 @@ def visible_catalog_value(parts: list[str], label: str) -> str:
     value = " ".join("".join(parts).split())
     return re.sub(rf"^{re.escape(label)}\s*:\s*", "", value, flags=re.IGNORECASE)
 
-FIXED_AGENT_CONFIG = (
+MCP_AGENT_CONFIG = (
     "[mcp_servers.context7]",
     'command = "npx"',
-    'args = ["-y", "@upstash/context7-mcp"]',
+    'args = ["-y", "@upstash/context7-mcp@3.0.0"]',
     "[mcp_servers.openaiDeveloperDocs]",
     'url = "https://developers.openai.com/mcp"',
 )
+
+AGENT_SANDBOX_ASSIGNMENTS = {
+    "01-workflow-guardrails.toml": "read-only",
+    "02-goal-boundary.toml": "read-only",
+    "03-service-template.toml": "read-only",
+    "04-frontend-ui.toml": "read-only",
+    "05-tdd-test.toml": "read-only",
+    "06-reference-auditor.toml": "read-only",
+    "07-intake-planner.toml": "read-only",
+    "08-implementation-coordinator.toml": "read-only",
+    "09-code-reviewer.toml": "read-only",
+    "10-verification-runner.toml": "workspace-write",
+    "11-git-operator.toml": "workspace-write",
+    "12-backend-worker.toml": "workspace-write",
+    "13-frontend-worker.toml": "workspace-write",
+    "14-test-worker.toml": "workspace-write",
+    "15-docs-harness-worker.toml": "workspace-write",
+    "16-backend-reviewer.toml": "read-only",
+    "17-frontend-reviewer.toml": "read-only",
+    "18-test-reviewer.toml": "read-only",
+    "19-docs-harness-reviewer.toml": "read-only",
+    "20-feature-slicer.toml": "read-only",
+    "21-docs-harness-specialist.toml": "read-only",
+}
+
+AGENTS_WITHOUT_MCP = {
+    "02-goal-boundary.toml",
+    "07-intake-planner.toml",
+    "08-implementation-coordinator.toml",
+    "11-git-operator.toml",
+    "20-feature-slicer.toml",
+}
+
+ALLOWED_SANDBOX_MODES = frozenset({"read-only", "workspace-write"})
 
 GOAL_BOUNDARY_POLICY = (
     "After every user answer, restate the updated goal boundary",
@@ -279,14 +313,11 @@ IMPLEMENTATION_COORDINATOR_POLICY = (
 )
 
 INTAKE_PLANNER_POLICY = (
-    "@dotnet-harness",
-    "$dotnet-harness",
-    "dotnet-harness",
-    "/feedback",
-    "에이전트들이 전반적으로 수행",
-    "에이전트 쓰지마",
+    "references/delegation-policy.md as the canonical source",
+    "do not maintain a local token list",
+    "User Delegation Intent",
+    "Runtime Delegation Gate",
     "clarification-first",
-    "Delegation Permission: not explicit",
     "For backend non-trivial work, route pre-implementation analysis to `service-template` and `tdd-test`.",
     "Delegation: skipped user-opt-out",
 )
@@ -434,6 +465,7 @@ class Validator:
         agent_files = sorted(
             path for path in self.agents_dir.glob("*.toml") if path.is_file()
         )
+
         actual_files = {path.name for path in agent_files}
         expected_files = set(AGENT_MODEL_ASSIGNMENTS)
         for unexpected in sorted(actual_files - expected_files):
@@ -508,6 +540,29 @@ class Validator:
                             f"found {actual!r}"
                         )
 
+            sandbox_mode = data.get("sandbox_mode")
+            if sandbox_mode not in ALLOWED_SANDBOX_MODES:
+                self.fail(
+                    f"{agent_file.name} sandbox_mode must be one of "
+                    f"{sorted(ALLOWED_SANDBOX_MODES)!r}; found {sandbox_mode!r}"
+                )
+
+            expected_sandbox = AGENT_SANDBOX_ASSIGNMENTS.get(agent_file.name)
+            if expected_sandbox is not None and sandbox_mode != expected_sandbox:
+                self.fail(
+                    f"{agent_file.name} sandbox_mode must be {expected_sandbox!r}; "
+                    f"found {sandbox_mode!r}"
+                )
+
+            if expected_sandbox == "read-only" and not re.search(
+                r"\b(?:Do not edit files|always read-only|unconditionally read-only)\b",
+                content,
+                re.IGNORECASE,
+            ):
+                self.fail(
+                    f"{agent_file.name} read-only role must explicitly prohibit edits"
+                )
+
             if not re.search(
                 r'^developer_instructions\s*=\s*""".+?"""',
                 content,
@@ -520,11 +575,35 @@ class Validator:
             if content.count('"""') % 2:
                 self.fail(f"{agent_file.name} unbalanced triple quotes")
 
-            for required_config in FIXED_AGENT_CONFIG:
-                if required_config not in content:
+            if agent_file.name in AGENTS_WITHOUT_MCP:
+                if "[mcp_servers." in content or "mcp_servers" in data:
                     self.fail(
-                        f"{agent_file.name} missing fixed agent config: {required_config}"
+                        f"{agent_file.name} pure orchestration/git role must not "
+                        "configure MCP servers"
                     )
+            else:
+                for required_config in MCP_AGENT_CONFIG:
+                    if required_config not in content:
+                        self.fail(
+                            f"{agent_file.name} missing fixed agent config: "
+                            f"{required_config}"
+                        )
+
+    def validate_root_agents_policy(self) -> None:
+        if not self.root_agents.is_file():
+            return
+        self.require_policy(
+            self.read_text(self.root_agents),
+            (
+                "references/delegation-policy.md",
+                "default-allowed",
+                "explicit-required",
+                "blocked",
+                "unavailable",
+                "opt-out",
+            ),
+            "AGENTS.md missing runtime-aware delegation policy",
+        )
 
     def validate_agent_catalog(self) -> None:
         if not self.catalog_dir.exists():
@@ -703,12 +782,13 @@ class Validator:
             (
                 "01-workflow-guardrails.toml",
                 (
-                    "@dotnet-harness",
-                    "Delegation Permission: not explicit",
-                    "direct-main opt-out wording",
+                    "references/delegation-policy.md as the canonical source",
+                    "do not maintain a local token list",
+                    "User Delegation Intent",
+                    "Runtime Delegation Gate",
                     "safety, approval, validation, TaskResult, and git gates active",
                 ),
-                "workflow-guardrails missing automatic handoff policy",
+                "workflow-guardrails missing canonical delegation policy",
             ),
             (
                 "11-git-operator.toml",
@@ -901,6 +981,7 @@ class Validator:
 
     def validate(self) -> int:
         self.validate_paths()
+        self.validate_root_agents_policy()
         self.validate_agent_files()
         self.validate_agent_catalog()
         self.validate_named_agent_policies()

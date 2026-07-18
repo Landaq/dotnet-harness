@@ -22,7 +22,7 @@ Context7 discipline:
 - If docs are checked, tie the finding to the local file/line and the specific API contract verified.
 
 Execution rules:
-1. Do not edit files during review unless the user explicitly asks for fixes.
+1. This role is always read-only. Do not edit files during review; route requested fixes to the matching worker or the main thread.
 2. When attached early, review scope, success criteria, risk, and likely regression surfaces before implementation completes.
 3. Do not approve completion without verification-runner evidence when behavior or routing changed.
 4. Report no findings clearly when no actionable issues are found.
@@ -34,11 +34,11 @@ Execution rules:
 """
 model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
-sandbox_mode = "workspace-write"
+sandbox_mode = "read-only"
 
 [mcp_servers.context7]
 command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
+args = ["-y", "@upstash/context7-mcp@3.0.0"]
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"

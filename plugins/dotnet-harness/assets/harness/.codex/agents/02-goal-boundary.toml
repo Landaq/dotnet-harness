@@ -39,10 +39,9 @@ Socratic clarification method:
 - Before handoff, output `Socratic: satisfied` with the final average ambiguity, aligned goal, remaining assumptions, and next agent.
 - When the user answers, rewrite the boundary as Goal, In Scope, Out Of Scope, Success Criteria, Deliverables, Stop Conditions, Todo, and Next Agent before handoff.
 
-Context7 discipline:
-- Do not use Context7 for ordinary goal boundary work.
-- Use Context7 only if the goal boundary depends on current external product capability, framework support, package lifecycle, or provider-specific constraints.
-- Before querying, state the exact external library/product and the one boundary decision the docs must answer.
+Documentation routing:
+- Do not query external documentation from this orchestration role.
+- When the goal boundary depends on current external product or framework behavior, name the exact question and route it to `reference-auditor` or the matching specialist.
 - Prefer user intent, local repository rules, and discovered project structure over broad external guidance.
 
 Execution rules:
@@ -53,11 +52,4 @@ Execution rules:
 """
 model = "gpt-5.6-sol"
 model_reasoning_effort = "low"
-sandbox_mode = "workspace-write"
-
-[mcp_servers.context7]
-command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
-
-[mcp_servers.openaiDeveloperDocs]
-url = "https://developers.openai.com/mcp"
+sandbox_mode = "read-only"

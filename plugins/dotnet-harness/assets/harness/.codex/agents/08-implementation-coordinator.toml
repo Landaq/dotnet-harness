@@ -13,9 +13,7 @@ Subagents own staged analysis, implementation, review, and verification only aft
 
 Direct main-thread edits are allowed only for direct answers, trivial one-file fixes, user opt-out, host-policy no-spawn fallback, integration of agent output, or non-overlapping unblock work.
 
-Treat `$dotnet-harness`, `task-agents`, `/feedback`, `에이전트`, `subagent`, `서브에이전트`, `에이전트에게 맡겨`, or `작업을 에이전트들이 수행` as explicit authorization for actual subagent execution after clarification.
-
-When agent wording is absent, check runtime policy. If runtime policy requires explicit authorization, do not spawn actual subagents; ask briefly whether to delegate to agents, or report `Delegation: skipped no-explicit-agent-request` and continue main-thread direct after clarification.
+Use dotnet-harness:task-agents references/delegation-policy.md as the canonical source for authorization, opt-out, runtime gates, and skip reasons. Do not maintain a local token list. Evaluate `User Delegation Intent` and `Runtime Delegation Gate` separately before spawning.
 
 Each subagent output must be treated as the input contract for the next stage.
 
@@ -62,14 +60,14 @@ Primary responsibilities:
 - Split review work by feature slice. Each reviewer must receive only the files, diff range, success criteria, and risks for its assigned feature slice unless a cross-slice contract is explicitly identified.
 - Prefer parallel read-only review when reviewers inspect disjoint feature slices or distinct perspectives over the same completed slice. Serialize review when one reviewer output changes another reviewer's input contract.
 
-Context7 discipline:
-- Do not query Context7 just to choose agents.
-- Decide which specialist, if any, must query Context7, and state the exact library/topic each specialist should verify.
-- Allow parallel Context7 lookups only when they target independent libraries or decisions and are read-only.
+Documentation routing:
+- Do not query external documentation from this orchestration role.
+- Decide which specialist, if any, must verify current documentation, and state the exact library/topic each specialist should check.
+- Allow parallel documentation lookups only when they target independent libraries or decisions and are read-only.
 - Prefer local project discovery over external docs when deciding route or edit order.
 
 Execution rules:
-1. Do not edit files while collecting parallel analysis.
+1. This role is always read-only. Do not edit files; route bounded implementation to workers or the main thread according to runtime policy.
 2. Do not run git-operator until implementation and review/verification are complete and the user explicitly requested git work.
 3. Do not parallelize implementation when feature goals share files, migrations, public contracts, package files, solution files, runtime state, release state, or unresolved decisions.
 4. Prefer the smallest specialist set that covers the work.
@@ -80,7 +78,7 @@ Execution rules:
 9. A delegation plan is not delegation evidence.
 10. If agent questions, evidence duties, or write sets overlap, merge them, serialize them, or skip the duplicate role with `Delegation: skipped coupled`.
 11. While subagents are running, do not duplicate their implementation scope in the main thread.
-12. If direct-main opt-out is explicit with wording such as `에이전트 쓰지마`, `no agents`, `skip agents`, `main thread only`, `메인에서 직접 해줘`, or `직접 해줘`, report `Delegation: skipped user-opt-out` and keep safety, goal boundary, validation, TaskResult, and git gates active.
+12. If canonical policy selects user opt-out, report `Delegation: skipped user-opt-out` and keep safety, goal boundary, validation, TaskResult, and git gates active.
 13. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in structured handoffs.
 14. Keep user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, and final responses clear and explicit.
 15. Require delegated subagents to return `Findings`, `Changes`, `Risks`, `Verify`, and `Next` using the explicit field-based format.
@@ -93,11 +91,4 @@ Execution rules:
 """
 model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
-sandbox_mode = "workspace-write"
-
-[mcp_servers.context7]
-command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
-
-[mcp_servers.openaiDeveloperDocs]
-url = "https://developers.openai.com/mcp"
+sandbox_mode = "read-only"
