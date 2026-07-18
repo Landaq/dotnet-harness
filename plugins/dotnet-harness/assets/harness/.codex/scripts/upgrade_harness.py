@@ -26,7 +26,12 @@ def default_source_root() -> Path:
 
 
 def assert_harness_source(root: Path) -> None:
-    for relative in (Path("AGENTS.md"), Path(".codex/agents"), Path(".codex/scripts")):
+    for relative in (
+        Path("AGENTS.md"),
+        Path(".codex/agent-categories"),
+        Path(".codex/agents"),
+        Path(".codex/scripts"),
+    ):
         path = root / relative
         if not path.exists():
             raise UpgradeError(f"Invalid harness source. Missing: {path}")
@@ -35,6 +40,7 @@ def assert_harness_source(root: Path) -> None:
 def copy_existing_to_backup(target: Path, backup_root: Path) -> None:
     backup_items = (
         (Path("AGENTS.md"), Path("AGENTS.md")),
+        (Path(".codex/agent-categories"), Path("agent-categories-backup")),
         (Path(".codex/agents"), Path("agents-backup")),
         (Path(".codex/skills"), Path("skills-backup")),
         (Path(".codex/scripts"), Path("scripts-backup")),
@@ -126,7 +132,11 @@ def copy_harness_to_target(source: Path, target: Path) -> None:
     shutil.copy2(source_agents, target_agents)
     print(f"[update] {target_agents}")
 
-    for relative in (Path(".codex/agents"), Path(".codex/scripts")):
+    for relative in (
+        Path(".codex/agent-categories"),
+        Path(".codex/agents"),
+        Path(".codex/scripts"),
+    ):
         source_path = source / relative
         target_path = target / relative
         replace_tree(source_path, target_path)
@@ -148,7 +158,11 @@ def write_preview(source: Path, target: Path) -> None:
         elif target_path.exists():
             print(f"[preview] skip existing {target_path}")
 
-    print("[preview] backup AGENTS.md, .codex\\agents, .codex\\skills, .codex\\scripts")
+    print(
+        "[preview] backup AGENTS.md, .codex\\agent-categories, "
+        ".codex\\agents, .codex\\skills, .codex\\scripts"
+    )
+    print("[preview] replace active .codex\\agent-categories with source catalog")
     print("[preview] replace active .codex\\agents with source harness agents")
     print("[preview] remove active .codex\\skills after backup; plugin skills remain the source")
     print("[preview] replace active .codex\\scripts with source harness scripts")

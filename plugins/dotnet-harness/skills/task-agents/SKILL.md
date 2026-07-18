@@ -126,9 +126,10 @@ On macOS, run the platform validator instead:
 
 If the script is unavailable, verify manually:
 
-1. `.codex/agents` contains expected workflow agents.
-2. Agent files expose `name`, `description`, `developer_instructions`, `model_reasoning_effort`, `sandbox_mode`.
-3. No repo identity hardcoding remains in `.codex/agents`, `task-agents`, or root `AGENTS.md`.
-4. Repo-local `.codex\skills` is absent; skills come from `dotnet-harness:*`.
-5. Plugin skill validation passes for `dotnet-harness:task-agents`.
-6. `git diff --check -- .codex\agents AGENTS.md` has no whitespace errors when the folder is a git repo; skip this check outside git.
+1. `.codex/agents` contains the expected 21 workflow agents, and `.codex/agent-categories` contains `index.html`, `luna/index.html`, `sol/index.html`, and `terra/index.html`.
+2. Agent files expose `name`, `description`, `developer_instructions`, `model`, `model_reasoning_effort`, and `sandbox_mode`.
+3. Every agent TOML's exact `model` and `model_reasoning_effort` match the full catalog and its Luna, Sol, or Terra subset; visible model, effort, and agent counts match their `data-*` values.
+4. No repo identity hardcoding remains in `.codex/agents`, `task-agents`, or root `AGENTS.md`.
+5. Repo-local `.codex\skills` is absent; skills come from `dotnet-harness:*`.
+6. Plugin skill validation passes for `dotnet-harness:task-agents`.
+7. `git diff --check -- .codex/agent-categories .codex/agents AGENTS.md` has no whitespace errors when the folder is a git repo; skip this check outside git.

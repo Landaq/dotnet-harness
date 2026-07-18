@@ -18,7 +18,13 @@ def require_supported_python() -> None:
 def existing_harness(root: Path) -> bool:
     return any(
         (root / relative).exists()
-        for relative in ("AGENTS.md", ".codex/agents", ".codex/scripts", ".codex/skills")
+        for relative in (
+            "AGENTS.md",
+            ".codex/agent-categories",
+            ".codex/agents",
+            ".codex/scripts",
+            ".codex/skills",
+        )
     )
 
 

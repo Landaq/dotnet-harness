@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import argparse
+from html.parser import HTMLParser
 import re
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 if sys.version_info < (3, 11):
     raise SystemExit("validate_task_agents.py requires Python 3.11 or later.")
@@ -43,9 +45,157 @@ REQUIRED_KEYS = (
     "name",
     "description",
     "developer_instructions",
+    "model",
     "model_reasoning_effort",
     "sandbox_mode",
 )
+
+AGENT_MODEL_ASSIGNMENTS = {
+    "01-workflow-guardrails.toml": ("workflow-guardrails", "gpt-5.6-sol", "high"),
+    "02-goal-boundary.toml": ("goal-boundary", "gpt-5.6-sol", "low"),
+    "03-service-template.toml": ("service-template", "gpt-5.6-sol", "high"),
+    "04-frontend-ui.toml": ("frontend-ui", "gpt-5.6-sol", "high"),
+    "05-tdd-test.toml": ("tdd-test", "gpt-5.6-sol", "high"),
+    "06-reference-auditor.toml": ("reference-auditor", "gpt-5.6-luna", "high"),
+    "07-intake-planner.toml": ("intake-planner", "gpt-5.6-sol", "low"),
+    "08-implementation-coordinator.toml": (
+        "implementation-coordinator",
+        "gpt-5.6-sol",
+        "high",
+    ),
+    "09-code-reviewer.toml": ("code-reviewer", "gpt-5.6-sol", "high"),
+    "10-verification-runner.toml": ("verification-runner", "gpt-5.6-sol", "low"),
+    "11-git-operator.toml": ("git-operator", "gpt-5.6-luna", "low"),
+    "12-backend-worker.toml": ("backend-worker", "gpt-5.6-terra", "high"),
+    "13-frontend-worker.toml": ("frontend-worker", "gpt-5.6-terra", "high"),
+    "14-test-worker.toml": ("test-worker", "gpt-5.6-terra", "high"),
+    "15-docs-harness-worker.toml": (
+        "docs-harness-worker",
+        "gpt-5.6-terra",
+        "low",
+    ),
+    "16-backend-reviewer.toml": ("backend-reviewer", "gpt-5.6-sol", "high"),
+    "17-frontend-reviewer.toml": ("frontend-reviewer", "gpt-5.6-sol", "high"),
+    "18-test-reviewer.toml": ("test-reviewer", "gpt-5.6-sol", "high"),
+    "19-docs-harness-reviewer.toml": (
+        "docs-harness-reviewer",
+        "gpt-5.6-sol",
+        "high",
+    ),
+    "20-feature-slicer.toml": ("feature-slicer", "gpt-5.6-sol", "high"),
+    "21-docs-harness-specialist.toml": (
+        "docs-harness-specialist",
+        "gpt-5.6-luna",
+        "high",
+    ),
+}
+
+CATALOG_PAGES = {
+    "index.html": None,
+    "luna/index.html": "gpt-5.6-luna",
+    "sol/index.html": "gpt-5.6-sol",
+    "terra/index.html": "gpt-5.6-terra",
+}
+
+
+class AgentCatalogParser(HTMLParser):
+    VOID_ELEMENTS = {
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "param",
+        "source",
+        "track",
+        "wbr",
+    }
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.records: list[dict[str, str | list[str]]] = []
+        self.counts: list[dict[str, str | list[str] | None]] = []
+        self.hrefs: list[str] = []
+        self._contexts: list[
+            tuple[str, int | None, str | None, int | None, str | None]
+        ] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        values = dict(attrs)
+        href = values.get("href")
+        if href is not None:
+            self.hrefs.append(href)
+
+        current = self._contexts[-1] if self._contexts else ("", None, None, None, None)
+        _, record_index, visible_field, count_index, category = current
+        classes = set((values.get("class") or "").split())
+        for candidate in ("luna", "sol", "terra"):
+            if candidate in classes:
+                category = candidate
+                break
+
+        agent = values.get("data-agent")
+        if agent is not None:
+            record_index = len(self.records)
+            self.records.append(
+                {
+                    "agent": agent,
+                    "model": values.get("data-model", ""),
+                    "effort": values.get("data-effort", ""),
+                    "visible_model": [],
+                    "visible_effort": [],
+                }
+            )
+
+        if "agent-model" in classes:
+            visible_field = "visible_model"
+        elif "agent-effort" in classes:
+            visible_field = "visible_effort"
+
+        declared_count = values.get("data-catalog-count")
+        if declared_count is not None:
+            count_index = len(self.counts)
+            self.counts.append(
+                {
+                    "declared": declared_count,
+                    "visible": [],
+                    "category": category,
+                }
+            )
+
+        if tag not in self.VOID_ELEMENTS:
+            self._contexts.append(
+                (tag, record_index, visible_field, count_index, category)
+            )
+
+    def handle_endtag(self, tag: str) -> None:
+        for index in range(len(self._contexts) - 1, -1, -1):
+            if self._contexts[index][0] == tag:
+                del self._contexts[index:]
+                return
+
+    def handle_data(self, data: str) -> None:
+        if not self._contexts:
+            return
+        _, record_index, visible_field, count_index, _ = self._contexts[-1]
+        if record_index is not None and visible_field is not None:
+            visible = self.records[record_index][visible_field]
+            assert isinstance(visible, list)
+            visible.append(data)
+        if count_index is not None:
+            visible_count = self.counts[count_index]["visible"]
+            assert isinstance(visible_count, list)
+            visible_count.append(data)
+
+
+def visible_catalog_value(parts: list[str], label: str) -> str:
+    value = " ".join("".join(parts).split())
+    return re.sub(rf"^{re.escape(label)}\s*:\s*", "", value, flags=re.IGNORECASE)
 
 FIXED_AGENT_CONFIG = (
     "[mcp_servers.context7]",
@@ -187,6 +337,7 @@ FEATURE_SCOPED_SPECIALISTS = (
 class Validator:
     def __init__(self, repo_root: Path) -> None:
         self.repo_root = repo_root
+        self.catalog_dir = repo_root / ".codex" / "agent-categories"
         self.agents_dir = repo_root / ".codex" / "agents"
         self.skills_dir = repo_root / ".codex" / "skills"
         self.root_agents = repo_root / "AGENTS.md"
@@ -253,6 +404,7 @@ class Validator:
 
     def validate_paths(self) -> None:
         for path in (
+            self.catalog_dir,
             self.agents_dir,
             self.root_agents,
             self.harness_config,
@@ -271,14 +423,23 @@ class Validator:
         for agent_name in REQUIRED_AGENTS:
             self.require_path(self.agents_dir / agent_name)
 
+        for relative in CATALOG_PAGES:
+            self.require_path(self.catalog_dir / relative)
+
     def validate_agent_files(self) -> None:
         if not self.agents_dir.exists():
             return
 
         agent_names: dict[str, str] = {}
-        for agent_file in sorted(
+        agent_files = sorted(
             path for path in self.agents_dir.glob("*.toml") if path.is_file()
-        ):
+        )
+        actual_files = {path.name for path in agent_files}
+        expected_files = set(AGENT_MODEL_ASSIGNMENTS)
+        for unexpected in sorted(actual_files - expected_files):
+            self.fail(f"Unexpected active agent TOML: {unexpected}")
+
+        for agent_file in agent_files:
             try:
                 with agent_file.open("rb") as handle:
                     data = tomllib.load(handle)
@@ -308,7 +469,13 @@ class Validator:
                 if not re.search(rf"^{re.escape(key)}\s*=\s*.+", content, re.MULTILINE):
                     self.fail(f"{agent_file.name} missing key: {key}")
 
-            for key in ("name", "description", "model_reasoning_effort", "sandbox_mode"):
+            for key in (
+                "name",
+                "description",
+                "model",
+                "model_reasoning_effort",
+                "sandbox_mode",
+            ):
                 match = re.search(
                     rf'^{re.escape(key)}\s*=\s*"([^"]+)"\s*$',
                     content,
@@ -325,6 +492,21 @@ class Validator:
                         )
                     else:
                         agent_names[agent_name] = agent_file.name
+
+            assignment = AGENT_MODEL_ASSIGNMENTS.get(agent_file.name)
+            if assignment is not None:
+                expected_name, expected_model, expected_effort = assignment
+                for key, expected in (
+                    ("name", expected_name),
+                    ("model", expected_model),
+                    ("model_reasoning_effort", expected_effort),
+                ):
+                    actual = data.get(key)
+                    if actual != expected:
+                        self.fail(
+                            f"{agent_file.name} {key} must be {expected!r}; "
+                            f"found {actual!r}"
+                        )
 
             if not re.search(
                 r'^developer_instructions\s*=\s*""".+?"""',
@@ -343,6 +525,140 @@ class Validator:
                     self.fail(
                         f"{agent_file.name} missing fixed agent config: {required_config}"
                     )
+
+    def validate_agent_catalog(self) -> None:
+        if not self.catalog_dir.exists():
+            return
+
+        all_assignments = {
+            name: (model, effort)
+            for name, model, effort in AGENT_MODEL_ASSIGNMENTS.values()
+        }
+        category_models = {
+            "luna": "gpt-5.6-luna",
+            "sol": "gpt-5.6-sol",
+            "terra": "gpt-5.6-terra",
+        }
+        repo_root = self.repo_root.resolve()
+
+        for relative, page_model in CATALOG_PAGES.items():
+            page = self.catalog_dir / relative
+            if not page.is_file():
+                continue
+
+            parser = AgentCatalogParser()
+            parser.feed(self.read_text(page))
+            parser.close()
+
+            records: dict[str, tuple[str, str]] = {}
+            visible_records: dict[str, tuple[str, str]] = {}
+            for record in parser.records:
+                agent = str(record["agent"])
+                model = str(record["model"])
+                effort = str(record["effort"])
+                if agent in records:
+                    self.fail(f"Duplicate catalog agent in {relative}: {agent}")
+                    continue
+                records[agent] = (model, effort)
+                visible_model_parts = record["visible_model"]
+                visible_effort_parts = record["visible_effort"]
+                assert isinstance(visible_model_parts, list)
+                assert isinstance(visible_effort_parts, list)
+                visible_records[agent] = (
+                    visible_catalog_value(visible_model_parts, "Model"),
+                    visible_catalog_value(visible_effort_parts, "Effort"),
+                )
+
+            expected = {
+                agent: assignment
+                for agent, assignment in all_assignments.items()
+                if page_model is None or assignment[0] == page_model
+            }
+            if records != expected:
+                missing = sorted(expected.keys() - records.keys())
+                unexpected = sorted(records.keys() - expected.keys())
+                mismatched = sorted(
+                    agent
+                    for agent in expected.keys() & records.keys()
+                    if expected[agent] != records[agent]
+                )
+                details: list[str] = []
+                if missing:
+                    details.append(f"missing={','.join(missing)}")
+                if unexpected:
+                    details.append(f"unexpected={','.join(unexpected)}")
+                if mismatched:
+                    details.append(f"wrong-model-or-effort={','.join(mismatched)}")
+                self.fail(
+                    f"Catalog mapping mismatch in {relative}: "
+                    + ("; ".join(details) if details else "unknown difference")
+                )
+
+            for agent in sorted(expected.keys() & visible_records.keys()):
+                if visible_records[agent] != expected[agent]:
+                    self.fail(
+                        f"Visible catalog model/effort mismatch in {relative} for "
+                        f"{agent}: expected {expected[agent]!r}; "
+                        f"found {visible_records[agent]!r}"
+                    )
+
+            observed_count_contexts: set[str] = set()
+            for count in parser.counts:
+                category_value = count["category"]
+                category = str(category_value) if category_value is not None else None
+                context = category or "all"
+                if context in observed_count_contexts:
+                    self.fail(f"Duplicate catalog count in {relative}: {context}")
+                    continue
+                observed_count_contexts.add(context)
+
+                if page_model is not None:
+                    expected_count = len(expected)
+                elif category in category_models:
+                    expected_count = sum(
+                        model == category_models[category]
+                        for model, _ in all_assignments.values()
+                    )
+                else:
+                    expected_count = len(expected)
+
+                declared = str(count["declared"])
+                if not declared.isdecimal() or int(declared) != expected_count:
+                    self.fail(
+                        f"Catalog declared count mismatch in {relative} for {context}: "
+                        f"expected {expected_count}; found {declared!r}"
+                    )
+
+                visible_parts = count["visible"]
+                assert isinstance(visible_parts, list)
+                visible_numbers = re.findall(r"\d+", " ".join(visible_parts))
+                if visible_numbers != [str(expected_count)]:
+                    self.fail(
+                        f"Visible catalog count mismatch in {relative} for {context}: "
+                        f"expected {expected_count}; found {visible_numbers!r}"
+                    )
+
+            if page_model is None:
+                missing_counts = sorted(set(category_models) - observed_count_contexts)
+                if missing_counts:
+                    self.fail(
+                        f"Root catalog missing model counts: {','.join(missing_counts)}"
+                    )
+            elif not parser.counts:
+                self.fail(f"Catalog page missing declared count: {relative}")
+
+            for href in parser.hrefs:
+                parts = urlsplit(href)
+                if parts.scheme or parts.netloc or not parts.path:
+                    continue
+                target = (page.parent / unquote(parts.path)).resolve()
+                try:
+                    target.relative_to(repo_root)
+                except ValueError:
+                    self.fail(f"Catalog link escapes harness root in {relative}: {href}")
+                    continue
+                if not target.exists():
+                    self.fail(f"Broken local catalog link in {relative}: {href}")
 
     def validate_named_agent_policies(self) -> None:
         policies = (
@@ -571,6 +887,7 @@ class Validator:
                 "diff",
                 "--check",
                 "--",
+                ".codex/agent-categories",
                 ".codex/agents",
                 "AGENTS.md",
             ),
@@ -585,6 +902,7 @@ class Validator:
     def validate(self) -> int:
         self.validate_paths()
         self.validate_agent_files()
+        self.validate_agent_catalog()
         self.validate_named_agent_policies()
         self.validate_task_result_helpers()
         self.validate_agent_groups()

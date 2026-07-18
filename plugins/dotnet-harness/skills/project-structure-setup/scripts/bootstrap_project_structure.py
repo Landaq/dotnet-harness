@@ -775,6 +775,7 @@ def _solution_projects(service_name: str | None) -> list[str]:
     return projects
 
 HARNESS_DIRS = [
+    ".codex/agent-categories",
     ".codex/agents",
     ".codex/scripts",
 ]
@@ -901,7 +902,14 @@ def source_harness_root() -> Path:
         script.parents[3] / "assets/harness",
     ]
     for candidate in candidates:
-        if (candidate / ".codex/agents").exists() and (candidate / ".codex/scripts").exists():
+        if all(
+            (candidate / relative).exists()
+            for relative in (
+                ".codex/agent-categories",
+                ".codex/agents",
+                ".codex/scripts",
+            )
+        ):
             return candidate
     return candidates[0]
 

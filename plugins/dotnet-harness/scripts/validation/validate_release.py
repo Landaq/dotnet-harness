@@ -19,6 +19,13 @@ GROUPS = {
     "full": ("core", "harness", "scaffold", "upgrade", "whitespace"),
 }
 
+CATALOG_PAGES = (
+    "index.html",
+    "luna/index.html",
+    "sol/index.html",
+    "terra/index.html",
+)
+
 
 class ValidationError(RuntimeError):
     pass
@@ -41,6 +48,50 @@ def policy_match(content: str, expected: str) -> bool:
         return expected in content
     pattern = r"[\s\S]{0,120}".join(re.escape(token) for token in tokens)
     return re.search(pattern, content, flags=re.IGNORECASE) is not None
+
+
+def seed_stale_catalog(root: Path, marker: str) -> None:
+    catalog = root / ".codex/agent-categories"
+    catalog.mkdir(parents=True, exist_ok=True)
+    (catalog / "index.html").write_text(marker, encoding="utf-8")
+    (catalog / "obsolete.html").write_text(marker, encoding="utf-8")
+
+
+def require_catalog_matches(root: Path, source_root: Path) -> None:
+    for relative in CATALOG_PAGES:
+        installed = root / ".codex/agent-categories" / relative
+        source = source_root / ".codex/agent-categories" / relative
+        require(installed.is_file(), f"Installed harness missing catalog page: {relative}")
+        require(source.is_file(), f"Harness source missing catalog page: {relative}")
+        require(
+            installed.read_bytes() == source.read_bytes(),
+            f"Installed catalog page differs from source: {relative}",
+        )
+    require(
+        not (root / ".codex/agent-categories/obsolete.html").exists(),
+        "Catalog replacement retained a stale page.",
+    )
+
+
+def require_catalog_backup(root: Path, marker: str) -> None:
+    backup_indexes = list(
+        (root / ".codex/backups").glob(
+            "harness-upgrade-*/agent-categories-backup/index.html"
+        )
+    )
+    require(backup_indexes, "Harness upgrade did not back up the existing catalog.")
+    require(
+        any(path.read_text(encoding="utf-8") == marker for path in backup_indexes),
+        "Catalog backup did not preserve the stale pre-upgrade catalog.",
+    )
+    require(
+        any(
+            (path.parent / "obsolete.html").read_text(encoding="utf-8") == marker
+            for path in backup_indexes
+            if (path.parent / "obsolete.html").is_file()
+        ),
+        "Catalog backup did not preserve the complete stale catalog tree.",
+    )
 
 
 class Context:
@@ -265,8 +316,14 @@ def validate_upgrade(ctx: Context) -> None:
             )
         )
         require(not (root / "src").exists() and not (root / "test").exists(), "Harness-only install created app folders.")
-        for relative in ("AGENTS.md", ".codex/agents", ".codex/scripts"):
+        for relative in (
+            "AGENTS.md",
+            ".codex/agent-categories",
+            ".codex/agents",
+            ".codex/scripts",
+        ):
             require((root / relative).exists(), f"Harness-only install missing {relative}")
+        require_catalog_matches(root, ctx.harness_root)
 
     with tempfile.TemporaryDirectory(prefix="dotnet-harness-install-upgrade-") as temp:
         root = Path(temp)
@@ -276,6 +333,8 @@ def validate_upgrade(ctx: Context) -> None:
             'name = "legacy"\n[policy]\nworkflow_modes = ["legacy"]\n',
             encoding="utf-8",
         )
+        catalog_marker = "stale install-driven catalog"
+        seed_stale_catalog(root, catalog_marker)
         run(
             host_wrapper_command(
                 ctx.install_windows,
@@ -285,6 +344,8 @@ def validate_upgrade(ctx: Context) -> None:
             )
         )
         require((root / ".codex/backups").is_dir(), "Install-driven upgrade did not create a backup.")
+        require_catalog_matches(root, ctx.harness_root)
+        require_catalog_backup(root, catalog_marker)
         for agent in (root / ".codex/agents").glob("*.toml"):
             require("[policy]" not in agent.read_text(encoding="utf-8"), "Install-driven upgrade left a legacy policy table.")
 
@@ -294,6 +355,8 @@ def validate_upgrade(ctx: Context) -> None:
         (root / ".codex/skills/legacy").mkdir(parents=True)
         (root / ".codex/agents/legacy.toml").write_text('name = "legacy"\n', encoding="utf-8")
         (root / ".codex/skills/legacy/SKILL.md").write_text("# Legacy\n", encoding="utf-8")
+        catalog_marker = "stale direct-upgrade catalog"
+        seed_stale_catalog(root, catalog_marker)
         run(
             host_wrapper_command(
                 ctx.upgrade_windows,
@@ -311,8 +374,17 @@ def validate_upgrade(ctx: Context) -> None:
             )
         )
         require(not (root / ".codex/skills").exists(), "Upgrade left active repo-local skills.")
-        for relative in (".gitignore", ".gitattributes", ".codex/harness-config.json", ".codex/agents", ".codex/scripts"):
+        for relative in (
+            ".gitignore",
+            ".gitattributes",
+            ".codex/harness-config.json",
+            ".codex/agent-categories",
+            ".codex/agents",
+            ".codex/scripts",
+        ):
             require((root / relative).exists(), f"Upgrade missing {relative}")
+        require_catalog_matches(root, ctx.harness_root)
+        require_catalog_backup(root, catalog_marker)
         require(list((root / ".codex/backups").rglob("*.bak")), "Upgrade did not protect backup discovery files.")
     print(f"Upgrade validation passed: {ctx.plugin_root}")
 
