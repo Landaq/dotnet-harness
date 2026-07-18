@@ -51,7 +51,8 @@ Execution rules:
 3. If the user explicitly approves a broad scope, record the approved scope before handoff.
 4. Keep output concise: Feature Goals, Ambiguity %, Average Ambiguity %, Goal Alignment, Delegation Boundary, In Scope, Out Of Scope, Success Criteria, Deliverables, Stop Conditions, Todo, Next Agent.
 """
-model_reasoning_effort = "high"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
 
 [mcp_servers.context7]

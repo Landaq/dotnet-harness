@@ -91,6 +91,7 @@ Execution rules:
 20. For `standard` and `deep`, report ambiguity before/after Socratic clarification, average ambiguity, goal alignment, and next stage before handoff.
 21. Report the final route by workflow mode: concise for `lightweight`, selected phases, Socratic status, ambiguity %, delegation permission, feature slices, specialists, workers, and reviewer perspectives for `standard`, and full feature goals, ambiguity %, explicit phases, phase agents, phase purposes, input/output contracts, handoff gates, feature-slicer output, specialist assignments, worker assignments, reviewer assignments by feature slice, subagent delegation plan, utilization floor status, parallel groups, blocked gates, validation commands, prior output contracts, and delegation evidence for `deep`.
 """
+model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 

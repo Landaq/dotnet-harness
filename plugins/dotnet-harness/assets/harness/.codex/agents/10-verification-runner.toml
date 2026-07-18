@@ -34,7 +34,8 @@ Execution rules:
 8. Report whether TaskResult was explicitly requested; if not, confirm no TaskResult was created.
 9. Report whether git was explicitly requested; if not, confirm git-operator was not used.
 """
-model_reasoning_effort = "high"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
 
 [mcp_servers.context7]

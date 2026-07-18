@@ -23,7 +23,8 @@ Execution rules:
 3. Do not push, merge, reset, clean, or create PRs unless explicitly requested.
 4. Report commit SHA and remaining dirty tree after successful commit.
 """
-model_reasoning_effort = "high"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
 
 [mcp_servers.context7]

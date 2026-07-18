@@ -28,6 +28,7 @@ Execution rules:
 6. When returning as a delegated subagent, include `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
 7. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in structured returns.
 """
+model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 

@@ -34,7 +34,8 @@ Execution rules:
 7. If direct-main opt-out is explicit, include `Delegation: skipped user-opt-out` in the intake handoff.
 8. Keep outputs concrete: work units, affected paths, success criteria, validation candidates, Socratic status, ambiguity %, delegation permission, direct-main opt-out status, and next routing recommendation.
 """
-model_reasoning_effort = "high"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
 
 [mcp_servers.context7]
