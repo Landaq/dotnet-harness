@@ -49,6 +49,38 @@ Invoke-ValidationStep "version consistency" {
 }
 
 Invoke-ValidationStep "packaging hygiene" {
+    foreach ($requiredPath in @(
+        $ctx.InstallScript,
+        $ctx.InstallCore,
+        $ctx.MacInstallScript,
+        $ctx.UpgradeScript,
+        $ctx.UpgradeCore,
+        $ctx.MacUpgradeScript,
+        $ctx.HarnessValidator,
+        $ctx.HarnessValidatorCore,
+        $ctx.MacHarnessValidator,
+        $ctx.PythonEnvPowerShell,
+        $ctx.PythonEnvScript,
+        $ctx.ReleaseValidatorCore,
+        $ctx.MacReleaseValidator,
+        $ctx.ValidationRequirements
+    )) {
+        if (-not (Test-Path -LiteralPath $requiredPath)) {
+            throw "Missing platform support file: $requiredPath"
+        }
+    }
+
+    foreach ($lineEndingSource in @(
+        (Join-Path $ctx.PluginRoot "..\..\.gitattributes"),
+        (Join-Path $ctx.HarnessRoot ".gitattributes"),
+        $ctx.BootstrapScript
+    )) {
+        $lineEndingText = Get-Content -LiteralPath $lineEndingSource -Raw
+        if ($lineEndingText -notmatch [regex]::Escape("*.zsh text eol=lf")) {
+            throw "Missing zsh LF policy: $lineEndingSource"
+        }
+    }
+
     $legacySkillFiles = @(Get-ChildItem -LiteralPath $ctx.SkillsRoot -Recurse -File -Filter "SKILL.original.md")
     if ($legacySkillFiles.Count -gt 0) {
         throw "Remove legacy SKILL.original.md files before release."

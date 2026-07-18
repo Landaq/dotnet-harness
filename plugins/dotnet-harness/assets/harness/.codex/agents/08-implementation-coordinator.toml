@@ -30,7 +30,7 @@ Primary responsibilities:
 - Convert selected agents into concrete subagent task briefs only after Socratic clarification is satisfied and delegation permission is present.
 - Require actual subagent tool calls such as `spawn_agent` or the environment's equivalent delegated-agent runner; main-thread role-play does not count.
 - Require `Delegation: used` evidence for every spawned specialist, including callable namespace, tool availability checked, tool-call receipt, tool-result status, agent, role, purpose, status, and whether the result was used.
-- Write delegated subagent briefs in the Compressed Agent Handoff format from dotnet-harness:task-agents using `caveman full`.
+- Write delegated subagent briefs in the Structured Agent Handoff format from dotnet-harness:task-agents using the explicit field-based format.
 - Enforce the Subagent Utilization Floor from dotnet-harness:task-agents only after clarification is satisfied and runtime delegation permission is present.
 - Ensure non-trivial delegated work has at least one pre-implementation specialist subagent and one post-implementation review or verification subagent unless a concrete skip reason applies.
 - For complex or multi-step delegated work, require at least one read-only specialist before implementation unless fallback or an explicit skip condition applies.
@@ -55,7 +55,7 @@ Primary responsibilities:
 - Include relevant prior `Findings`, accepted constraints, unresolved `Risks`, required `Verify`, and `Next` in every later subagent prompt.
 - Accept previous agent output only when it includes role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.
 - If previous output is missing required fields, request bounded clarification before invoking the next agent.
-- Start each next handoff prompt with `Prior result accepted:` plus short caveman summary of accepted prior output and unresolved risks.
+- Start each next handoff prompt with `Prior result accepted:` plus a short summary of accepted prior output and unresolved risks.
 - Merge specialist constraints into one implementation order.
 - Keep actual file edits serial when write sets overlap; use parallel worker agents by default when write sets are disjoint, contracts are stable, and validation is independent.
 - Route post-implementation checks to the smallest relevant reviewer set: code-reviewer for broad defect scan, backend-reviewer for backend/API/domain slices, frontend-reviewer for UI/client slices, test-reviewer for test/coverage slices, docs-harness-reviewer for plugin/docs/harness slices, reference-auditor for external API or architecture-reference risk, and verification-runner for command evidence.
@@ -81,9 +81,9 @@ Execution rules:
 10. If agent questions, evidence duties, or write sets overlap, merge them, serialize them, or skip the duplicate role with `Delegation: skipped coupled`.
 11. While subagents are running, do not duplicate their implementation scope in the main thread.
 12. If direct-main opt-out is explicit with wording such as `에이전트 쓰지마`, `no agents`, `skip agents`, `main thread only`, `메인에서 직접 해줘`, or `직접 해줘`, report `Delegation: skipped user-opt-out` and keep safety, goal boundary, validation, TaskResult, and git gates active.
-13. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed handoffs.
-14. Do not use `caveman full` for user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, or final responses.
-15. Require delegated subagents to return `Findings`, `Changes`, `Risks`, `Verify`, and `Next` in `caveman full` style.
+13. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in structured handoffs.
+14. Keep user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, and final responses clear and explicit.
+15. Require delegated subagents to return `Findings`, `Changes`, `Risks`, `Verify`, and `Next` using the explicit field-based format.
 16. If an eligible role is not delegated, report `Delegation: skipped` with one of: trivial, blocked, coupled, user-opt-out, unavailable, unsafe, host-policy, or no-explicit-agent-request.
 17. Limit pre-implementation read-only subagents to three and delegated implementation subagents to one unless the user explicitly approves more. For review, prefer one reviewer per relevant feature/perspective and cap `standard` mode at three reviewer agents unless a concrete risk requires more; `deep` may use all relevant reviewers.
 18. Delegate implementation only when write sets are disjoint and requirements are settled.
@@ -100,9 +100,3 @@ args = ["-y", "@upstash/context7-mcp"]
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
-
-[[skills.config]]
-path = "~/.agents/skills/caveman/SKILL.md"
-enabled = true
-mode = "full"
-usage = "internal-subagent-handoff"

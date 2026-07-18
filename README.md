@@ -55,6 +55,12 @@ pwsh -NoProfile -File plugins\dotnet-harness\install.ps1 -Root "C:\path\to\proje
 
 Windows Codex sandbox에서는 Python 스크립트 직접 실행보다 위 PowerShell wrapper를 기본 사용합니다.
 
+macOS에서는 zsh entrypoint를 사용합니다.
+
+```zsh
+./plugins/dotnet-harness/install.zsh --root "/path/to/project" --project-name NewProject
+```
+
 ## Workflow Modes
 
 Task Agents는 작업 크기와 위험도에 따라 세 가지 흐름을 사용합니다.
@@ -77,9 +83,25 @@ pwsh -NoProfile -File plugins\dotnet-harness\assets\harness\.codex\scripts\upgra
 pwsh -NoProfile -File plugins\dotnet-harness\assets\harness\.codex\scripts\upgrade-harness.ps1 -TargetRoot "C:\path\to\project" -Apply
 ```
 
+macOS preview/apply:
+
+```zsh
+./plugins/dotnet-harness/assets/harness/.codex/scripts/upgrade-harness.zsh --target-root "/path/to/project"
+./plugins/dotnet-harness/assets/harness/.codex/scripts/upgrade-harness.zsh --target-root "/path/to/project" --apply
+```
+
 업그레이드 적용 시 기존 `AGENTS.md`, `.codex\agents`, `.codex\skills`, `.codex\scripts`는 `.codex\backups` 아래에 백업됩니다.
 
 ## 검증
+
+macOS에서는 Python 3.11 이상과 `uv`를 사용해 격리된 검증 환경을 구성하고 OS 전용
+entrypoint를 실행합니다. PyYAML은 첫 실행 때 uv cache에 설치되며 global Python은
+변경하지 않습니다.
+
+```zsh
+./plugins/dotnet-harness/scripts/validate-release.zsh --mode Quick
+./plugins/dotnet-harness/scripts/validate-release.zsh --mode Full
+```
 
 Plugin manifest 검증:
 

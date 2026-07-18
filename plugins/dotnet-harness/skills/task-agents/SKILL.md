@@ -55,7 +55,7 @@ When the user asks for implementation, refactoring, review, or validation withou
 
 Do not spawn worker subagents before Socratic clarification is satisfied and average ambiguity is `<= 8%`. Read-only clarification helpers such as `goal-boundary` or `intake-planner` also require runtime policy permission.
 
-Read `references/delegation-policy.md` before spawning or skipping subagents, reporting delegation evidence, using compressed handoffs, or applying the subagent utilization floor.
+Read `references/delegation-policy.md` before spawning or skipping subagents, reporting delegation evidence, using structured handoffs, or applying the subagent utilization floor.
 
 ## Worker Core
 
@@ -116,6 +116,12 @@ After changing agents or this skill, run:
 
 ```powershell
 pwsh -NoProfile -File .codex/scripts/validate-task-agents.ps1
+```
+
+On macOS, run the platform validator instead:
+
+```zsh
+./.codex/scripts/validate-task-agents.zsh --repo-root .
 ```
 
 If the script is unavailable, verify manually:

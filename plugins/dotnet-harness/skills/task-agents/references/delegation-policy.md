@@ -83,18 +83,17 @@ No-spawn decisions must include the exact reason.
 
 Valid no-agent reasons are `trivial`, `blocked`, `coupled`, `user-opt-out`, `unavailable`, `unsafe`, `host-policy`, or `no-explicit-agent-request`.
 
-## Compressed Agent Handoff
+## Structured Agent Handoff
 
-Use `caveman full` only for internal subagent handoff prompts and subagent return summaries.
+Use the structured handoff format below for internal subagent prompts and return summaries.
 
-Do not use `caveman full` for user-facing Socratic questions.
+Keep user-facing Socratic questions clear and explicit.
 
-Compressed handoffs must preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references.
+Structured handoffs must preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references.
 
 Internal handoff prompt format:
 
 ```text
-Mode: caveman full
 Prior result accepted:
 Role:
 Goal:
@@ -127,7 +126,7 @@ Subagent output as next input:
 - Main thread must treat `Findings`, `Changes`, `Risks`, `Verify`, and `Next` as the next stage input, not as final truth.
 - Previous agent output is clear only when it includes: role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.
 - Do not hand off to the next agent until previous agent output is explicit, bounded, and usable as the next input contract.
-- Each handoff prompt must start with `Prior result accepted:` plus short caveman summary of the previous agent result and any unresolved risks.
+- Each handoff prompt must start with `Prior result accepted:` plus a short summary of the previous agent result and any unresolved risks.
 
 ## Subagent Utilization Floor
 

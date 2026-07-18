@@ -57,7 +57,6 @@ Serialize specialists when:
 Specialist handoff must include:
 
 ```text
-Mode: caveman full
 Prior result accepted:
 Role:
 Feature Slice:

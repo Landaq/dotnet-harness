@@ -40,7 +40,7 @@ If `{ServiceName}` enabled:
 
 ## CLI
 
-Prefer PowerShell wrapper: UTF-8 + Windows launch safer.
+Select the wrapper for the host OS. Use PowerShell on Windows:
 
 ```powershell
 pwsh -NoProfile -File install.ps1 -Root .
@@ -52,6 +52,18 @@ pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -HarnessOnly
 pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -HarnessOnly -SkipHarnessUpgrade
 ```
 
+Use zsh on macOS:
+
+```zsh
+./install.zsh --root .
+./install.zsh --root . --service-name Orders
+./install.zsh --root . --project-name MyProj
+./install.zsh --root . --project-name MyProj --no-service
+./install.zsh --root . --project-name MyProj --service-name Orders --preview
+./install.zsh --root . --project-name MyProj --harness-only
+./install.zsh --root . --project-name MyProj --harness-only --skip-harness-upgrade
+```
+
 ## Rules
 
 - Create dirs, `.gitkeep`, baseline .NET skeleton.
@@ -59,12 +71,12 @@ pwsh -NoProfile -File install.ps1 -Root . -ProjectName MyProj -HarnessOnly -Skip
 - Create `docs/Project/README.md` if it does not exist.
 - Install repo-local Codex harness into target root if source exists.
 - Use `--harness-only` to install `AGENTS.md` and `.codex` harness files without creating `src`, `test`, or `docs/Project` structure.
-- Re-running `install.ps1` against a project that already has `AGENTS.md`, `.codex/agents`, `.codex/scripts`, or legacy `.codex/skills` triggers backup-based harness upgrade before scaffold work.
-- Use `-SkipHarnessUpgrade` only when stale repo-local harness files must intentionally remain untouched.
+- Re-running the platform install wrapper against a project that already has `AGENTS.md`, `.codex/agents`, `.codex/scripts`, or legacy `.codex/skills` triggers backup-based harness upgrade before scaffold work.
+- Use `-SkipHarnessUpgrade` on Windows or `--skip-harness-upgrade` on macOS only when stale repo-local harness files must intentionally remain untouched.
 - `.gitkeep` enabled by default; use `--no-gitkeep` to skip.
 - Never delete existing directories.
 - Do not overwrite an existing `docs/Project/README.md`.
-- The bootstrap script does not overwrite existing Codex harness files by itself; `install.ps1` uses the explicit upgrade script for existing harness refresh.
+- The bootstrap script does not overwrite existing Codex harness files by itself; the platform install wrapper uses the shared upgrade core for existing harness refresh.
 - Do not overwrite existing source or project files.
 - Update `references/package-versions.json` instead of editing package versions inline in the bootstrap script.
 

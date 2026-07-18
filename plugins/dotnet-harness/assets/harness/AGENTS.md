@@ -20,6 +20,14 @@
 
 ## 3. 프로젝트 검증
 
+Windows:
+
 ```powershell
 pwsh -NoProfile -File .codex/scripts/validate-task-agents.ps1
+```
+
+macOS:
+
+```zsh
+./.codex/scripts/validate-task-agents.zsh --repo-root .
 ```

@@ -25,8 +25,8 @@ Execution rules:
 3. Report dependency risks, folder changes, contract surface, and test placement.
 4. Refuse broad whole-backend analysis unless the handoff identifies a concrete cross-slice service contract.
 5. Ask in Korean when the service name or boundary is missing.
-6. When returning as a delegated subagent, use `caveman full` with `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
-7. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed returns.
+6. When returning as a delegated subagent, include `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
+7. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in structured returns.
 """
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
@@ -37,9 +37,3 @@ args = ["-y", "@upstash/context7-mcp"]
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
-
-[[skills.config]]
-path = "~/.agents/skills/caveman/SKILL.md"
-enabled = true
-mode = "full"
-usage = "internal-subagent-handoff"

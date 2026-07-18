@@ -6,27 +6,33 @@ param(
 $ctx = Get-DotnetHarnessValidationContext -PluginRoot $PluginRoot
 
 Invoke-ValidationStep "install script upgrade contract" {
-    foreach ($scriptPath in @($ctx.InstallScript, $ctx.BootstrapScript, $ctx.UpgradeScript)) {
-        $scriptText = Get-Content -LiteralPath $scriptPath -Raw
-        if ($scriptText -notmatch "InstallOptionalSkills|install-optional-skills") {
-            throw "Setup/upgrade path must expose optional skill installation: $scriptPath"
+    foreach ($requiredPath in @(
+        $ctx.InstallScript,
+        $ctx.InstallCore,
+        $ctx.MacInstallScript,
+        $ctx.UpgradeScript,
+        $ctx.UpgradeCore,
+        $ctx.MacUpgradeScript
+    )) {
+        if (-not (Test-Path -LiteralPath $requiredPath)) {
+            throw "Missing platform install/upgrade entrypoint: $requiredPath"
         }
     }
 
-    $installText = Get-Content -LiteralPath $ctx.InstallScript -Raw
+    $installText = (Get-Content -LiteralPath $ctx.InstallScript -Raw) + "`n" + (Get-Content -LiteralPath $ctx.InstallCore -Raw)
     foreach ($requiredText in @(
         'SkipHarnessUpgrade',
-        'Test-ExistingHarness',
-        'upgrade-harness.ps1',
+        'existing_harness',
+        'upgrade_harness.py',
         '[upgrade] existing repo-local harness detected',
-        '-Apply'
+        '--apply'
     )) {
         if (-not (Test-PolicyPattern $installText $requiredText)) {
             throw "Install path must auto-run harness upgrade for existing repo-local harnesses: '$requiredText'."
         }
     }
 
-    $upgradeText = Get-Content -LiteralPath $ctx.UpgradeScript -Raw
+    $upgradeText = (Get-Content -LiteralPath $ctx.UpgradeScript -Raw) + "`n" + (Get-Content -LiteralPath $ctx.UpgradeCore -Raw)
     foreach ($requiredText in @(".codex\harness-config.json", "[create]", "[preview] create")) {
         if (-not (Test-PolicyPattern $upgradeText $requiredText)) {
             throw "Upgrade path must create missing harness config without overwriting: '$requiredText'."

@@ -28,9 +28,9 @@ Execution rules:
 2. If a command cannot run, report the exact blocker and choose the next best local inspection.
 3. Do not mutate source files.
 4. Keep verification scoped to the change unless broad behavior was affected.
-5. When returning as a delegated subagent, use `caveman full` with `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
-6. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed returns.
-7. Do not use `caveman full` for user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, or final responses.
+5. When returning as a delegated subagent, include `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
+6. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in structured returns.
+7. Keep user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, and final responses clear and explicit.
 8. Report whether TaskResult was explicitly requested; if not, confirm no TaskResult was created.
 9. Report whether git was explicitly requested; if not, confirm git-operator was not used.
 """
@@ -43,9 +43,3 @@ args = ["-y", "@upstash/context7-mcp"]
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
-
-[[skills.config]]
-path = "~/.agents/skills/caveman/SKILL.md"
-enabled = true
-mode = "full"
-usage = "internal-subagent-handoff"

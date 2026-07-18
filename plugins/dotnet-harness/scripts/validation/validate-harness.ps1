@@ -9,6 +9,11 @@ Invoke-ValidationStep "harness task agents" {
     if (-not (Test-Path -LiteralPath $ctx.HarnessValidator)) {
         throw "Missing harness validator: $($ctx.HarnessValidator)"
     }
+    foreach ($requiredPath in @($ctx.HarnessValidatorCore, $ctx.MacHarnessValidator, $ctx.PythonEnvPowerShell, $ctx.PythonEnvScript)) {
+        if (-not (Test-Path -LiteralPath $requiredPath)) {
+            throw "Missing cross-platform harness validator support: $requiredPath"
+        }
+    }
     & pwsh -NoProfile -File $ctx.HarnessValidator -RepoRoot $ctx.HarnessRoot
     if ($LASTEXITCODE -ne 0) {
         throw "Harness task agent validation failed."
@@ -44,7 +49,7 @@ Invoke-ValidationStep "task-agents routing contract" {
         'Workflow Modes',
         'Clarify Before Delegating',
         'Delegation Evidence',
-        'Compressed Agent Handoff',
+        'Structured Agent Handoff',
         'Mandatory Socratic Checkpoint',
         'Subagent Utilization Floor',
         'Task Agents must clarify before delegating. Actual subagent execution begins only after Socratic goal clarification is satisfied and runtime delegation permission is present.',
@@ -72,7 +77,6 @@ Invoke-ValidationStep "task-agents routing contract" {
         'target average ambiguity `<= 8%`',
         'Recalculate ambiguity percentage for each active feature goal and the average ambiguity after every answer.',
         'Before moving to the next stage, explicitly show the user the recalculated ambiguity and goal alignment result.',
-        'Mode: caveman full',
         'Findings:',
         'Changes:',
         'Risks:',
@@ -108,7 +112,6 @@ Invoke-ValidationStep "agent role contracts" {
     foreach ($agentName in $agentFiles) {
         $agentText = Get-Content -LiteralPath (Join-Path $ctx.HarnessRoot ".codex\agents\$agentName") -Raw
         foreach ($requiredText in @(
-            'caveman full',
             'Findings',
             'Changes',
             'Risks',
@@ -117,7 +120,7 @@ Invoke-ValidationStep "agent role contracts" {
             'Preserve exact file paths, commands, errors, API names'
         )) {
             if (-not (Test-PolicyPattern $agentText $requiredText)) {
-                throw "Agent must define compressed handoff behavior: $agentName missing '$requiredText'."
+                throw "Agent must define structured handoff behavior: $agentName missing '$requiredText'."
             }
         }
     }
@@ -142,7 +145,7 @@ Invoke-ValidationStep "agent role contracts" {
 }
 
 Invoke-ValidationStep "helper contracts" {
-    foreach ($requiredPath in @($ctx.OptionalCavemanSkill, $ctx.EnsureCavemanScript, $ctx.HarnessConfig)) {
+    foreach ($requiredPath in @($ctx.HarnessConfig)) {
         if (-not (Test-Path -LiteralPath $requiredPath)) {
             throw "Missing harness support file: $requiredPath"
         }
@@ -152,18 +155,6 @@ Invoke-ValidationStep "helper contracts" {
     foreach ($requiredText in @("defaultLibrary", "biLibrary", "devExpressVersion")) {
         if (-not (Test-PolicyPattern $harnessConfigText $requiredText)) {
             throw "Harness config defaults missing required UI key: '$requiredText'."
-        }
-    }
-
-    $ensureCaveman = Get-Content -LiteralPath $ctx.EnsureCavemanScript -Raw
-    foreach ($requiredText in @(
-        'SkillRoot = (Join-Path $HOME ".agents\skills\caveman")',
-        'Refusing to overwrite existing skill directory',
-        'Refusing to install caveman outside the repo without -AllowUserSkillInstall',
-        '-AllowUserSkillInstall'
-    )) {
-        if (-not (Test-PolicyPattern $ensureCaveman $requiredText)) {
-            throw "Caveman optional skill helper missing required behavior: '$requiredText'."
         }
     }
 

@@ -93,6 +93,13 @@ Default release validation is quick and skips generated .NET restore/build/test:
 pwsh -NoProfile -File scripts\validate-release.ps1
 ```
 
+macOS uses its native zsh entrypoint. It selects Python 3.11 or newer and uses
+an isolated uv environment for release-only Python dependencies:
+
+```zsh
+./scripts/validate-release.zsh --mode Quick
+```
+
 Run full scaffold validation only before scaffold/template/package releases:
 
 ```powershell
@@ -109,6 +116,10 @@ Harness-only install:
 pwsh -NoProfile -File install.ps1 -Root "C:\path\to\project" -ProjectName ExistingProject -HarnessOnly
 ```
 
+```zsh
+./install.zsh --root "/path/to/project" --project-name ExistingProject --harness-only
+```
+
 When the target already has `AGENTS.md`, `.codex\agents`, `.codex\scripts`, or
 legacy `.codex\skills`, `install.ps1` first runs the backup-based harness
 upgrade path. Pass `-SkipHarnessUpgrade` only when stale repo-local harness files
@@ -120,10 +131,18 @@ Default .NET project setup:
 pwsh -NoProfile -File install.ps1 -Root "C:\path\to\project" -ProjectName NewProject
 ```
 
+```zsh
+./install.zsh --root "/path/to/project" --project-name NewProject
+```
+
 Upgrade existing harness with backup:
 
 ```powershell
 pwsh -NoProfile -File assets\harness\.codex\scripts\upgrade-harness.ps1 -TargetRoot "C:\path\to\project" -Apply
+```
+
+```zsh
+./assets/harness/.codex/scripts/upgrade-harness.zsh --target-root "/path/to/project" --apply
 ```
 
 Use upgrade when a project already has `.codex` harness files. The script backs
@@ -144,18 +163,19 @@ files are moved to `docs/TaskResult/archive` instead of being deleted; pass
 `-NoPrune` only when the user explicitly wants every report to stay in the
 active folder.
 
-Use the PowerShell wrappers instead of calling Python scripts directly. The
-wrappers set UTF-8 mode and avoid Windows sandbox runner process-creation issues.
-Optional user-skill installation writes outside the repo only when explicitly
-requested through `-InstallOptionalSkills`; the caveman helper additionally
-requires `-AllowUserSkillInstall` before writing under the user profile.
-
+Use PowerShell wrappers on Windows and zsh wrappers on macOS instead of calling
+the shared Python cores directly. Each platform wrapper resolves its runtime and
+maps native command-line options to the same behavior.
 ## Validation
 
 Release validation:
 
 ```powershell
 pwsh -NoProfile -File scripts\validate-release.ps1
+```
+
+```zsh
+./scripts/validate-release.zsh --mode Quick
 ```
 
 Use this before commit, tag, or release. It is the preferred single command for
@@ -166,4 +186,8 @@ Repo-local harness validation after install or upgrade:
 
 ```powershell
 pwsh -NoProfile -File .codex\scripts\validate-task-agents.ps1
+```
+
+```zsh
+./.codex/scripts/validate-task-agents.zsh --repo-root .
 ```

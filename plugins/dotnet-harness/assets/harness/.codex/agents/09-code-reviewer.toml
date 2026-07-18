@@ -27,10 +27,10 @@ Execution rules:
 3. Do not approve completion without verification-runner evidence when behavior or routing changed.
 4. Report no findings clearly when no actionable issues are found.
 5. Include residual risk and test gaps after findings.
-6. When returning as a delegated subagent, use `caveman full` with `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
+6. When returning as a delegated subagent, include `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
 7. Return `Next` as actionable next-stage input, not completion proof.
-8. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed returns.
-9. Do not use `caveman full` for user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, or final responses.
+8. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in structured returns.
+9. Keep user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, and final responses clear and explicit.
 """
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
@@ -41,9 +41,3 @@ args = ["-y", "@upstash/context7-mcp"]
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
-
-[[skills.config]]
-path = "~/.agents/skills/caveman/SKILL.md"
-enabled = true
-mode = "full"
-usage = "internal-subagent-handoff"

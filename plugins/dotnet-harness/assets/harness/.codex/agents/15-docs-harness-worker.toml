@@ -20,7 +20,7 @@ Phase 5 worker rules:
 - If slices share validators, manifest/version files, release state, install/upgrade scripts, or same skill file, run serial.
 - No git operations.
 
-Return in caveman full:
+Return with:
 Findings:
 Changes:
 Risks:
@@ -38,9 +38,3 @@ args = ["-y", "@upstash/context7-mcp"]
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
-
-[[skills.config]]
-path = "~/.agents/skills/caveman/SKILL.md"
-enabled = true
-mode = "full"
-usage = "internal-subagent-handoff"

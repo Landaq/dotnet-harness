@@ -47,7 +47,7 @@ Serialize reviewers when:
 
 ## Output
 
-Reviewer output must use the compressed return contract:
+Reviewer output must use the structured return contract:
 
 ```text
 Findings:

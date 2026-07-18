@@ -82,7 +82,7 @@ Do not hand off to the next agent until previous agent output is explicit, bound
 
 Previous agent output is clear only when it includes: role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.
 
-Each handoff prompt must start with `Prior result accepted:` plus a short caveman summary of the previous agent result and any unresolved risks.
+Each handoff prompt must start with `Prior result accepted:` plus a short summary of the previous agent result and any unresolved risks.
 
 ## Mandatory Socratic Checkpoint
 

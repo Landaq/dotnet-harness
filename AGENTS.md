@@ -40,6 +40,13 @@
 
 ## 4. 검증
 
+Windows에서는 아래 PowerShell 명령을 사용한다. macOS에서는 같은 검증 그룹을
+OS 전용 zsh entrypoint로 실행한다.
+
+```zsh
+./plugins/dotnet-harness/scripts/validate-release.zsh --mode Quick
+```
+
 Plugin 변경 후:
 
 ```powershell
