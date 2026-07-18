@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Terra Agents | Dotnet Harness</title>
+  <style>
+    :root{--ink:#1d2016;--muted:#626653;--line:#dcdfd1;--paper:#f8f8f4;--accent:#65712b}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}header,main{width:min(980px,calc(100% - 32px));margin:auto}header{padding:44px 0 26px;border-bottom:1px solid var(--line)}nav{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:30px}nav a{color:var(--accent);font-weight:700}h1{margin:0 0 8px;font-size:clamp(30px,5vw,46px);line-height:1.1;letter-spacing:0}p{margin:0;color:var(--muted);max-width:72ch}main{padding:30px 0 54px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.card{padding:18px;background:#fff;border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:6px}.card h2{margin:0 0 7px;font-size:18px;overflow-wrap:anywhere;letter-spacing:0}.meta{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.meta span{padding:3px 8px;background:#eceedd;border-radius:4px;font:12px ui-monospace,SFMono-Regular,Consolas,monospace}.note{margin:28px 0 0;padding:15px 18px;border-left:4px solid var(--accent);background:#eceedd}code{font-size:.92em}footer{margin-top:26px;color:var(--muted);font-size:13px}@media(max-width:640px){header,main{width:calc(100% - 20px)}.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header>
+    <nav aria-label="카탈로그 탐색"><a href="../index.html">전체</a><a href="../luna/index.html">Luna</a><a href="../sol/index.html">Sol</a></nav>
+    <h1>Terra Agents</h1>
+    <p>범위가 확정된 백엔드, 프런트엔드, 테스트, 문서·harness 구현을 담당합니다.</p>
+  </header>
+  <main>
+    <div class="grid">
+      <article class="card" data-agent="backend-worker" data-model="gpt-5.6-terra" data-effort="high"><h2>backend-worker</h2><p>확정된 백엔드 기능 slice를 구현합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-terra</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+      <article class="card" data-agent="frontend-worker" data-model="gpt-5.6-terra" data-effort="high"><h2>frontend-worker</h2><p>확정된 프런트엔드 기능 slice를 구현합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-terra</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+      <article class="card" data-agent="test-worker" data-model="gpt-5.6-terra" data-effort="high"><h2>test-worker</h2><p>확정된 테스트 slice와 검증 코드를 구현합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-terra</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+      <article class="card" data-agent="docs-harness-worker" data-model="gpt-5.6-terra" data-effort="low"><h2>docs-harness-worker</h2><p>범위가 명확한 문서와 harness 산출물을 작성합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-terra</code></span><span class="agent-effort">Effort: <code>low</code></span></div></article>
+    </div>
+    <p class="note">호출 시 카탈로그 경로가 아니라 <code>.codex/agents/*.toml</code>에 선언된 agent name을 사용합니다.</p>
+    <footer><span data-catalog-count="4">4 agents</span> · Model <code>gpt-5.6-terra</code></footer>
+  </main>
+</body>
+</html>

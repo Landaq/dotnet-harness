@@ -10,7 +10,6 @@
 - Marketplace: `.agents/plugins/marketplace.json`
 
 루트 `.codex/skills`, `.codex/agents`, `.codex/scripts`는 중복 원본으로 만들지 않는다.
-이 plugin 개발 repo에서는 작업 결과 HTML 파일을 생성하지 않는다.
 
 ## 2. 작업 라우팅
 

@@ -10,6 +10,7 @@
 - 비단순 작업은 사용자가 에이전트를 따로 말하지 않아도 기본적으로 subagent/parallel-agent workflow를 사용한다.
 - 사용자가 `에이전트 쓰지마`, `no agents`, `skip agents`, `직접 해줘`, `빠르게 메인에서 해줘`, `main thread only`처럼 명시적으로 opt-out한 경우에만 메인 직접 수행으로 전환한다.
 - `.codex/agents/*.toml`을 현재 repo에서 발견하고, 필요한 skill은 `dotnet-harness:*` plugin skill을 사용한다.
+- `.codex/agent-categories/index.html`은 모델별 agent 조회용 카탈로그다. 실제 agent 호출은 flat `.codex/agents/*.toml`의 `name`을 사용한다.
 - project/solution/agent/skill 이름 하드코딩 금지.
 - 상세 routing, 병렬 규칙, stop condition은 `dotnet-harness:task-agents`를 원본으로 삼는다.
 

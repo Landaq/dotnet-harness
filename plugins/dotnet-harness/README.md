@@ -14,6 +14,8 @@ Versioned .NET 10 harness for plugin skills, repo-local agents, scripts, and pro
   name.
 - `assets/harness/.codex/agents`: task routing agents. Use these for specialized
   goal boundary, planning, implementation, review, verification, and git stages.
+- `assets/harness/.codex/agent-categories/index.html`: self-contained catalog of
+  Luna, Sol, and Terra agent assignments and reasoning effort.
 - `assets/harness/.codex/scripts`: helper scripts and validation wrappers. Use
   these from PowerShell so UTF-8 mode and Windows process-launch behavior stay
   predictable.
@@ -28,6 +30,14 @@ The only top-level plugin skills are `project-structure-setup` and
 `task-agents`. Install and upgrade scripts do not copy skills into target
 projects because repo-local `.codex/skills` duplicates plugin skills in Codex
 discovery.
+
+## Agent Model Catalog
+
+Open `.codex/agent-categories/index.html` in an installed harness to inspect the
+model and reasoning-effort assignment for every agent. Category pages are static
+documentation only. Runtime discovery remains flat at `.codex/agents/*.toml`,
+and invocation uses each TOML file's `name`; no runtime agent definitions live
+under `.codex/agent-categories`.
 
 ## Migration
 
