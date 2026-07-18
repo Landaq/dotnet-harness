@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Callable
 
@@ -36,8 +37,18 @@ def require(condition: bool, message: str) -> None:
         raise ValidationError(message)
 
 
-def run(command: list[str], *, cwd: Path | None = None) -> None:
-    completed = subprocess.run(command, cwd=cwd, check=False)
+def run(
+    command: list[str],
+    *,
+    cwd: Path | None = None,
+    timeout: int | None = None,
+) -> None:
+    try:
+        completed = subprocess.run(command, cwd=cwd, check=False, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        raise ValidationError(
+            f"Command timed out after {timeout}s: {' '.join(command)}"
+        ) from exc
     if completed.returncode != 0:
         raise ValidationError(f"Command failed ({completed.returncode}): {' '.join(command)}")
 
@@ -48,6 +59,169 @@ def policy_match(content: str, expected: str) -> bool:
         return expected in content
     pattern = r"[\s\S]{0,120}".join(re.escape(token) for token in tokens)
     return re.search(pattern, content, flags=re.IGNORECASE) is not None
+
+
+def require_text(path: Path, *expected: str) -> str:
+    require(path.is_file(), f"Missing scaffold file: {path}")
+    content = path.read_text(encoding="utf-8")
+    for value in expected:
+        require(value in content, f"{path} missing scaffold contract: {value}")
+    return content
+
+
+def require_scaffold_contract(root: Path, project_name: str, service_name: str | None) -> None:
+    global_json = json.loads((root / "global.json").read_text(encoding="utf-8"))
+    require(global_json["sdk"]["version"].startswith("10."), "Scaffold must pin .NET 10 SDK.")
+    require_text(root / "Directory.Build.props", "<TargetFramework>net10.0</TargetFramework>")
+    ET.parse(root / "Directory.Packages.props")
+
+    require_text(
+        root / "src/Aspire/AppHost/Program.cs",
+        'AddSqlServer("sql")',
+        'AddRedis("redis")',
+        "WithReference(sql)",
+        "WithReference(redis)",
+    )
+    require_text(
+        root / "src/BackEnd/APIGateway/Program.cs",
+        "AddReverseProxy",
+        "MapScalarApiReference",
+        "MapReverseProxy",
+    )
+    require_text(
+        root / "test/Functional/APIGateway/APIGatewayBaselineTests.cs",
+        "WebApplicationFactory<global::Program>",
+        'GetAsync("/api/health")',
+        "HttpStatusCode.OK",
+    )
+    proxy = json.loads(
+        (root / "src/BackEnd/APIGateway/appsettings.json").read_text(encoding="utf-8")
+    )["ReverseProxy"]
+    require(isinstance(proxy.get("Routes"), dict), "Gateway must define YARP Routes.")
+    require(isinstance(proxy.get("Clusters"), dict), "Gateway must define YARP Clusters.")
+
+    require_text(
+        root / "src/BackEnd/BuildingBlocks/Application/Mediator/IRequestDispatcher.cs",
+        "interface IRequestDispatcher",
+        "Task<TResponse> Send<TResponse>",
+    )
+    require_text(
+        root / "src/BackEnd/BuildingBlocks/Application/Mediator/RequestDispatcher.cs",
+        "sealed class RequestDispatcher",
+        "GetRequiredService",
+    )
+    require_text(
+        root / "src/FrontEnd/Web/Program.cs",
+        "AddInteractiveWebAssemblyComponents",
+        "AddInteractiveWebAssemblyRenderMode",
+    )
+    require_text(
+        root / "src/FrontEnd/Web.Client/Routes.razor",
+        'AppAssembly="typeof(Program).Assembly"',
+        "MainLayout",
+    )
+    require_text(
+        root / "src/FrontEnd/Web/App.razor",
+        "MudBlazor.min.css",
+        "MudBlazor.min.js",
+        '<Web.Client.Routes @rendermode="InteractiveAuto" />',
+        '<HeadOutlet @rendermode="InteractiveAuto" />',
+    )
+    require_text(
+        root / "src/FrontEnd/Web.Client/Layout/MudProviders.razor",
+        "MudThemeProvider",
+        "MudPopoverProvider",
+        "MudDialogProvider",
+        "MudSnackbarProvider",
+    )
+    require(
+        not (root / "src/FrontEnd/Web/Routes.razor").exists()
+        and not (root / "src/FrontEnd/Web/Components/Layout/MainLayout.razor").exists(),
+        "Interactive router and layout must be owned by the Web.Client project.",
+    )
+
+    apphost = (root / "src/Aspire/AppHost/Program.cs").read_text(encoding="utf-8")
+    resource_names = re.findall(
+        r'(?:AddDatabase|AddProject<[^>]+>)\("([^"]+)"\)',
+        apphost,
+    )
+    require(resource_names, "AppHost must declare named Aspire resources.")
+    for resource_name in resource_names:
+        require(
+            len(resource_name) <= 64
+            and re.fullmatch(r"[A-Za-z](?:[A-Za-z0-9]|-(?!-))*", resource_name) is not None,
+            f"Invalid Aspire resource name: {resource_name}",
+        )
+
+    solution = ET.parse(root / f"{project_name}.slnx").getroot()
+    solution_projects = {
+        element.attrib["Path"].replace("\\", "/")
+        for element in solution.iter("Project")
+    }
+    expected_projects = {
+        "src/Aspire/AppHost/AppHost.csproj",
+        "src/BackEnd/APIGateway/APIGateway.csproj",
+        "src/FrontEnd/Web/Web.csproj",
+        "src/FrontEnd/Web.Client/Web.Client.csproj",
+        "test/Architecture/Architecture.Tests.csproj",
+        "test/Unit/Unit.Tests.csproj",
+        "test/Functional/APIGateway/APIGateway.FunctionalTests.csproj",
+    }
+    require(expected_projects <= solution_projects, "Solution is missing baseline projects.")
+
+    services_root = root / "src/BackEnd/Services"
+    if service_name is None:
+        require(
+            not services_root.exists() or not any(services_root.iterdir()),
+            "No-service scaffold created a service project.",
+        )
+        return
+
+    require(proxy["Routes"], "Service scaffold must define a YARP route.")
+    require(proxy["Clusters"], "Service scaffold must define a YARP cluster.")
+    service_projects = {
+        f"src/BackEnd/Services/{service_name}/{service_name}.{layer}/{service_name}.{layer}.csproj"
+        for layer in ("Domain", "Application", "Infrastructure", "Api", "Contracts")
+    }
+    service_projects.update(
+        {
+            f"test/Unit/Services/{service_name}/{service_name}.UnitTests.csproj",
+            f"test/Integration/Services/{service_name}/{service_name}.IntegrationTests.csproj",
+            f"test/Contract/Services/{service_name}/{service_name}.ContractTests.csproj",
+        }
+    )
+    require(service_projects <= solution_projects, "Solution is missing service projects.")
+    for relative in service_projects:
+        require((root / relative).is_file(), f"Missing service project: {relative}")
+    require_text(
+        root / "src/Aspire/AppHost/Program.cs",
+        f"Projects.{service_name}_Api",
+        f'AddProject<Projects.{service_name}_Api>',
+    )
+    proxy_text = json.dumps(proxy)
+    require(service_name.lower() in proxy_text.lower(), "Gateway is missing the service route.")
+
+
+def tree_snapshot(root: Path) -> dict[str, bytes | None]:
+    return {
+        str(path.relative_to(root)): path.read_bytes() if path.is_file() else None
+        for path in sorted(root.rglob("*"))
+    }
+
+
+def require_command_failure(command: list[str], *, timeout: int = 60) -> str:
+    try:
+        completed = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ValidationError(f"Expected failure timed out: {' '.join(command)}") from exc
+    require(completed.returncode != 0, f"Command unexpectedly succeeded: {' '.join(command)}")
+    return completed.stdout + completed.stderr
 
 
 def seed_stale_catalog(root: Path, marker: str) -> None:
@@ -105,6 +279,7 @@ class Context:
         self.install = self.plugin_root / "install.py"
         self.install_windows = self.plugin_root / "install.ps1"
         self.install_macos = self.plugin_root / "install.zsh"
+        self.bootstrap = self.skills_root / "project-structure-setup/scripts/bootstrap_project_structure.py"
         self.upgrade = self.harness_root / ".codex/scripts/upgrade_harness.py"
         self.upgrade_windows = self.harness_root / ".codex/scripts/upgrade-harness.ps1"
         self.upgrade_macos = self.harness_root / ".codex/scripts/upgrade-harness.zsh"
@@ -131,6 +306,15 @@ def host_wrapper_command(
     return [zsh, str(macos_script), *macos_args]
 
 
+def validation_command_for_test(root: Path) -> tuple[Path, list[str]]:
+    scripts = root / ".codex/scripts"
+    if os.name == "nt":
+        validator = scripts / "validate-task-agents.ps1"
+        return validator, ["pwsh", "-NoProfile", "-File", str(validator), "-RepoRoot", str(root)]
+    validator = scripts / "validate-task-agents.zsh"
+    return validator, ["zsh", str(validator), "--repo-root", str(root)]
+
+
 def validate_core(ctx: Context) -> None:
     platform_files = (
         ctx.plugin_root / "install.ps1",
@@ -152,7 +336,7 @@ def validate_core(ctx: Context) -> None:
     for path in platform_files:
         require(path.is_file(), f"Missing platform support file: {path}")
 
-    bootstrap = ctx.skills_root / "project-structure-setup/scripts/bootstrap_project_structure.py"
+    bootstrap = ctx.bootstrap
     for path in (ctx.plugin_root.parent.parent / ".gitattributes", ctx.harness_root / ".gitattributes", bootstrap):
         content = path.read_text(encoding="utf-8")
         require("*.zsh text eol=lf" in content, f"Missing zsh LF policy: {path}")
@@ -165,11 +349,26 @@ def validate_core(ctx: Context) -> None:
             run([sys.executable, str(ctx.skill_validator), str(skill_dir)])
 
     manifest = json.loads(ctx.manifest.read_text(encoding="utf-8"))
+    mcp_config = json.loads((ctx.plugin_root / ".mcp.json").read_text(encoding="utf-8"))
+    context7_args = mcp_config["mcpServers"]["context7"]["args"]
+    require(
+        "@upstash/context7-mcp@3.0.0" in context7_args,
+        "Context7 MCP must be pinned to the reviewed release.",
+    )
     version_text = ctx.version.read_text(encoding="utf-8")
     match = re.search(r"Current version:\s*`([^`]+)`", version_text)
     require(match is not None, "VERSION.md must contain a Current version line.")
     require(manifest["version"] == match.group(1), "plugin.json and VERSION.md versions differ.")
     require((ctx.plugin_root / "scripts/release-helper.ps1").is_file(), "Missing release helper.")
+    require((ctx.plugin_root / "MIGRATION.md").is_file(), "Missing release migration guide.")
+
+    for group in ("core", "harness", "scaffold", "upgrade", "whitespace"):
+        wrapper = ctx.plugin_root / f"scripts/validation/validate-{group}.ps1"
+        wrapper_text = require_text(wrapper, "validate-release.ps1", "exit $LASTEXITCODE")
+        require(
+            f"-Mode {group.title()}" in wrapper_text,
+            f"Compatibility wrapper does not forward the {group.title()} mode: {wrapper}",
+        )
 
     require(not list(ctx.skills_root.rglob("SKILL.original.md")), "Remove legacy SKILL.original.md files.")
     require("TaskResult" not in ctx.manifest.read_text(encoding="utf-8"), "TaskResult must not be a default prompt.")
@@ -187,6 +386,8 @@ def validate_core(ctx: Context) -> None:
 
     package_manifest_path = ctx.skills_root / "project-structure-setup/references/package-versions.json"
     package_manifest = json.loads(package_manifest_path.read_text(encoding="utf-8"))
+    sdks = package_manifest.get("sdks", {})
+    require("Aspire.AppHost.Sdk" in sdks, "package-versions.json missing Aspire AppHost SDK.")
     packages = package_manifest.get("packages", {})
     for name in (
         "Aspire.Hosting.AppHost",
@@ -194,6 +395,7 @@ def validate_core(ctx: Context) -> None:
         "Aspire.Hosting.Redis",
         "Microsoft.AspNetCore.Components.WebAssembly",
         "Microsoft.AspNetCore.Components.WebAssembly.Server",
+        "Microsoft.AspNetCore.Mvc.Testing",
         "Microsoft.EntityFrameworkCore.SqlServer",
         "Microsoft.AspNetCore.OpenApi",
         "Microsoft.Extensions.DependencyInjection.Abstractions",
@@ -317,6 +519,14 @@ def validate_upgrade(ctx: Context) -> None:
         )
         require(not (root / "src").exists() and not (root / "test").exists(), "Harness-only install created app folders.")
         for relative in (
+            "docs/Project",
+            "global.json",
+            "Directory.Build.props",
+            "Directory.Packages.props",
+            "HarnessOnlySmoke.slnx",
+        ):
+            require(not (root / relative).exists(), f"Harness-only install created scaffold artifact: {relative}")
+        for relative in (
             "AGENTS.md",
             ".codex/agent-categories",
             ".codex/agents",
@@ -386,12 +596,248 @@ def validate_upgrade(ctx: Context) -> None:
         require_catalog_matches(root, ctx.harness_root)
         require_catalog_backup(root, catalog_marker)
         require(list((root / ".codex/backups").rglob("*.bak")), "Upgrade did not protect backup discovery files.")
+
+    with tempfile.TemporaryDirectory(prefix="dotnet-harness-upgrade-unique-") as temp:
+        root = Path(temp)
+        historical_agent = root / ".codex/backups/historical/agents-backup/legacy.toml"
+        historical_agent.parent.mkdir(parents=True)
+        historical_agent.write_text('name = "legacy"\n', encoding="utf-8")
+        command = [
+            sys.executable,
+            str(ctx.upgrade),
+            "--target-root",
+            str(root),
+            "--source-root",
+            str(ctx.harness_root),
+            "--apply",
+            "--skip-validation",
+        ]
+        run(command, timeout=60)
+        run(command, timeout=60)
+        backups = list((root / ".codex/backups").glob("harness-upgrade-*"))
+        require(len(backups) == 2, "Immediate upgrades did not allocate isolated backups.")
+        for backup in backups:
+            state = json.loads((backup / "transaction-state.json").read_text(encoding="utf-8"))
+            require(state["state"] == "complete", f"Upgrade backup is not complete: {backup}")
+        require(historical_agent.is_file(), "Upgrade mutated a historical backup agent.")
+        require(
+            not historical_agent.with_suffix(".toml.bak").exists(),
+            "Upgrade re-protected a historical backup.",
+        )
+
+    with tempfile.TemporaryDirectory(prefix="dotnet-harness-upgrade-rollback-") as temp:
+        root = Path(temp)
+        source = root / "source"
+        target = root / "target"
+        shutil.copytree(ctx.harness_root, source)
+        target.mkdir()
+        (target / ".codex/agents").mkdir(parents=True)
+        (target / "AGENTS.md").write_text("# Original\n", encoding="utf-8")
+        (target / ".gitignore").write_text("original-ignore\n", encoding="utf-8")
+        (target / ".codex/agents/original.toml").write_text(
+            'name = "original"\n', encoding="utf-8"
+        )
+        validator, _ = validation_command_for_test(source)
+        validator.write_text("#!/bin/zsh\nexit 23\n", encoding="utf-8")
+        output = require_command_failure(
+            [
+                sys.executable,
+                str(ctx.upgrade),
+                "--target-root",
+                str(target),
+                "--source-root",
+                str(source),
+                "--apply",
+            ]
+        )
+        require("rolled back" in output.lower(), "Upgrade failure did not report rollback.")
+        require_text(target / "AGENTS.md", "# Original")
+        require_text(target / ".gitignore", "original-ignore")
+        require((target / ".codex/agents/original.toml").is_file(), "Rollback lost original agent.")
+        for relative in (".gitattributes", ".codex/harness-config.json", ".codex/agent-categories", ".codex/scripts"):
+            require(not (target / relative).exists(), f"Rollback retained newly managed path: {relative}")
+        require(
+            list((target / ".codex/backups").glob("harness-upgrade-*")),
+            "Rollback did not preserve the diagnostic backup.",
+        )
+        rollback_backup = next((target / ".codex/backups").glob("harness-upgrade-*"))
+        rollback_state = json.loads(
+            (rollback_backup / "transaction-state.json").read_text(encoding="utf-8")
+        )
+        require(rollback_state["state"] == "rolled-back", "Rollback state was not recorded.")
+
+    with tempfile.TemporaryDirectory(prefix="dotnet-harness-upgrade-no-validator-") as temp:
+        root = Path(temp)
+        source = root / "source"
+        target = root / "target"
+        shutil.copytree(ctx.harness_root, source)
+        validator, _ = validation_command_for_test(source)
+        validator.unlink()
+        target.mkdir()
+        (target / "sentinel.txt").write_text("unchanged", encoding="utf-8")
+        before = tree_snapshot(target)
+        require_command_failure(
+            [
+                sys.executable,
+                str(ctx.upgrade),
+                "--target-root",
+                str(target),
+                "--source-root",
+                str(source),
+                "--apply",
+            ]
+        )
+        require(tree_snapshot(target) == before, "Missing source validator mutated the target.")
+
+    with tempfile.TemporaryDirectory(prefix="dotnet-harness-upgrade-symlink-parent-") as temp:
+        root = Path(temp)
+        target = root / "target"
+        external = root / "external"
+        target.mkdir()
+        (external / "agents").mkdir(parents=True)
+        sentinel = external / "agents/sentinel.txt"
+        sentinel.write_text("outside", encoding="utf-8")
+        (target / ".codex").symlink_to(external, target_is_directory=True)
+        require_command_failure(
+            [
+                sys.executable,
+                str(ctx.upgrade),
+                "--target-root",
+                str(target),
+                "--source-root",
+                str(ctx.harness_root),
+                "--apply",
+                "--skip-validation",
+            ]
+        )
+        require_text(sentinel, "outside")
+        require(not (external / "backups").exists(), "Symlink preflight wrote an external backup.")
+
+    with tempfile.TemporaryDirectory(prefix="dotnet-harness-upgrade-lock-") as temp:
+        target = Path(temp)
+        lock = target / ".codex/.harness-upgrade.lock"
+        lock.parent.mkdir()
+        lock.write_text("pid=test\n", encoding="utf-8")
+        before = tree_snapshot(target)
+        require_command_failure(
+            [
+                sys.executable,
+                str(ctx.upgrade),
+                "--target-root",
+                str(target),
+                "--source-root",
+                str(ctx.harness_root),
+                "--apply",
+                "--skip-validation",
+            ]
+        )
+        require(tree_snapshot(target) == before, "Concurrent-upgrade lock failure mutated target.")
+
+    with tempfile.TemporaryDirectory(prefix="dotnet-harness-upgrade-symlink-file-") as temp:
+        root = Path(temp)
+        target = root / "target"
+        target.mkdir()
+        external_agents = root / "external-AGENTS.md"
+        external_agents.write_text("outside", encoding="utf-8")
+        installed_agents = target / "AGENTS.md"
+        installed_agents.symlink_to(external_agents)
+        run(
+            [
+                sys.executable,
+                str(ctx.upgrade),
+                "--target-root",
+                str(target),
+                "--source-root",
+                str(ctx.harness_root),
+                "--apply",
+                "--skip-validation",
+            ],
+            timeout=60,
+        )
+        require_text(external_agents, "outside")
+        require(not installed_agents.is_symlink(), "Upgrade retained the managed AGENTS.md symlink.")
+        require(
+            installed_agents.read_bytes() == (ctx.harness_root / "AGENTS.md").read_bytes(),
+            "Upgrade did not install the source AGENTS.md after replacing a symlink.",
+        )
     print(f"Upgrade validation passed: {ctx.plugin_root}")
 
 
 def validate_scaffold(ctx: Context) -> None:
     require(shutil.which("dotnet") is not None, "dotnet is required for scaffold validation.")
-    for project_name, service_name in (("SmokeNoService", None), ("SmokeWithService", "Auth")):
+    with tempfile.TemporaryDirectory(prefix="dotnet-harness-invalid-name-") as temp:
+        parent = Path(temp)
+        escape_name = f"{parent.name}-escape"
+        escaped_solution = parent.parent / f"{escape_name}.slnx"
+        for index, arguments in enumerate(
+            (
+                ("--project-name", f"../../{escape_name}", "--no-service"),
+                ("--project-name", "SafeProject", "--service-name", "Order-Service"),
+                ("--project-name", 'Bad"Name', "--no-service"),
+            )
+        ):
+            root = parent / f"case-{index}"
+            root.mkdir()
+            require_command_failure(
+                [sys.executable, str(ctx.bootstrap), "--root", str(root), *arguments]
+            )
+            require(not tree_snapshot(root), f"Invalid scaffold name wrote partial files: {arguments}")
+        if escaped_solution.exists():
+            escaped_solution.unlink()
+            raise ValidationError("Project name escaped the target root.")
+
+    with tempfile.TemporaryDirectory(prefix="dotnet-harness-install-preflight-") as temp:
+        root = Path(temp)
+        (root / "AGENTS.md").write_text("existing harness", encoding="utf-8")
+        for arguments in (
+            ("--project-name", "../../escape", "--no-service"),
+            ("--project-name", "P" * 121, "--no-service"),
+            ("--project-name", "SafeProject", "--service-name", "S" * 65),
+        ):
+            before = tree_snapshot(root)
+            require_command_failure(
+                [sys.executable, str(ctx.install), "--root", str(root), *arguments]
+            )
+            require(
+                tree_snapshot(root) == before,
+                f"Install preflight mutated the harness before rejecting input: {arguments}",
+            )
+
+    with tempfile.TemporaryDirectory(prefix="dotnet-harness-service-rerun-") as temp:
+        root = Path(temp)
+        run(
+            [
+                sys.executable,
+                str(ctx.bootstrap),
+                "--root",
+                str(root),
+                "--project-name",
+                "RerunSmoke",
+                "--no-service",
+            ],
+            timeout=60,
+        )
+        before = tree_snapshot(root)
+        require_command_failure(
+            [
+                sys.executable,
+                str(ctx.bootstrap),
+                "--root",
+                str(root),
+                "--project-name",
+                "RerunSmoke",
+                "--service-name",
+                "Auth",
+            ]
+        )
+        require(tree_snapshot(root) == before, "Service rerun changed the existing scaffold.")
+
+    long_project_name = "123" + ("Long" * 17) + "--Name"
+    long_service_name = "S" * 61
+    for project_name, service_name in (
+        (long_project_name, None),
+        ("SmokeWithService", long_service_name),
+    ):
         with tempfile.TemporaryDirectory(prefix="dotnet-harness-smoke-") as temp:
             root = Path(temp)
             windows_args = ["-Root", str(root), "-ProjectName", project_name]
@@ -411,9 +857,14 @@ def validate_scaffold(ctx: Context) -> None:
             run(command)
             solution = root / f"{project_name}.slnx"
             require(solution.is_file(), f"Scaffold missing solution: {solution}")
-            run(["dotnet", "restore", solution.name], cwd=root)
-            run(["dotnet", "build", solution.name, "--no-restore"], cwd=root)
-            run(["dotnet", "test", solution.name, "--no-build"], cwd=root)
+            require_scaffold_contract(root, project_name, service_name)
+            run(["dotnet", "restore", solution.name], cwd=root, timeout=600)
+            run(["dotnet", "build", solution.name, "--no-restore"], cwd=root, timeout=600)
+            run(
+                ["dotnet", "test", solution.name, "--no-build", "--no-restore"],
+                cwd=root,
+                timeout=600,
+            )
     print(f"Scaffold validation passed: {ctx.plugin_root}")
 
 

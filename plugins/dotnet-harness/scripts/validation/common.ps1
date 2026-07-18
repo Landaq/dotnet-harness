@@ -1,3 +1,4 @@
+# Deprecated compatibility library. Release validation now uses validate_release.py.
 $ErrorActionPreference = "Stop"
 $env:PYTHONUTF8 = "1"
 

@@ -3,20 +3,36 @@ set -euo pipefail
 
 script_dir=${0:A:h}
 plugin_root=${script_dir:h}
+
+mode=Quick
+for (( index = 1; index <= $#; index++ )); do
+  if [[ ${argv[index]} == --mode ]]; then
+    if (( index == $# )); then
+      print -u2 "Missing value for --mode"
+      exit 2
+    fi
+    mode=${argv[index + 1]}
+    (( index++ ))
+  elif [[ ${argv[index]} == --mode=* ]]; then
+    mode=${argv[index]#--mode=}
+  fi
+done
+
+case ${mode:l} in
+  quick|full|core|harness|scaffold|upgrade|whitespace)
+    ;;
+  *)
+    print -u2 "Invalid validation mode: $mode"
+    print -u2 "Expected one of: Quick, Full, Core, Harness, Scaffold, Upgrade, Whitespace"
+    exit 2
+    ;;
+esac
+
 source "$plugin_root/assets/harness/.codex/scripts/python-env.zsh"
 resolve_dotnet_harness_python
 
 core="$script_dir/validation/validate_release.py"
 requirements="$script_dir/validation/requirements.txt"
-
-mode=Quick
-for (( index = 1; index <= $#; index++ )); do
-  if [[ ${argv[index]} == --mode && index -lt $# ]]; then
-    mode=${argv[index + 1]}
-  elif [[ ${argv[index]} == --mode=* ]]; then
-    mode=${argv[index]#--mode=}
-  fi
-done
 
 case ${mode:l} in
   harness|scaffold|upgrade|whitespace)
