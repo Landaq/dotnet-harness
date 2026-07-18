@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import subprocess
 import sys
 from pathlib import Path
+from types import ModuleType
 
 
 def require_supported_python() -> None:
@@ -34,6 +36,20 @@ def run_checked(command: list[str]) -> None:
         raise SystemExit(completed.returncode)
 
 
+def load_bootstrap(path: Path) -> ModuleType:
+    spec = importlib.util.spec_from_file_location("dotnet_harness_bootstrap", path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"Cannot load bootstrap script: {path}")
+    module = importlib.util.module_from_spec(spec)
+    previous = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous
+    return module
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Install the dotnet-harness project structure and Codex harness")
     parser.add_argument("--root", default=".")
@@ -60,6 +76,15 @@ def main() -> int:
     if not bootstrap.is_file():
         raise SystemExit(f"Missing bootstrap script: {bootstrap}")
 
+    bootstrap_module = load_bootstrap(bootstrap)
+    project_name, service_name = bootstrap_module.resolve_and_validate_options(
+        target_root,
+        args.project_name,
+        args.service_name,
+        args.no_service,
+        args.harness_only,
+    )
+
     if not args.skip_harness_upgrade and existing_harness(target_root):
         if not upgrade.is_file():
             raise SystemExit(f"Missing harness upgrade core: {upgrade}")
@@ -81,11 +106,10 @@ def main() -> int:
             return 0
 
     bootstrap_command = [sys.executable, str(bootstrap), "--root", str(target_root)]
-    if args.project_name:
-        bootstrap_command.extend(("--project-name", args.project_name))
-    if args.service_name:
-        bootstrap_command.extend(("--service-name", args.service_name))
-    if args.no_service:
+    bootstrap_command.extend(("--project-name", project_name))
+    if service_name:
+        bootstrap_command.extend(("--service-name", service_name))
+    else:
         bootstrap_command.append("--no-service")
     if args.harness_only:
         bootstrap_command.append("--harness-only")
