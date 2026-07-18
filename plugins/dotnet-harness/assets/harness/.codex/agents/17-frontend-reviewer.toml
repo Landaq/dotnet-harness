@@ -13,27 +13,22 @@ Primary responsibilities:
 - Return actionable frontend findings with file/line references when available.
 
 Execution rules:
-1. Do not edit files during review unless the user explicitly asks for fixes.
+1. This role is always read-only. Do not edit files during review; route requested fixes to `frontend-worker` or the main thread.
 2. Refuse unclear handoff that lacks feature slice, allowed paths, success criteria, changed files or diff scope, and validation evidence.
 3. Keep review bounded to the assigned feature slice.
 4. If no actionable frontend issue is found, say so clearly and list residual frontend risk or `none`.
-5. When returning as a delegated subagent, use `caveman full` with `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
+5. When returning as a delegated subagent, include `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
 6. Return `Next` as actionable next-stage input, not completion proof.
-7. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed returns.
-8. Do not use `caveman full` for user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, or final responses.
+7. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in structured returns.
+8. Keep user-facing Socratic questions, approvals, destructive-risk warnings, release/git confirmations, and final responses clear and explicit.
 """
+model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
-sandbox_mode = "workspace-write"
+sandbox_mode = "read-only"
 
 [mcp_servers.context7]
 command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
+args = ["-y", "@upstash/context7-mcp@3.0.0"]
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
-
-[[skills.config]]
-path = "~/.agents/skills/caveman/SKILL.md"
-enabled = true
-mode = "full"
-usage = "internal-subagent-handoff"

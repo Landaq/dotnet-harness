@@ -6,12 +6,17 @@ Task Agents must clarify before delegating. Actual subagent execution begins onl
 
 Actual subagent execution means calling an available delegated-agent tool such as `spawn_agent` or the environment's equivalent subagent runner.
 
-Delegation permission values:
+User delegation intent values:
 
 - `explicit`: user used `$dotnet-harness`, `task-agents`, `/feedback`, `에이전트`, `subagent`, `서브에이전트`, `에이전트에게 맡겨`, `작업을 에이전트들이 수행`, or equivalent wording.
 - `not explicit`: user asked for implementation/refactor/review/validation without agent wording.
 - `user-opt-out`: user said `에이전트 쓰지마`, `no agents`, `skip agents`, `직접 해줘`, `메인에서 직접 해줘`, `빠르게 메인에서 해줘`, `main thread only`, or equivalent wording.
-- `host-policy`: runtime policy permits or blocks default subagent execution.
+
+Runtime delegation gate values:
+
+- `default-allowed`: host/runtime policy permits eligible subagent execution without explicit user authorization.
+- `explicit-required`: host/runtime policy permits subagent execution only after explicit user authorization.
+- `blocked`: host/runtime policy prohibits subagent execution for this task.
 - `unavailable`: no delegated-agent tool is callable.
 
 Execution rules:
@@ -20,9 +25,11 @@ Execution rules:
 - Before fallback, inspect active callable tools.
 - Do not report `Agent execution fallback: unavailable` while such a tool is callable.
 - Do not report `Agent execution fallback: unavailable` while `spawn_agent`, `delegate_task`, `run_agent`, or an equivalent delegated-agent tool is callable.
-- If the user explicitly authorized agents and tooling is available, use subagent handoff after clarification.
+- Evaluate the runtime delegation gate before user intent. Explicit user wording never overrides a host/runtime block.
+- If the user explicitly authorized agents, the runtime gate permits delegation, and tooling is available, use subagent handoff after clarification.
 - If the user did not explicitly authorize agents and runtime policy requires explicit authorization, do not spawn. Ask briefly whether to delegate to agents, or report `Delegation: skipped no-explicit-agent-request` and proceed main-thread direct after clarification.
 - If runtime policy allows default subagent execution without explicit authorization, use subagent handoff after clarification for non-trivial work.
+- If the user opted out, do not spawn regardless of whether the runtime gate otherwise allows default delegation.
 - Do not spawn subagents for trivial one-file edits, direct user questions, explicit user opt-out, unsafe delegation, or work whose next step is fully blocked on one local decision.
 - Reading agent TOML, summarizing an agent persona, or role-playing a specialist in the main thread does not count as subagent execution.
 - Use `dotnet-harness:*` plugin skills as the skill contract inside the delegated prompt.
@@ -83,18 +90,17 @@ No-spawn decisions must include the exact reason.
 
 Valid no-agent reasons are `trivial`, `blocked`, `coupled`, `user-opt-out`, `unavailable`, `unsafe`, `host-policy`, or `no-explicit-agent-request`.
 
-## Compressed Agent Handoff
+## Structured Agent Handoff
 
-Use `caveman full` only for internal subagent handoff prompts and subagent return summaries.
+Use the structured handoff format below for internal subagent prompts and return summaries.
 
-Do not use `caveman full` for user-facing Socratic questions.
+Keep user-facing Socratic questions clear and explicit.
 
-Compressed handoffs must preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references.
+Structured handoffs must preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references.
 
 Internal handoff prompt format:
 
 ```text
-Mode: caveman full
 Prior result accepted:
 Role:
 Goal:
@@ -127,7 +133,7 @@ Subagent output as next input:
 - Main thread must treat `Findings`, `Changes`, `Risks`, `Verify`, and `Next` as the next stage input, not as final truth.
 - Previous agent output is clear only when it includes: role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.
 - Do not hand off to the next agent until previous agent output is explicit, bounded, and usable as the next input contract.
-- Each handoff prompt must start with `Prior result accepted:` plus short caveman summary of the previous agent result and any unresolved risks.
+- Each handoff prompt must start with `Prior result accepted:` plus a short summary of the previous agent result and any unresolved risks.
 
 ## Subagent Utilization Floor
 

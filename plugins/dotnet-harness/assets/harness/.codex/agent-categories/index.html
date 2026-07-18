@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dotnet Harness Agent Catalog</title>
+  <style>
+    :root { color-scheme: light; --ink:#18201f; --muted:#5b6663; --line:#d9dfdc; --paper:#f7f8f6; --white:#fff; --luna:#1c6c72; --sol:#b84a32; --terra:#65712b; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.5 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    header, main { width:min(1180px,calc(100% - 32px)); margin-inline:auto; }
+    header { padding:52px 0 28px; border-bottom:1px solid var(--line); }
+    h1 { margin:0 0 8px; font-size:clamp(28px,4vw,44px); line-height:1.1; letter-spacing:0; }
+    h2 { margin:36px 0 12px; font-size:21px; letter-spacing:0; }
+    p { margin:0; color:var(--muted); max-width:78ch; }
+    code { padding:2px 5px; background:#e8ece9; border-radius:4px; font-size:.92em; }
+    .summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:28px 0 0; }
+    .summary a { display:block; min-height:124px; padding:18px; color:inherit; text-decoration:none; background:var(--white); border:1px solid var(--line); border-top:4px solid; border-radius:6px; }
+    .summary a:hover, .summary a:focus-visible { outline:2px solid currentColor; outline-offset:2px; }
+    .summary strong { display:block; font-size:21px; }
+    .summary span { color:var(--muted); }
+    .summary .count { display:block; margin-top:12px; font-size:28px; color:var(--ink); }
+    .luna { border-color:var(--luna)!important; } .sol { border-color:var(--sol)!important; } .terra { border-color:var(--terra)!important; }
+    main { padding:0 0 56px; }
+    .contract { display:flex; gap:18px; padding:16px 18px; background:#edf1ee; border-left:4px solid var(--ink); }
+    .contract strong { flex:0 0 auto; }
+    .table-wrap { overflow-x:auto; background:var(--white); border:1px solid var(--line); border-radius:6px; }
+    .table-wrap:focus-visible { outline:3px solid var(--ink); outline-offset:3px; }
+    table { width:100%; border-collapse:collapse; min-width:700px; }
+    th, td { padding:11px 14px; text-align:left; border-bottom:1px solid var(--line); }
+    th { background:#edf1ee; font-size:12px; text-transform:uppercase; color:var(--muted); }
+    tbody tr:last-child td { border-bottom:0; }
+    tbody tr:hover { background:#f5f7f5; }
+    .tag { display:inline-block; min-width:62px; padding:2px 8px; border:1px solid currentColor; border-radius:999px; font-size:12px; font-weight:700; text-align:center; }
+    .tag-luna { color:var(--luna); } .tag-sol { color:var(--sol); } .tag-terra { color:var(--terra); }
+    footer { margin-top:18px; color:var(--muted); font-size:13px; }
+    @media (max-width:700px) { header,main{width:min(100% - 20px,1180px)} header{padding-top:30px}.summary{grid-template-columns:1fr}.contract{display:block}.contract strong{display:block;margin-bottom:4px} }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Agent Model Catalog</h1>
+    <p>dotnet-harness가 설치한 21개 agent의 역할, 모델, reasoning effort를 한눈에 확인합니다.</p>
+    <nav class="summary" aria-label="모델 카테고리">
+      <a class="luna" href="./luna/index.html"><strong>Luna</strong><span>탐색, 감사, 정밀 작업 준비</span><span class="count" data-catalog-count="3">3 agents</span></a>
+      <a class="sol" href="./sol/index.html"><strong>Sol</strong><span>계획, 조정, 검토, 검증</span><span class="count" data-catalog-count="14">14 agents</span></a>
+      <a class="terra" href="./terra/index.html"><strong>Terra</strong><span>구현과 산출물 작성</span><span class="count" data-catalog-count="4">4 agents</span></a>
+    </nav>
+  </header>
+  <main>
+    <h2>Runtime contract</h2>
+    <div class="contract"><strong>Flat discovery 유지</strong><p>실제 호출 정의는 <code>.codex/agents/*.toml</code>에 그대로 있습니다. 이 카탈로그는 가시성만 제공하며 agent를 호출할 때는 TOML의 <code>name</code>을 사용합니다.</p></div>
+    <h2>전체 배정</h2>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="21개 agent의 모델 및 reasoning effort 배정표">
+      <table>
+        <thead><tr><th scope="col">Agent</th><th scope="col">Category</th><th scope="col">Model</th><th scope="col">Effort</th><th scope="col">Primary role</th></tr></thead>
+        <tbody>
+          <tr data-agent="workflow-guardrails" data-model="gpt-5.6-sol" data-effort="high"><td><strong>workflow-guardrails</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">high</td><td>안전·승인 경계 조정</td></tr>
+          <tr data-agent="goal-boundary" data-model="gpt-5.6-sol" data-effort="low"><td><strong>goal-boundary</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">low</td><td>목표와 범위 정리</td></tr>
+          <tr data-agent="service-template" data-model="gpt-5.6-sol" data-effort="high"><td><strong>service-template</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">high</td><td>서비스 아키텍처 계획</td></tr>
+          <tr data-agent="frontend-ui" data-model="gpt-5.6-sol" data-effort="high"><td><strong>frontend-ui</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">high</td><td>프런트엔드 설계 판단</td></tr>
+          <tr data-agent="tdd-test" data-model="gpt-5.6-sol" data-effort="high"><td><strong>tdd-test</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">high</td><td>테스트 전략 계획</td></tr>
+          <tr data-agent="reference-auditor" data-model="gpt-5.6-luna" data-effort="high"><td><strong>reference-auditor</strong></td><td><span class="tag tag-luna">Luna</span></td><td class="agent-model">gpt-5.6-luna</td><td class="agent-effort">high</td><td>외부 참조 조사·감사</td></tr>
+          <tr data-agent="intake-planner" data-model="gpt-5.6-sol" data-effort="low"><td><strong>intake-planner</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">low</td><td>작업 접수와 경로 설정</td></tr>
+          <tr data-agent="implementation-coordinator" data-model="gpt-5.6-sol" data-effort="high"><td><strong>implementation-coordinator</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">high</td><td>구현 순서와 의존성 조정</td></tr>
+          <tr data-agent="code-reviewer" data-model="gpt-5.6-sol" data-effort="high"><td><strong>code-reviewer</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">high</td><td>통합 코드 리뷰</td></tr>
+          <tr data-agent="verification-runner" data-model="gpt-5.6-sol" data-effort="low"><td><strong>verification-runner</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">low</td><td>검증 명령 실행과 판정</td></tr>
+          <tr data-agent="git-operator" data-model="gpt-5.6-luna" data-effort="low"><td><strong>git-operator</strong></td><td><span class="tag tag-luna">Luna</span></td><td class="agent-model">gpt-5.6-luna</td><td class="agent-effort">low</td><td>Git 변경 작성과 점검</td></tr>
+          <tr data-agent="backend-worker" data-model="gpt-5.6-terra" data-effort="high"><td><strong>backend-worker</strong></td><td><span class="tag tag-terra">Terra</span></td><td class="agent-model">gpt-5.6-terra</td><td class="agent-effort">high</td><td>백엔드 구현</td></tr>
+          <tr data-agent="frontend-worker" data-model="gpt-5.6-terra" data-effort="high"><td><strong>frontend-worker</strong></td><td><span class="tag tag-terra">Terra</span></td><td class="agent-model">gpt-5.6-terra</td><td class="agent-effort">high</td><td>프런트엔드 구현</td></tr>
+          <tr data-agent="test-worker" data-model="gpt-5.6-terra" data-effort="high"><td><strong>test-worker</strong></td><td><span class="tag tag-terra">Terra</span></td><td class="agent-model">gpt-5.6-terra</td><td class="agent-effort">high</td><td>테스트 구현</td></tr>
+          <tr data-agent="docs-harness-worker" data-model="gpt-5.6-terra" data-effort="low"><td><strong>docs-harness-worker</strong></td><td><span class="tag tag-terra">Terra</span></td><td class="agent-model">gpt-5.6-terra</td><td class="agent-effort">low</td><td>문서·harness 산출물 작성</td></tr>
+          <tr data-agent="backend-reviewer" data-model="gpt-5.6-sol" data-effort="high"><td><strong>backend-reviewer</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">high</td><td>백엔드 리뷰</td></tr>
+          <tr data-agent="frontend-reviewer" data-model="gpt-5.6-sol" data-effort="high"><td><strong>frontend-reviewer</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">high</td><td>프런트엔드 리뷰</td></tr>
+          <tr data-agent="test-reviewer" data-model="gpt-5.6-sol" data-effort="high"><td><strong>test-reviewer</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">high</td><td>테스트·검증 리뷰</td></tr>
+          <tr data-agent="docs-harness-reviewer" data-model="gpt-5.6-sol" data-effort="high"><td><strong>docs-harness-reviewer</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">high</td><td>문서·harness 리뷰</td></tr>
+          <tr data-agent="feature-slicer" data-model="gpt-5.6-sol" data-effort="high"><td><strong>feature-slicer</strong></td><td><span class="tag tag-sol">Sol</span></td><td class="agent-model">gpt-5.6-sol</td><td class="agent-effort">high</td><td>기능 단위 분할과 라우팅</td></tr>
+          <tr data-agent="docs-harness-specialist" data-model="gpt-5.6-luna" data-effort="high"><td><strong>docs-harness-specialist</strong></td><td><span class="tag tag-luna">Luna</span></td><td class="agent-model">gpt-5.6-luna</td><td class="agent-effort">high</td><td>문서·harness 조사와 계획</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <footer>Source of truth: <code>.codex/agents/*.toml</code> · Catalog: <code>.codex/agent-categories</code></footer>
+  </main>
+</body>
+</html>

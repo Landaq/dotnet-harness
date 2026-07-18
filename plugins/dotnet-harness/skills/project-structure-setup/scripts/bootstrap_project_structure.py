@@ -5,8 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
-import subprocess
+import unicodedata
 from pathlib import Path
 from xml.sax.saxutils import escape
 
@@ -122,10 +123,29 @@ def _package_versions_manifest() -> Path:
     return Path(__file__).resolve().parents[1] / "references" / "package-versions.json"
 
 
-def _package_versions_props() -> str:
+def _load_versions_manifest() -> dict[str, object]:
     manifest = _package_versions_manifest()
     with manifest.open("r", encoding="utf-8") as handle:
         data = json.load(handle)
+    if not isinstance(data, dict):
+        raise SystemExit(f"Invalid version manifest: {manifest}")
+    return data
+
+
+def _manifest_version(section: str, name: str) -> str:
+    manifest = _package_versions_manifest()
+    entries = _load_versions_manifest().get(section)
+    if not isinstance(entries, dict):
+        raise SystemExit(f"Invalid {section} section in version manifest: {manifest}")
+    version = entries.get(name)
+    if not isinstance(version, str) or not version:
+        raise SystemExit(f"Missing {section} version for {name} in {manifest}")
+    return version
+
+
+def _package_versions_props() -> str:
+    manifest = _package_versions_manifest()
+    data = _load_versions_manifest()
 
     packages = data.get("packages")
     if not isinstance(packages, dict) or not packages:
@@ -145,18 +165,31 @@ def _package_versions_props() -> str:
     lines.extend(["  </ItemGroup>", "</Project>", ""])
     return "\n".join(lines)
 
+
+def _aspire_resource_name(value: str, suffix: str = "") -> str:
+    normalized = re.sub(r"[^A-Za-z0-9-]+", "-", value)
+    normalized = re.sub(r"-+", "-", normalized).strip("-")
+    if not normalized or not normalized[0].isalpha() or not normalized[0].isascii():
+        normalized = f"app-{normalized}" if normalized else "app"
+    max_base_length = 64 - len(suffix)
+    normalized = normalized[:max_base_length].rstrip("-") or "app"
+    return f"{normalized}{suffix}"
+
+
 def _project_files(project_name: str, service_name: str | None) -> dict[str, str]:
-    safe_project = project_name or "DotnetHarness"
+    database_resource_name = _aspire_resource_name(project_name or "DotnetHarness", suffix="Db")
+    aspire_sdk_version = _manifest_version("sdks", "Aspire.AppHost.Sdk")
     service = service_name or "Sample"
     service_var = f"{service[:1].lower()}{service[1:]}Api"
-    service_slug = service.lower()
+    service_slug = _aspire_resource_name(service).lower()
+    service_resource_name = _aspire_resource_name(service, suffix="-api").lower()
     service_apphost_reference = (
         f'    <ProjectReference Include="..\\..\\BackEnd\\Services\\{service}\\{service}.Api\\{service}.Api.csproj" />\n'
         if service_name
         else ""
     )
     service_apphost_registration = (
-        f"""\nvar {service_var} = builder.AddProject<Projects.{service}_Api>("{service_slug}-api")
+        f"""\nvar {service_var} = builder.AddProject<Projects.{service}_Api>("{service_resource_name}")
     .WithReference(sql)
     .WithReference(redis);
 
@@ -180,7 +213,7 @@ apiGateway.WithReference({service_var});
       "{service_slug}-api-cluster": {{
         "Destinations": {{
           "primary": {{
-            "Address": "https+http://{service_slug}-api"
+            "Address": "https+http://{service_resource_name}"
           }}
         }}
       }}
@@ -275,6 +308,8 @@ playwright-report/
 *.psm1 text eol=crlf
 *.cmd text eol=crlf
 *.bat text eol=crlf
+*.zsh text eol=lf
+*.sh text eol=lf
 """,
         ".codex/harness-config.json": """{
   "ui": {
@@ -302,8 +337,8 @@ playwright-report/
 </Project>
 """,
         "Directory.Packages.props": _package_versions_props(),
-        "src/Aspire/AppHost/AppHost.csproj": """<Project Sdk="Microsoft.NET.Sdk">
-  <Sdk Name="Aspire.AppHost.Sdk" Version="13.0.0" />
+        "src/Aspire/AppHost/AppHost.csproj": f"""<Project Sdk="Microsoft.NET.Sdk">
+  <Sdk Name="Aspire.AppHost.Sdk" Version="{escape(aspire_sdk_version)}" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
@@ -318,7 +353,7 @@ playwright-report/
 """,
         "src/Aspire/AppHost/Program.cs": f"""var builder = DistributedApplication.CreateBuilder(args);
 
-var sql = builder.AddSqlServer("sql").AddDatabase("{safe_project}Db");
+var sql = builder.AddSqlServer("sql").AddDatabase("{database_resource_name}");
 var redis = builder.AddRedis("redis");
 
 var apiGateway = builder.AddProject<Projects.APIGateway>("api-gateway")
@@ -387,6 +422,10 @@ app.MapReverseProxy();
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 
 app.Run();
+
+public partial class Program
+{
+}
 """,
         "src/BackEnd/APIGateway/appsettings.json": reverse_proxy_config,
         "src/BackEnd/BuildingBlocks/Contracts/Contracts.csproj": """<Project Sdk="Microsoft.NET.Sdk" />
@@ -468,7 +507,8 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
-    .AddInteractiveWebAssemblyRenderMode();
+    .AddInteractiveWebAssemblyRenderMode()
+    .AddAdditionalAssemblies(typeof(Web.Client.ClientAssemblyMarker).Assembly);
 
 app.Run();
 """,
@@ -479,28 +519,45 @@ app.Run();
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <title>Dotnet Harness</title>
-    <HeadOutlet />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <HeadOutlet @rendermode="InteractiveAuto" />
 </head>
 <body>
-    <Routes />
+    <Web.Client.Routes @rendermode="InteractiveAuto" />
     <script src="_framework/blazor.web.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
 </html>
 """,
-        "src/FrontEnd/Web/_Imports.razor": """@using Microsoft.AspNetCore.Components.Routing
-@using Microsoft.AspNetCore.Components.Web
-@using MudBlazor
+        "src/FrontEnd/Web/_Imports.razor": """@using Microsoft.AspNetCore.Components.Web
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
 """,
-        "src/FrontEnd/Web/Routes.razor": """<Router AppAssembly="typeof(Program).Assembly">
+        "src/FrontEnd/Web.Client/Routes.razor": """<Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" />
+        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
     </Found>
 </Router>
 """,
-        "src/FrontEnd/Web/Pages/Home.razor": """@page "/"
+        "src/FrontEnd/Web.Client/Layout/MainLayout.razor": """@inherits LayoutComponentBase
+
+<MudProviders />
+
+<MudLayout>
+    <MudMainContent Class="pa-4">
+        @Body
+    </MudMainContent>
+</MudLayout>
+""",
+        "src/FrontEnd/Web.Client/Layout/MudProviders.razor": """<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+""",
+        "src/FrontEnd/Web.Client/Pages/Home.razor": """@page "/"
 
 <MudText Typo="Typo.h4">Dotnet Harness</MudText>
 <MudText>Blazor Auto Rendering + MudBlazor baseline.</MudText>
+<MudLink Href="/interactive">Open the interactive client page</MudLink>
 """,
         "src/FrontEnd/Web.Client/Web.Client.csproj": """<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
   <ItemGroup>
@@ -517,7 +574,35 @@ builder.Services.AddMudServices();
 await builder.Build().RunAsync();
 """,
         "src/FrontEnd/Web.Client/_Imports.razor": """@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Routing
 @using MudBlazor
+@using Web.Client.Layout
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+""",
+        "src/FrontEnd/Web.Client/ClientAssemblyMarker.cs": """namespace Web.Client;
+
+public static class ClientAssemblyMarker
+{
+}
+""",
+        "src/FrontEnd/Web.Client/Pages/Interactive.razor": """@page "/interactive"
+
+<PageTitle>Interactive</PageTitle>
+
+<MudText Typo="Typo.h4">Interactive Auto</MudText>
+<MudText>Count: @count</MudText>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Increment">
+    Increment
+</MudButton>
+
+@code {
+    private int count;
+
+    private void Increment()
+    {
+        count++;
+    }
+}
 """,
         f"src/BackEnd/Services/{service}/{service}.Domain/{service}.Domain.csproj": """<Project Sdk="Microsoft.NET.Sdk" />
 """,
@@ -529,6 +614,12 @@ await builder.Build().RunAsync();
   </ItemGroup>
 </Project>
 """,
+        f"src/BackEnd/Services/{service}/{service}.Application/AssemblyMarker.cs": f"""namespace {service}.Application;
+
+public static class AssemblyMarker
+{{
+}}
+""",
         f"src/BackEnd/Services/{service}/{service}.Infrastructure/{service}.Infrastructure.csproj": f"""<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
@@ -536,6 +627,12 @@ await builder.Build().RunAsync();
     <ProjectReference Include="..\\{service}.Application\\{service}.Application.csproj" />
   </ItemGroup>
 </Project>
+""",
+        f"src/BackEnd/Services/{service}/{service}.Infrastructure/AssemblyMarker.cs": f"""namespace {service}.Infrastructure;
+
+public static class AssemblyMarker
+{{
+}}
 """,
         f"src/BackEnd/Services/{service}/{service}.Api/{service}.Api.csproj": f"""<Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
@@ -566,17 +663,26 @@ app.Run();
 """,
         f"src/BackEnd/Services/{service}/{service}.Contracts/{service}.Contracts.csproj": """<Project Sdk="Microsoft.NET.Sdk" />
 """,
+        f"src/BackEnd/Services/{service}/{service}.Contracts/AssemblyMarker.cs": f"""namespace {service}.Contracts;
+
+public static class AssemblyMarker
+{{
+}}
+""",
         "test/Unit/Unit.Tests.csproj": """<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <Compile Remove="Services/**/*.cs" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="coverlet.collector" />
+    <ProjectReference Include="..\\..\\src\\BackEnd\\BuildingBlocks\\Application\\Application.csproj" />
   </ItemGroup>
 </Project>
 """,
-        "test/Unit/BaselineTests.cs": """using FluentAssertions;
+        "test/Unit/BaselineTests.cs": """using BuildingBlocks.Application.Mediator;
+using FluentAssertions;
 using Xunit;
 
 namespace Unit;
@@ -584,9 +690,10 @@ namespace Unit;
 public sealed class BaselineTests
 {
     [Fact]
-    public void Test_project_is_wired()
+    public void Mediator_contract_exposes_request_and_dispatcher_abstractions()
     {
-        true.Should().BeTrue();
+        typeof(IRequest<>).IsInterface.Should().BeTrue();
+        typeof(IRequestDispatcher).GetMethod(nameof(IRequestDispatcher.Send)).Should().NotBeNull();
     }
 }
 """,
@@ -597,10 +704,12 @@ public sealed class BaselineTests
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="coverlet.collector" />
+    <ProjectReference Include="..\\..\\src\\BackEnd\\BuildingBlocks\\Application\\Application.csproj" />
   </ItemGroup>
 </Project>
 """,
-        "test/Architecture/BaselineArchitectureTests.cs": """using FluentAssertions;
+        "test/Architecture/BaselineArchitectureTests.cs": """using BuildingBlocks.Application.Mediator;
+using FluentAssertions;
 using Xunit;
 
 namespace Architecture;
@@ -608,35 +717,117 @@ namespace Architecture;
 public sealed class BaselineArchitectureTests
 {
     [Fact]
-    public void Architecture_test_project_is_wired()
+    public void Application_building_block_does_not_reference_persistence()
     {
-        true.Should().BeTrue();
+        var references = typeof(IRequest<>).Assembly
+            .GetReferencedAssemblies()
+            .Select(assembly => assembly.Name);
+
+        references.Should().NotContain("Persistence");
     }
 }
 """,
         "test/Functional/APIGateway/APIGateway.FunctionalTests.csproj": """<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="coverlet.collector" />
+    <ProjectReference Include="..\\..\\..\\src\\BackEnd\\APIGateway\\APIGateway.csproj" />
   </ItemGroup>
 </Project>
 """,
-        "test/Functional/APIGateway/APIGatewayBaselineTests.cs": """using FluentAssertions;
+        "test/Functional/APIGateway/APIGatewayBaselineTests.cs": """using System.Net;
 using Xunit;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Functional.APIGateway;
 
-public sealed class APIGatewayBaselineTests
+public sealed class APIGatewayBaselineTests : IClassFixture<WebApplicationFactory<global::Program>>
 {
-    [Fact]
-    public void Functional_test_project_is_wired()
+    private readonly HttpClient _client;
+
+    public APIGatewayBaselineTests(WebApplicationFactory<global::Program> factory)
     {
-        "/api/health".Should().StartWith("/api");
+        _client = factory.CreateClient();
+    }
+
+    [Fact]
+    public async Task Health_endpoint_starts_and_returns_success()
+    {
+        var response = await _client.GetAsync("/api/health");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }
+""",
+        f"test/Unit/Services/{service}/{service}.UnitTests.csproj": f"""<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <ProjectReference Include="..\\..\\..\\..\\src\\BackEnd\\Services\\{service}\\{service}.Application\\{service}.Application.csproj" />
+  </ItemGroup>
+</Project>
+""",
+        f"test/Unit/Services/{service}/ApplicationBaselineTests.cs": f"""using Xunit;
+
+namespace Unit.Services.{service};
+
+public sealed class ApplicationBaselineTests
+{{
+    [Fact]
+    public void Application_assembly_is_loadable()
+    {{
+        Assert.NotNull(typeof(global::{service}.Application.AssemblyMarker).Assembly);
+    }}
+}}
+""",
+        f"test/Integration/Services/{service}/{service}.IntegrationTests.csproj": f"""<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <ProjectReference Include="..\\..\\..\\..\\src\\BackEnd\\Services\\{service}\\{service}.Infrastructure\\{service}.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
+""",
+        f"test/Integration/Services/{service}/InfrastructureBaselineTests.cs": f"""using Xunit;
+
+namespace Integration.Services.{service};
+
+public sealed class InfrastructureBaselineTests
+{{
+    [Fact]
+    public void Infrastructure_assembly_is_loadable()
+    {{
+        Assert.NotNull(typeof(global::{service}.Infrastructure.AssemblyMarker).Assembly);
+    }}
+}}
+""",
+        f"test/Contract/Services/{service}/{service}.ContractTests.csproj": f"""<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <ProjectReference Include="..\\..\\..\\..\\src\\BackEnd\\Services\\{service}\\{service}.Contracts\\{service}.Contracts.csproj" />
+  </ItemGroup>
+</Project>
+""",
+        f"test/Contract/Services/{service}/ContractsBaselineTests.cs": f"""using Xunit;
+
+namespace Contract.Services.{service};
+
+public sealed class ContractsBaselineTests
+{{
+    [Fact]
+    public void Contracts_assembly_is_loadable()
+    {{
+        Assert.NotNull(typeof(global::{service}.Contracts.AssemblyMarker).Assembly);
+    }}
+}}
 """,
         "src/Aspire/AppHost/Properties/launchSettings.json": """{
   "$schema": "https://json.schemastore.org/launchsettings.json",
@@ -769,11 +960,15 @@ def _solution_projects(service_name: str | None) -> list[str]:
                 f"src/BackEnd/Services/{service}/{service}.Infrastructure/{service}.Infrastructure.csproj",
                 f"src/BackEnd/Services/{service}/{service}.Api/{service}.Api.csproj",
                 f"src/BackEnd/Services/{service}/{service}.Contracts/{service}.Contracts.csproj",
+                f"test/Unit/Services/{service}/{service}.UnitTests.csproj",
+                f"test/Integration/Services/{service}/{service}.IntegrationTests.csproj",
+                f"test/Contract/Services/{service}/{service}.ContractTests.csproj",
             ]
         )
     return projects
 
 HARNESS_DIRS = [
+    ".codex/agent-categories",
     ".codex/agents",
     ".codex/scripts",
 ]
@@ -782,9 +977,97 @@ HARNESS_FILES = [
     "AGENTS.md",
 ]
 
+CSHARP_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+MAX_PROJECT_NAME_LENGTH = 120
+MAX_SERVICE_NAME_LENGTH = 64
+INVALID_NAME_CHARACTERS = set('<>:"/\\|?*\'')
+WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{index}" for index in range(1, 10)),
+    *(f"LPT{index}" for index in range(1, 10)),
+}
+
 
 def _normalize_name(value: str) -> str:
     return value.strip().replace(" ", "")
+
+
+def _validate_common_name(value: str, option: str) -> None:
+    if not value:
+        raise SystemExit(f"{option} cannot be empty")
+    if ".." in value:
+        raise SystemExit(f"{option} cannot contain '..'")
+    if value.endswith("."):
+        raise SystemExit(f"{option} cannot end with '.'")
+    if value.split(".", maxsplit=1)[0].upper() in WINDOWS_RESERVED_NAMES:
+        raise SystemExit(f"{option} is reserved by Windows")
+    if any(character in INVALID_NAME_CHARACTERS for character in value):
+        raise SystemExit(f"{option} contains a path separator, quote, or invalid filename character")
+    if any(unicodedata.category(character).startswith("C") for character in value):
+        raise SystemExit(f"{option} cannot contain control or formatting characters")
+
+
+def _validate_names(project_name: str, service_name: str | None) -> None:
+    _validate_common_name(project_name, "--project-name")
+    if len(project_name) > MAX_PROJECT_NAME_LENGTH:
+        raise SystemExit(f"--project-name cannot exceed {MAX_PROJECT_NAME_LENGTH} characters")
+    if service_name is None:
+        return
+    _validate_common_name(service_name, "--service-name")
+    if len(service_name) > MAX_SERVICE_NAME_LENGTH:
+        raise SystemExit(f"--service-name cannot exceed {MAX_SERVICE_NAME_LENGTH} characters")
+    if not CSHARP_IDENTIFIER.fullmatch(service_name):
+        raise SystemExit(
+            "--service-name must be a C# identifier using ASCII letters, digits, or underscores "
+            "and cannot start with a digit"
+        )
+
+
+def resolve_and_validate_options(
+    target_root: Path,
+    project_name: str | None,
+    service_name: str | None,
+    no_service: bool,
+    harness_only: bool,
+) -> tuple[str, str | None]:
+    resolved_project = _normalize_name(project_name) if project_name else None
+    if harness_only and not resolved_project:
+        resolved_project = "HarnessOnly"
+    if not resolved_project:
+        resolved_project = _normalize_name(_prompt_project_name())
+
+    resolved_service = _normalize_name(service_name) if service_name else None
+    if no_service:
+        resolved_service = None
+    elif resolved_service is None and not harness_only:
+        prompted_service = _prompt_service_name()
+        resolved_service = _normalize_name(prompted_service) if prompted_service else None
+
+    _validate_names(resolved_project, resolved_service)
+    _validate_existing_scaffold(target_root, resolved_service, harness_only)
+    return resolved_project, resolved_service
+
+
+def _validate_existing_scaffold(target_root: Path, service_name: str | None, harness_only: bool) -> None:
+    if harness_only or service_name is None:
+        return
+
+    apphost_project = target_root / "src/Aspire/AppHost/AppHost.csproj"
+    service_project = (
+        target_root
+        / "src/BackEnd/Services"
+        / service_name
+        / f"{service_name}.Api"
+        / f"{service_name}.Api.csproj"
+    )
+    if apphost_project.exists() and not service_project.exists():
+        raise SystemExit(
+            "Cannot add a service to an existing scaffold because generated AppHost, gateway, and solution "
+            "files are intentionally not overwritten. Create the service through the task workflow instead."
+        )
 
 
 def _prompt_project_name() -> str:
@@ -900,7 +1183,14 @@ def source_harness_root() -> Path:
         script.parents[3] / "assets/harness",
     ]
     for candidate in candidates:
-        if (candidate / ".codex/agents").exists() and (candidate / ".codex/scripts").exists():
+        if all(
+            (candidate / relative).exists()
+            for relative in (
+                ".codex/agent-categories",
+                ".codex/agents",
+                ".codex/scripts",
+            )
+        ):
             return candidate
     return candidates[0]
 
@@ -960,49 +1250,13 @@ def remove_repo_local_skills(target_root: Path, preview: bool) -> None:
     print(f"[remove] {skills_dir}")
 
 
-def optional_skill_source(source_root: Path, skill_name: str) -> Path | None:
-    candidates = [
-        source_root.parent / "optional-skills" / skill_name,
-        source_root.parent.parent / "optional-skills" / skill_name,
-    ]
-    for candidate in candidates:
-        if (candidate / "SKILL.md").exists():
-            return candidate
-    return None
-
-
-def ensure_optional_caveman_skill(target_root: Path, source_root: Path, preview: bool, install_optional_skills: bool) -> None:
-    script = (
-        source_root / ".codex/scripts/ensure-caveman-skill.ps1"
-        if preview
-        else target_root / ".codex/scripts/ensure-caveman-skill.ps1"
-    )
-    if not script.exists():
-        print(f"[skip] missing optional skill helper: {script}")
-        return
-
-    command = ["pwsh", "-NoProfile", "-File", str(script)]
-    source = optional_skill_source(source_root, "caveman")
-    if source:
-        command.extend(["-SkillSource", str(source)])
-    if install_optional_skills:
-        command.append("-Apply")
-        command.append("-AllowUserSkillInstall")
-
-    try:
-        subprocess.run(command, check=False)
-    except OSError as exc:
-        print(f"[warn] caveman optional skill check failed: {exc}")
-
-
-def install_codex_harness(target_root: Path, preview: bool, install_optional_skills: bool) -> None:
+def install_codex_harness(target_root: Path, preview: bool) -> None:
     source_root = source_harness_root()
     for source_rel in HARNESS_FILES:
         copy_file_if_missing(source_root / source_rel, target_root / source_rel, preview)
     for source_rel in HARNESS_DIRS:
         copy_dir_if_missing(source_root / source_rel, target_root / source_rel, preview)
     remove_repo_local_skills(target_root, preview)
-    ensure_optional_caveman_skill(target_root, source_root, preview, install_optional_skills)
 
 
 def run(
@@ -1012,7 +1266,6 @@ def run(
     preview: bool,
     no_gitkeep: bool,
     harness_only: bool,
-    install_optional_skills: bool,
 ) -> None:
     target_root = base_root
     if preview:
@@ -1035,7 +1288,7 @@ def run(
 
         ensure_project_readme(target_root, preview)
         ensure_dotnet_skeleton(target_root, project_name, service_name, preview)
-    install_codex_harness(target_root, preview, install_optional_skills)
+    install_codex_harness(target_root, preview)
 
 
 def parse_args() -> argparse.Namespace:
@@ -1047,7 +1300,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--preview", action="store_true", help="Print target directories only")
     parser.add_argument("--no-gitkeep", action="store_true", help="Do not create .gitkeep files")
     parser.add_argument("--harness-only", action="store_true", help="Install Codex harness files only")
-    parser.add_argument("--install-optional-skills", action="store_true", help="Install optional user skills such as caveman when missing")
     return parser.parse_args()
 
 
@@ -1056,21 +1308,13 @@ def main() -> int:
 
     root = Path(args.root).resolve()
 
-    project_name = _normalize_name(args.project_name) if args.project_name else None
-    if not project_name:
-        project_name = _normalize_name(_prompt_project_name())
-
-    service_name = _normalize_name(args.service_name) if args.service_name else None
-    if args.no_service:
-        service_name = None
-    elif service_name is None and not args.harness_only:
-        prompted_service = _prompt_service_name()
-        service_name = _normalize_name(prompted_service) if prompted_service else None
-
-    if project_name == "":
-        raise SystemExit("--project-name cannot be empty")
-    if service_name == "":
-        raise SystemExit("--service-name cannot be empty")
+    project_name, service_name = resolve_and_validate_options(
+        root,
+        args.project_name,
+        args.service_name,
+        args.no_service,
+        args.harness_only,
+    )
 
     run(
         root,
@@ -1079,7 +1323,6 @@ def main() -> int:
         preview=args.preview,
         no_gitkeep=args.no_gitkeep,
         harness_only=args.harness_only,
-        install_optional_skills=args.install_optional_skills,
     )
     return 0
 

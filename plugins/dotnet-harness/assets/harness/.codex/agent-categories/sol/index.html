@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sol Agents | Dotnet Harness</title>
+  <style>
+    :root{--ink:#201b19;--muted:#665d59;--line:#dfd9d5;--paper:#f8f7f5;--accent:#b84a32}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}header,main{width:min(1080px,calc(100% - 32px));margin:auto}header{padding:44px 0 26px;border-bottom:1px solid var(--line)}nav{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:30px}nav a{color:var(--accent);font-weight:700}h1{margin:0 0 8px;font-size:clamp(30px,5vw,46px);line-height:1.1;letter-spacing:0}p{margin:0;color:var(--muted);max-width:72ch}main{padding:30px 0 54px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.card{padding:18px;background:#fff;border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:6px}.card h2{margin:0 0 7px;font-size:17px;overflow-wrap:anywhere;letter-spacing:0}.meta{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.meta span{padding:3px 8px;background:#f2e7e3;border-radius:4px;font:12px ui-monospace,SFMono-Regular,Consolas,monospace}.note{margin:28px 0 0;padding:15px 18px;border-left:4px solid var(--accent);background:#f2e7e3}code{font-size:.92em}footer{margin-top:26px;color:var(--muted);font-size:13px}@media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:580px){header,main{width:calc(100% - 20px)}.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header>
+    <nav aria-label="카탈로그 탐색"><a href="../index.html">전체</a><a href="../luna/index.html">Luna</a><a href="../terra/index.html">Terra</a></nav>
+    <h1>Sol Agents</h1>
+    <p>오케스트레이션, 계획, 아키텍처 판단, 리뷰와 검증 판정을 담당합니다.</p>
+  </header>
+  <main>
+    <div class="grid">
+      <article class="card" data-agent="workflow-guardrails" data-model="gpt-5.6-sol" data-effort="high"><h2>workflow-guardrails</h2><p>안전과 승인 경계를 조정합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+      <article class="card" data-agent="goal-boundary" data-model="gpt-5.6-sol" data-effort="low"><h2>goal-boundary</h2><p>목표, 범위, 완료 조건을 정리합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>low</code></span></div></article>
+      <article class="card" data-agent="service-template" data-model="gpt-5.6-sol" data-effort="high"><h2>service-template</h2><p>서비스 경계와 아키텍처를 계획합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+      <article class="card" data-agent="frontend-ui" data-model="gpt-5.6-sol" data-effort="high"><h2>frontend-ui</h2><p>UI 구조와 렌더링 경계를 판단합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+      <article class="card" data-agent="tdd-test" data-model="gpt-5.6-sol" data-effort="high"><h2>tdd-test</h2><p>테스트 전략과 Red-Green-Refactor를 계획합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+      <article class="card" data-agent="intake-planner" data-model="gpt-5.6-sol" data-effort="low"><h2>intake-planner</h2><p>작업을 접수하고 실행 경로를 정합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>low</code></span></div></article>
+      <article class="card" data-agent="implementation-coordinator" data-model="gpt-5.6-sol" data-effort="high"><h2>implementation-coordinator</h2><p>구현 순서와 의존성을 조정합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+      <article class="card" data-agent="code-reviewer" data-model="gpt-5.6-sol" data-effort="high"><h2>code-reviewer</h2><p>전체 변경의 결함과 회귀 위험을 검토합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+      <article class="card" data-agent="verification-runner" data-model="gpt-5.6-sol" data-effort="low"><h2>verification-runner</h2><p>검증 명령을 실행하고 결과를 판정합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>low</code></span></div></article>
+      <article class="card" data-agent="backend-reviewer" data-model="gpt-5.6-sol" data-effort="high"><h2>backend-reviewer</h2><p>백엔드 변경을 집중 리뷰합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+      <article class="card" data-agent="frontend-reviewer" data-model="gpt-5.6-sol" data-effort="high"><h2>frontend-reviewer</h2><p>프런트엔드 변경을 집중 리뷰합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+      <article class="card" data-agent="test-reviewer" data-model="gpt-5.6-sol" data-effort="high"><h2>test-reviewer</h2><p>테스트 범위와 검증 근거를 리뷰합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+      <article class="card" data-agent="docs-harness-reviewer" data-model="gpt-5.6-sol" data-effort="high"><h2>docs-harness-reviewer</h2><p>문서와 harness 계약을 리뷰합니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+      <article class="card" data-agent="feature-slicer" data-model="gpt-5.6-sol" data-effort="high"><h2>feature-slicer</h2><p>기능을 독립 작업 단위로 나눕니다.</p><div class="meta"><span class="agent-model">Model: <code>gpt-5.6-sol</code></span><span class="agent-effort">Effort: <code>high</code></span></div></article>
+    </div>
+    <p class="note">호출 시 카탈로그 경로가 아니라 <code>.codex/agents/*.toml</code>에 선언된 agent name을 사용합니다.</p>
+    <footer><span data-catalog-count="14">14 agents</span> · Model <code>gpt-5.6-sol</code></footer>
+  </main>
+</body>
+</html>

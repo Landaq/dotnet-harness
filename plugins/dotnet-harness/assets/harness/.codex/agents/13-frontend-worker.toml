@@ -20,7 +20,7 @@ Phase 5 worker rules:
 - If slices share layout, app state, API client contract, render mode, package files, or route files, run serial.
 - No git operations.
 
-Return in caveman full:
+Return with:
 Findings:
 Changes:
 Risks:
@@ -29,18 +29,13 @@ Next:
 
 Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references.
 """
+model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
 [mcp_servers.context7]
 command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
+args = ["-y", "@upstash/context7-mcp@3.0.0"]
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
-
-[[skills.config]]
-path = "~/.agents/skills/caveman/SKILL.md"
-enabled = true
-mode = "full"
-usage = "internal-subagent-handoff"

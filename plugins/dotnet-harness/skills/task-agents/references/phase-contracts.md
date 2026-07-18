@@ -18,23 +18,14 @@ If no agent is called, report why briefly with `Delegation: skipped <reason>`.
 
 ## Delegation Permission Gate
 
-Treat the following as explicit authorization for actual subagent execution after clarification:
+Use `delegation-policy.md` as the canonical source for explicit authorization wording, user opt-out wording, host/runtime gates, and skip reasons. This phase contract must not define a separate authorization token list.
 
-- `$dotnet-harness`
-- `task-agents`
-- `/feedback`
-- `에이전트`
-- `subagent`
-- `서브에이전트`
-- `에이전트에게 맡겨`
-- `작업을 에이전트들이 수행`
-
-If the user asks for implementation, refactoring, review, validation, frontend, backend, full-stack, plugin, or harness work without agent wording, check runtime policy:
+Before delegating implementation, refactoring, review, validation, frontend, backend, full-stack, plugin, or harness work, check runtime policy:
 
 - If runtime policy allows default subagent execution, proceed to route planning after Socratic clarification.
 - If runtime policy requires explicit authorization, do not spawn actual subagents. Ask briefly `에이전트에게 맡겨 진행할까요?`, or report `Delegation: skipped no-explicit-agent-request` and continue main-thread direct after clarification.
-- If the user says `에이전트 쓰지마`, `no agents`, `skip agents`, `직접 해줘`, `메인에서 직접 해줘`, `빠르게 메인에서 해줘`, `main thread only`, or equivalent explicit opt-out, do not spawn subagents; report `Delegation: skipped user-opt-out`.
-- If the user says `에이전트 쓰지마`, `no agents`, or equivalent explicit opt-out, do not spawn subagents; report `Delegation: skipped user-opt-out` and continue main-thread direct.
+- If the canonical policy classifies the request as explicit and runtime delegation is available, proceed to route planning after Socratic clarification.
+- If the canonical policy classifies the request as user opt-out, do not spawn subagents; report `Delegation: skipped user-opt-out` and continue main-thread direct.
 - Direct work is allowed when the user explicitly opts out of agents.
 
 Non-trivial work means multi-step, multi-file, architecture/workflow/plugin/harness change, backend/frontend behavior change, test strategy, review, verification, CI, release-sensitive, or unclear approval-boundary work.
@@ -82,7 +73,7 @@ Do not hand off to the next agent until previous agent output is explicit, bound
 
 Previous agent output is clear only when it includes: role, scope, `Findings`, `Changes`, `Risks`, `Verify`, `Next`, affected paths, and open questions or `none`.
 
-Each handoff prompt must start with `Prior result accepted:` plus a short caveman summary of the previous agent result and any unresolved risks.
+Each handoff prompt must start with `Prior result accepted:` plus a short summary of the previous agent result and any unresolved risks.
 
 ## Mandatory Socratic Checkpoint
 
@@ -167,7 +158,8 @@ For orchestration turns, include:
 - `Specialists`: feature-scoped specialist agents, feature slice ownership, planning perspective, and skipped specialist reasons.
 - `Socratic`: asked, satisfied, skipped with reason, or blocked waiting for user answer.
 - `Ambiguity`: before/after per feature and average.
-- `Delegation Permission`: explicit, not explicit, user-opt-out, host-policy, or unavailable.
+- `User Delegation Intent`: explicit, not explicit, or user-opt-out.
+- `Runtime Delegation Gate`: default-allowed, explicit-required, blocked, or unavailable.
 - `Delegation`: spawned subagents, skipped eligible roles with concrete reasons, utilization floor satisfied or not, and fallback status.
 - `Agents Used`: actual spawned agents only.
 - `Agents Skipped`: spawnable but skipped agents and reasons.
@@ -181,7 +173,8 @@ Before the final user response, report:
 - `Agent Results Reflected`: yes/no; if no, state why.
 - `Socratic`: asked/satisfied/skipped.
 - `Ambiguity`: before/after average and any remaining feature ambiguity.
-- `Delegation Permission`: explicit, not explicit, user-opt-out, host-policy, or unavailable.
+- `User Delegation Intent`: explicit, not explicit, or user-opt-out.
+- `Runtime Delegation Gate`: default-allowed, explicit-required, blocked, or unavailable.
 - `Main Thread Work`: integration, non-overlapping verification, cleanup, or unblock work performed directly.
 - `Review/Verification Evidence`: reviewer findings and validation command outcomes.
 - `Files Changed`: changed paths.

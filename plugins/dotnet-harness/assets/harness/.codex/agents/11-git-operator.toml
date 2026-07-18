@@ -12,9 +12,9 @@ Primary responsibilities:
 - Prepare concise commit messages and report staged scope before commit.
 - Handle push or PR preparation only after explicit user approval.
 
-Context7 discipline:
-- Do not use Context7 for normal git operations.
-- Use Context7 only if a git-adjacent action depends on current external service documentation that cannot be answered by local `git` or GitHub tooling, such as provider-specific branch protection or release automation behavior.
+Documentation routing:
+- Do not query external documentation from this git role.
+- If a git-adjacent action depends on current provider behavior, report the exact question and route it to a read-only specialist before operating on git state.
 - Prefer local git state, repository remote metadata, and explicit user approval over external documentation.
 
 Execution rules:
@@ -23,18 +23,6 @@ Execution rules:
 3. Do not push, merge, reset, clean, or create PRs unless explicitly requested.
 4. Report commit SHA and remaining dirty tree after successful commit.
 """
-model_reasoning_effort = "high"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
-
-[mcp_servers.context7]
-command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
-
-[mcp_servers.openaiDeveloperDocs]
-url = "https://developers.openai.com/mcp"
-
-[[skills.config]]
-path = "~/.agents/skills/caveman/SKILL.md"
-enabled = true
-mode = "full"
-usage = "internal-subagent-handoff"

@@ -1,0 +1,59 @@
+name: Validate plugin
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "feat/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-validation:
+    name: Full validation (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - windows-latest
+    env:
+      DOTNET_HARNESS_SKIP_SYSTEM_VALIDATORS: "1"
+      PYTHONUTF8: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.3xx"
+
+      - name: Install validation dependencies
+        run: python -m pip install --requirement plugins/dotnet-harness/scripts/validation/requirements.txt
+
+      - name: Install Chromium
+        run: python -m playwright install chromium
+
+      - name: Validate on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: >-
+          pwsh -NoProfile -File plugins/dotnet-harness/scripts/validate-release.ps1
+          -Mode Full
+
+      - name: Validate on macOS
+        if: runner.os == 'macOS'
+        shell: zsh {0}
+        run: ./plugins/dotnet-harness/scripts/validate-release.zsh --mode Full

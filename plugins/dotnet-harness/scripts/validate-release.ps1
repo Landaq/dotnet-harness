@@ -2,65 +2,47 @@ param(
     [string]$PluginRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path,
     [ValidateSet("Quick", "Full", "Core", "Harness", "Scaffold", "Upgrade", "Whitespace")]
     [string]$Mode = "Quick",
-    [switch]$IncludeScaffold
+    [switch]$IncludeScaffold,
+    [switch]$BrowserE2E
 )
 
 $ErrorActionPreference = "Stop"
 $env:PYTHONUTF8 = "1"
 
-$pluginRootPath = (Resolve-Path -LiteralPath $PluginRoot).Path
-$validationRoot = Join-Path $PSScriptRoot "validation"
+$pythonEnvironment = Join-Path $PSScriptRoot "..\assets\harness\.codex\scripts\python-env.ps1"
+. $pythonEnvironment
+$python = Resolve-DotnetHarnessPython
 
-$scriptGroups = @{
-    Core = @("validate-core.ps1")
-    Harness = @("validate-harness.ps1")
-    Scaffold = @("validate-scaffold.ps1")
-    Upgrade = @("validate-upgrade.ps1")
-    Whitespace = @("validate-whitespace.ps1")
-    Quick = @(
-        "validate-core.ps1",
-        "validate-harness.ps1",
-        "validate-upgrade.ps1",
-        "validate-whitespace.ps1"
-    )
-    Full = @(
-        "validate-core.ps1",
-        "validate-harness.ps1",
-        "validate-scaffold.ps1",
-        "validate-upgrade.ps1",
-        "validate-whitespace.ps1"
-    )
+$core = Join-Path $PSScriptRoot "validation\validate_release.py"
+$requirements = Join-Path $PSScriptRoot "validation\requirements.txt"
+$arguments = @($core, "--plugin-root", $PluginRoot, "--mode", $Mode)
+if ($IncludeScaffold) { $arguments += "--include-scaffold" }
+if ($BrowserE2E) { $arguments += "--browser-e2e" }
+
+$needsYaml = $Mode -in @("Quick", "Full", "Core")
+$needsPlaywright = $Mode -eq "Full" -or $BrowserE2E
+if (-not $needsYaml -and -not $needsPlaywright) {
+    & $python @arguments
+    exit $LASTEXITCODE
 }
 
-$selectedScripts = New-Object System.Collections.Generic.List[string]
-foreach ($scriptName in $scriptGroups[$Mode]) {
-    $selectedScripts.Add($scriptName) | Out-Null
-}
-if ($IncludeScaffold -and -not $selectedScripts.Contains("validate-scaffold.ps1")) {
-    $selectedScripts.Insert([Math]::Max(0, $selectedScripts.Count - 1), "validate-scaffold.ps1")
-}
-
-$failures = New-Object System.Collections.Generic.List[string]
-foreach ($scriptName in $selectedScripts) {
-    $scriptPath = Join-Path $validationRoot $scriptName
-    if (-not (Test-Path -LiteralPath $scriptPath)) {
-        $failures.Add("Missing validation script: $scriptPath") | Out-Null
-        continue
-    }
-
-    Write-Host "[group] $scriptName"
-    & pwsh -NoProfile -File $scriptPath -PluginRoot $pluginRootPath
-    if ($LASTEXITCODE -ne 0) {
-        $failures.Add("$scriptName failed with exit code $LASTEXITCODE") | Out-Null
-    }
+$imports = @()
+if ($needsYaml) { $imports += "yaml" }
+if ($needsPlaywright) { $imports += "playwright" }
+$importCommand = "import " + ($imports -join ", ")
+& $python -c $importCommand 2>$null
+if ($LASTEXITCODE -eq 0) {
+    & $python @arguments
+    exit $LASTEXITCODE
 }
 
-if ($failures.Count -gt 0) {
-    Write-Host "Release validation failed:"
-    foreach ($failure in $failures) {
-        Write-Host "- $failure"
-    }
-    exit 1
+$uv = Get-Command uv -ErrorAction SilentlyContinue
+if (-not $uv) {
+    throw "Release validation dependencies are required. Install from $requirements or install uv."
 }
 
-Write-Host "Release validation passed ($Mode): $pluginRootPath"
+if (-not $env:UV_CACHE_DIR) {
+    $env:UV_CACHE_DIR = Join-Path ([System.IO.Path]::GetTempPath()) "dotnet-harness-uv-cache"
+}
+& $uv.Source run --no-project --python $python --with-requirements $requirements -- python @arguments
+exit $LASTEXITCODE

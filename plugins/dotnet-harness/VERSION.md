@@ -1,8 +1,30 @@
 # Version
 
-Current version: `0.4.18`
+Current version: `0.5.0`
 
 ## Release Notes
+
+### 0.5.0
+
+- Remove the legacy caveman prompt, skill, MCP, and install/upgrade wiring.
+- Split Windows PowerShell and macOS zsh entrypoints while keeping shared Python
+  cores for equivalent install, upgrade, and validation behavior.
+- Assign Luna to exploration/docs/git roles, Sol to planning/orchestration/review
+  roles, and Terra to implementation workers, with per-agent reasoning effort.
+- Add a static model-category catalog without changing flat runtime agent
+  discovery or invocation names.
+- Make harness upgrades transactional, isolate same-second backups, and restore
+  the pre-upgrade state when apply or validation fails.
+- Reject unsafe scaffold names before writes and complete the advertised Blazor
+  Auto and MudBlazor runtime baseline.
+- Enforce least-privilege agent sandboxes and runtime-aware delegation policy.
+- Pin the remaining Context7 MCP configuration to the reviewed 3.0.0 release.
+- Consolidate release validation on the shared Python core and strengthen
+  scaffold, upgrade, harness-only, and compatibility checks.
+- Add native Windows/macOS CI and a Playwright browser check that proves Blazor
+  InteractiveAuto works from WebAssembly without a server circuit after reload.
+
+See `MIGRATION.md` for upgrade behavior and compatibility notes.
 
 ### 0.4.18
 

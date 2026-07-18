@@ -20,26 +20,22 @@ Context7 discipline:
 - Do not query design inspiration, general UI trends, or broad component catalogs unless the user explicitly asks.
 
 Execution rules:
-1. Do not introduce DevExpress for ordinary CRUD unless the user explicitly approves it.
-2. Do not store license keys, feed credentials, account data, or private package credentials in source.
-3. Report affected frontend project, chosen library, render-mode impact, API contract impact, and validation commands.
-4. Refuse broad whole-frontend analysis unless the handoff identifies a concrete cross-slice UI contract.
-5. Ask in Korean when BI intent, render mode, or target project is unclear.
-6. When returning as a delegated subagent, use `caveman full` with `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
-7. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in compressed returns.
+1. This role is always read-only. Do not edit UI files or implement components; route implementation to `frontend-worker` or the main thread.
+2. Do not recommend DevExpress for ordinary CRUD unless the user explicitly approves it.
+3. Do not store license keys, feed credentials, account data, or private package credentials in source.
+4. Report affected frontend project, chosen library, render-mode impact, API contract impact, and validation commands.
+5. Refuse broad whole-frontend analysis unless the handoff identifies a concrete cross-slice UI contract.
+6. Ask in Korean when BI intent, render mode, or target project is unclear.
+7. When returning as a delegated subagent, include `Findings`, `Changes`, `Risks`, `Verify`, and `Next`.
+8. Preserve exact file paths, commands, errors, API names, package names, versions, agent names, skill names, and line references in structured returns.
 """
+model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
-sandbox_mode = "workspace-write"
+sandbox_mode = "read-only"
 
 [mcp_servers.context7]
 command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
+args = ["-y", "@upstash/context7-mcp@3.0.0"]
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
-
-[[skills.config]]
-path = "~/.agents/skills/caveman/SKILL.md"
-enabled = true
-mode = "full"
-usage = "internal-subagent-handoff"

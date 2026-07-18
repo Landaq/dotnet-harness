@@ -10,7 +10,6 @@
 - Marketplace: `.agents/plugins/marketplace.json`
 
 루트 `.codex/skills`, `.codex/agents`, `.codex/scripts`는 중복 원본으로 만들지 않는다.
-이 plugin 개발 repo에서는 작업 결과 HTML 파일을 생성하지 않는다.
 
 ## 2. 작업 라우팅
 
@@ -39,6 +38,13 @@
 `--harness-only`는 프로젝트 구조와 .NET skeleton을 만들지 않고 Codex harness만 설치해야 한다.
 
 ## 4. 검증
+
+Windows에서는 아래 PowerShell 명령을 사용한다. macOS에서는 같은 검증 그룹을
+OS 전용 zsh entrypoint로 실행한다.
+
+```zsh
+./plugins/dotnet-harness/scripts/validate-release.zsh --mode Quick
+```
 
 Plugin 변경 후:
 

@@ -49,13 +49,13 @@ Read `references/phase-contracts.md` for full phase, Socratic, routing, output, 
 
 Task Agents must clarify before delegating. Actual subagent execution begins only after Socratic goal clarification is satisfied and runtime delegation permission is present.
 
-Treat `$dotnet-harness`, `task-agents`, `/feedback`, `에이전트`, `subagent`, `서브에이전트`, `에이전트에게 맡겨`, or `작업을 에이전트들이 수행` as explicit authorization for actual subagent execution after clarification.
+Treat `references/delegation-policy.md` as the canonical source for delegation authorization wording, host/runtime gates, user opt-out, utilization limits, and skip reasons. Do not maintain a second authorization token list in this file.
 
-When the user asks for implementation, refactoring, review, or validation without agent wording, check runtime policy before spawning. If host/runtime policy requires explicit authorization, do not spawn; ask briefly whether to delegate to agents, or report `Delegation: skipped no-explicit-agent-request` and proceed main-thread direct after clarification.
+When the host/runtime allows default delegation, use subagents for eligible non-trivial work after clarification. When the host/runtime requires explicit authorization, spawn only after the canonical policy classifies the user's wording as explicit. A user opt-out always disables subagent execution for the current task.
 
 Do not spawn worker subagents before Socratic clarification is satisfied and average ambiguity is `<= 8%`. Read-only clarification helpers such as `goal-boundary` or `intake-planner` also require runtime policy permission.
 
-Read `references/delegation-policy.md` before spawning or skipping subagents, reporting delegation evidence, using compressed handoffs, or applying the subagent utilization floor.
+Read `references/delegation-policy.md` before spawning or skipping subagents, reporting delegation evidence, using structured handoffs, or applying the subagent utilization floor.
 
 ## Worker Core
 
@@ -118,11 +118,18 @@ After changing agents or this skill, run:
 pwsh -NoProfile -File .codex/scripts/validate-task-agents.ps1
 ```
 
+On macOS, run the platform validator instead:
+
+```zsh
+./.codex/scripts/validate-task-agents.zsh --repo-root .
+```
+
 If the script is unavailable, verify manually:
 
-1. `.codex/agents` contains expected workflow agents.
-2. Agent files expose `name`, `description`, `developer_instructions`, `model_reasoning_effort`, `sandbox_mode`.
-3. No repo identity hardcoding remains in `.codex/agents`, `task-agents`, or root `AGENTS.md`.
-4. Repo-local `.codex\skills` is absent; skills come from `dotnet-harness:*`.
-5. Plugin skill validation passes for `dotnet-harness:task-agents`.
-6. `git diff --check -- .codex\agents AGENTS.md` has no whitespace errors when the folder is a git repo; skip this check outside git.
+1. `.codex/agents` contains the expected 21 workflow agents, and `.codex/agent-categories` contains `index.html`, `luna/index.html`, `sol/index.html`, and `terra/index.html`.
+2. Agent files expose `name`, `description`, `developer_instructions`, `model`, `model_reasoning_effort`, and `sandbox_mode`.
+3. Every agent TOML's exact `model` and `model_reasoning_effort` match the full catalog and its Luna, Sol, or Terra subset; visible model, effort, and agent counts match their `data-*` values.
+4. No repo identity hardcoding remains in `.codex/agents`, `task-agents`, or root `AGENTS.md`.
+5. Repo-local `.codex\skills` is absent; skills come from `dotnet-harness:*`.
+6. Plugin skill validation passes for `dotnet-harness:task-agents`.
+7. `git diff --check -- .codex/agent-categories .codex/agents AGENTS.md` has no whitespace errors when the folder is a git repo; skip this check outside git.
